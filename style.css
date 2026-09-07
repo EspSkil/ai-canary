@@ -100,3 +100,144 @@ footer{display:flex;justify-content:space-between;gap:18px;border-top:1px solid 
   .money-node{position:static!important;transform:none!important;max-width:none;width:100%}
   .money-core,.orbit,.flow-arrow{display:none}
 }
+
+/* ===== v3.2 cosmetic refinements ===== */
+.signal-head>div{display:flex;align-items:center;gap:6px;min-width:0}
+.ticker{font-weight:800;color:#a9c8da;white-space:nowrap}
+.signal-name{font-size:9px;letter-spacing:0;text-transform:none;color:#6f93aa;white-space:nowrap}
+.info-btn{width:17px;height:17px;border-radius:50%;border:1px solid rgba(69,215,255,.28);background:rgba(69,215,255,.06);color:#8edff5;font-size:10px;font-weight:850;line-height:14px;cursor:pointer;padding:0}
+.info-btn:hover{background:rgba(69,215,255,.15);color:white}
+.risk-chip{font-size:11px!important;font-weight:850;padding:5px 9px!important;white-space:nowrap}
+.spark-period{font-size:9px;letter-spacing:.1em;color:#5f8298;text-align:right;margin-top:5px}
+.sparkline-wrap{position:relative}
+.sparkline-wrap:after{content:"12M AGO                                      NOW";position:absolute;left:0;right:0;bottom:-9px;font-size:7px;letter-spacing:.05em;color:#4e7085;display:flex;justify-content:space-between;pointer-events:none}
+.signal-card:nth-child(5) .sparkline-wrap:after,.signal-card:nth-child(6) .sparkline-wrap:after{content:"EARLIEST                                      LATEST"}
+.flow-arrow{display:none!important}
+.info-popover{position:fixed;z-index:1000;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));padding:22px 42px 22px 22px;border-radius:16px;background:#0b2235;border:1px solid rgba(69,215,255,.3);box-shadow:0 28px 80px rgba(0,0,0,.65)}
+.info-close{position:absolute;right:12px;top:8px;background:none;border:0;color:#9ec3d8;font-size:25px;cursor:pointer}
+.info-title{font-size:17px;font-weight:850;margin-bottom:8px}
+.info-text{font-size:13px;line-height:1.55;color:#b7cddd}
+.short-series-note{font-size:10px;color:#8ea7ba;margin-top:5px}
+@media(max-width:620px){.signal-name{display:block;white-space:normal}.signal-head>div{flex-wrap:wrap}.risk-chip{font-size:10px!important}}
+
+/* ===== v3.2.1: Canary Score semicircle ===== */
+.score-panel{position:relative;overflow:hidden}
+.score-gauge-semi{
+  --score-angle:73.8deg;
+  position:relative;
+  width:min(330px,92%);
+  height:190px;
+  margin:22px auto 10px;
+}
+.semi-arc{
+  position:absolute;
+  left:50%;
+  top:0;
+  width:300px;
+  height:300px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:
+    conic-gradient(
+      from 270deg,
+      var(--green) 0deg 45deg,
+      var(--yellow) 45deg 90deg,
+      var(--orange) 90deg 135deg,
+      var(--red) 135deg 180deg,
+      transparent 180deg 360deg
+    );
+  box-shadow:
+    0 0 26px rgba(69,215,255,.10),
+    0 0 30px rgba(247,217,76,.08);
+}
+.semi-arc:after{
+  content:"";
+  position:absolute;
+  inset:17px;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 42%,#102d45 0,#081a29 68%,#06131f 100%);
+  box-shadow:inset 0 0 26px rgba(0,0,0,.35);
+}
+.semi-mask{
+  position:absolute;
+  left:50%;
+  top:150px;
+  width:330px;
+  height:80px;
+  transform:translateX(-50%);
+  background:linear-gradient(180deg,#081826 0%,#081826 72%,transparent 100%);
+  z-index:3;
+}
+.semi-score-content{
+  position:absolute;
+  z-index:5;
+  left:50%;
+  top:54px;
+  transform:translateX(-50%);
+  text-align:center;
+}
+.semi-label{
+  font-size:13px;
+  letter-spacing:.06em;
+  color:#e9f4fb;
+  margin-bottom:4px;
+}
+.score-gauge-semi .score-value{
+  font-size:76px;
+  line-height:.9;
+  font-weight:900;
+  letter-spacing:-.05em;
+  color:#ffd13f;
+  text-shadow:0 0 24px rgba(247,217,76,.15);
+}
+.score-gauge-semi .score-denom{font-size:16px;color:#d7e4ec;margin-top:6px}
+.score-marker{
+  position:absolute;
+  z-index:6;
+  left:50%;
+  top:150px;
+  width:134px;
+  height:4px;
+  transform-origin:0 50%;
+  transform:rotate(calc(-90deg + var(--score-angle)));
+  pointer-events:none;
+}
+.score-marker span{
+  position:absolute;
+  right:-5px;
+  top:-5px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#fff7bf;
+  border:2px solid #ffd13f;
+  box-shadow:0 0 12px rgba(247,217,76,.7);
+}
+.baseline-note{
+  margin-top:8px;
+  font-size:11px;
+  line-height:1.35;
+  color:#7f9bb0;
+  text-align:center;
+}
+.baseline-note strong{color:#cfe3ef}
+.baseline-note span{color:#6f8799}
+.score-panel .status-pill{
+  margin-top:0;
+  min-width:96px;
+  background:linear-gradient(180deg,#ffd43b,#f5b914);
+  color:#111923;
+  border-color:rgba(255,216,64,.7);
+  box-shadow:0 4px 16px rgba(247,217,76,.16);
+}
+.score-panel .hedge-read{margin-top:14px}
+.score-panel .quote{margin-top:11px}
+.score-panel .risk-scale{display:none!important}
+@media(max-width:520px){
+  .score-gauge-semi{width:100%;height:176px}
+  .semi-arc{width:272px;height:272px}
+  .semi-mask{top:136px}
+  .semi-score-content{top:48px}
+  .score-gauge-semi .score-value{font-size:68px}
+  .score-marker{top:136px;width:121px}
+}
