@@ -32,6 +32,7 @@ async function loadDashboard() {
     renderOverview(data);
     renderTakeaways(data);
     renderIndicators(data);
+    renderMoneyCircle(data);
     renderMarketCharts(data.marketHistory || []);
     renderEconomics(data);
     renderTokenGpuTable(data.tokenGpu || []);
@@ -197,6 +198,107 @@ function renderTakeaways(data) {
     </div>`).join("");
 }
 
+
+function renderMoneyCircle(data) {
+  const x = data.canary?.latest || {};
+  const market = data.latestMarket || {};
+  const tg = data.latestTokenGpu || {};
+
+  const token = tg.TOKEN_SD || {};
+  const h100 = tg.H100_SD || {};
+
+  const nodes = [
+    {
+      id:"moneyNode1",
+      scores:[toNum(x.financingScore),toNum(x.commitmentScore)],
+      badges:[
+        `Financing ${fmtScore(x.financingScore)}`,
+        `Commitments ${fmtScore(x.commitmentScore)}`,
+        market.hyOas ? `HY OAS ${formatNumber(market.hyOas.value,2)}%` : null
+      ]
+    },
+    {
+      id:"moneyNode2",
+      scores:[toNum(x.capexScore),toNum(x.commitmentScore)],
+      badges:[
+        `CAPEX ${fmtScore(x.capexScore)}`,
+        `Commitments ${fmtScore(x.commitmentScore)}`
+      ]
+    },
+    {
+      id:"moneyNode3",
+      scores:[toNum(x.semisScore),toNum(x.computeScore)],
+      badges:[
+        `Semis ${fmtScore(x.semisScore)}`,
+        `Compute ${fmtScore(x.computeScore)}`,
+        market.sox ? `SOX ${formatNumber(market.sox.value,0)}` : null
+      ]
+    },
+    {
+      id:"moneyNode4",
+      scores:[toNum(x.computeScore),toNum(x.tokenScore)],
+      badges:[
+        `Compute ${fmtScore(x.computeScore)}`,
+        Number.isFinite(toNum(h100.value)) ? `H100 $${formatNumber(h100.value,2)}` : null,
+        `Token score ${fmtScore(x.tokenScore)}`
+      ]
+    },
+    {
+      id:"moneyNode5",
+      scores:[toNum(x.demandScore),toNum(x.tokenScore)],
+      badges:[
+        `Demand ${fmtScore(x.demandScore)}`,
+        Number.isFinite(toNum(token.value)) ? `Token ${formatNumber(token.value,2)}` : null
+      ]
+    }
+  ];
+
+  nodes.forEach(node => {
+    const el = document.getElementById(node.id);
+    if (!el) return;
+
+    // Node status is NOT a new score. It uses the highest risk category
+    // among the existing Canary indicators mapped to this node.
+    const valid = node.scores.filter(Number.isFinite);
+    const worstScore = valid.length ? Math.max(...valid) : NaN;
+    const status = scoreStatus(worstScore);
+    const tone = statusTone(status);
+
+    el.classList.remove("node-healthy","node-watch","node-warning","node-danger");
+    el.classList.add(`node-${tone}`);
+
+    const statusEl = el.querySelector(".money-node-status");
+    statusEl.textContent = status;
+    statusEl.className = `money-node-status ${tone}`;
+
+    const badgeEl = el.querySelector(".money-node-badges");
+    badgeEl.innerHTML = node.badges
+      .filter(Boolean)
+      .map(b => `<span class="money-badge">${escapeHtml(b)}</span>`)
+      .join("");
+  });
+}
+
+function fmtScore(value) {
+  const n = toNum(value);
+  return Number.isFinite(n) ? Math.round(n) : "—";
+}
+
+function toNum(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+  if (value === null || value === undefined || value === "") return NaN;
+
+  let s = String(value).trim().replace(/\s/g,"");
+  if (!s) return NaN;
+
+  // Supports both 16.6 and locale text such as 16,6.
+  if (s.includes(",") && !s.includes(".")) s = s.replace(",",".");
+  else if (s.includes(",") && s.includes(".")) s = s.replace(/,/g,"");
+
+  const n = Number(s.replace(/%$/,""));
+  return Number.isFinite(n) ? n : NaN;
+}
+
 function renderIndicators(data) {
   const x = data.canary?.latest || {};
   const items = [
@@ -291,6 +393,7 @@ function renderTokenGpuTable(rows) {
 
 function renderCompanies(rows) {
   const groups = new Map();
+
   rows.forEach(r => {
     const c = r.company || "Unknown";
     if (!groups.has(c)) groups.set(c,[]);
@@ -298,26 +401,36 @@ function renderCompanies(rows) {
   });
 
   const html = [];
+
   groups.forEach((companyRows,company) => {
     const periods = companyRows.map(r=>r.period).filter(Boolean).sort();
     const latestPeriod = periods[periods.length-1] || "—";
-    const metrics = companyRows.filter(r=>r.period===latestPeriod).map(r => `
-      <div class="company-metric">
-        <div class="company-metric-label">${escapeHtml(r.metric || "—")}</div>
-        <div class="company-metric-value">${formatDemandValue(r)}</div>
-        <div class="company-metric-change">${formatDemandChange(r)}</div>
-      </div>`).join("");
+    const currentRows = companyRows.filter(r=>r.period===latestPeriod);
 
-    html.push(`<article class="panel company-card">
+    let missingCount = 0;
+
+    const metrics = currentRows.map(r => {
+      const display = formatDemandValue(r);
+      if (display.includes("—")) missingCount++;
+
+      return `
+        <div class="company-metric">
+          <div class="company-metric-label">${escapeHtml(r.metric || "—")}</div>
+          <div class="company-metric-value">${display}</div>
+          <div class="company-metric-change">${formatDemandChange(r)}</div>
+        </div>`;
+    }).join("");
+
+    html.push(`<article class="panel company-card ${missingCount ? "has-data-warning" : ""}">
       <div class="company-name">${escapeHtml(company)}</div>
       <div class="company-period">${escapeHtml(latestPeriod)}</div>
       <div class="company-metrics">${metrics}</div>
+      ${missingCount ? `<div class="company-data-note">${missingCount} value${missingCount>1?"s":""} need checking in AI_Demand.</div>` : ""}
     </article>`);
   });
 
   document.getElementById("companyCards").innerHTML = html.join("");
 }
-
 function dataset(label,data) {
   return {label,data,borderWidth:2,pointRadius:0,tension:.18,spanGaps:true};
 }
@@ -364,14 +477,22 @@ function spark(id,data) {
 }
 
 function formatDemandValue(r) {
-  if (r.unit === "%") return formatPercent(r.value);
-  if (r.unit === "$bn") return `$${formatNumber(r.value, Number(r.value)<10?2:1)}bn`;
-  return `${formatNumber(r.value,2)} ${r.unit || ""}`.trim();
+  let n = toNum(r.value);
+
+  // If API sends a percent as 43 rather than 0.43, normalize for display.
+  if (r.unit === "%" && Number.isFinite(n) && Math.abs(n) > 1) n = n / 100;
+
+  if (r.unit === "%") return formatPercent(n);
+  if (r.unit === "$bn") return Number.isFinite(n) ? `$${formatNumber(n, n<10?2:1)}bn` : "$—bn";
+  return Number.isFinite(n) ? `${formatNumber(n,2)} ${r.unit || ""}`.trim() : `— ${r.unit || ""}`.trim();
 }
 
 function formatDemandChange(r) {
   if (r.yoyChange === null || r.yoyChange === undefined || r.yoyChange === "") return "";
-  return `YoY ${formatPercent(r.yoyChange)}`;
+  let n = toNum(r.yoyChange);
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) > 1) n = n / 100;
+  return `YoY ${formatPercent(n)}`;
 }
 
 function formatTokenGpuValue(r) {
