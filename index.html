@@ -39,21 +39,20 @@
       <section id="overview" class="overview-grid">
         <article class="panel score-panel">
           <div class="eyebrow">CANARY SCORE</div>
-          <div id="scoreGauge" class="score-gauge">
-            <div class="score-gauge-inner">
+          <div id="scoreGauge" class="score-gauge-semi">
+            <div class="semi-arc"></div>
+            <div class="semi-mask"></div>
+            <div class="score-marker"><span></span></div>
+            <div class="semi-score-content">
+              <div class="semi-label">CANARY SCORE</div>
               <div id="canaryScore" class="score-value">—</div>
               <div class="score-denom">/100</div>
             </div>
           </div>
           <div id="canaryStatus" class="status-pill">—</div>
+          <div class="baseline-note">vs. last week: <strong>—</strong><br><span>v3 baseline</span></div>
           <div id="hedgeRead" class="hedge-read">Hedge Read: —</div>
           <div class="quote">“Same data. A clearer story.”</div>
-          <div class="risk-scale">
-            <span class="scale-green">Healthy</span>
-            <span class="scale-yellow">Watch</span>
-            <span class="scale-orange">Warning</span>
-            <span class="scale-red">Danger</span>
-          </div>
         </article>
 
         <article class="panel snapshot-panel">
@@ -67,37 +66,37 @@
 
           <div class="signal-grid">
             <div class="signal-card">
-              <div class="signal-head"><span>SOX</span><span id="soxRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">SOX</span><span class="signal-name">Semiconductor Index</span><button class="info-btn" data-info="sox" aria-label="About SOX">i</button></div><span id="soxRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
               <div id="soxValue" class="signal-value">—</div>
               <div id="soxMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="soxSpark"></canvas></div>
             </div>
             <div class="signal-card">
-              <div class="signal-head"><span>VIX</span><span id="vixRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">VIX</span><span class="signal-name">Equity Volatility</span><button class="info-btn" data-info="vix" aria-label="About VIX">i</button></div><span id="vixRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
               <div id="vixValue" class="signal-value">—</div>
               <div id="vixMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="vixSpark"></canvas></div>
             </div>
             <div class="signal-card">
-              <div class="signal-head"><span>US 10Y</span><span id="us10yRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">US 10Y</span><span class="signal-name">Treasury Yield</span><button class="info-btn" data-info="us10y" aria-label="About US 10Y">i</button></div><span id="us10yRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
               <div id="us10yValue" class="signal-value">—</div>
               <div id="us10yMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="us10ySpark"></canvas></div>
             </div>
             <div class="signal-card">
-              <div class="signal-head"><span>HY OAS</span><span id="hyOasRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">HY OAS</span><span class="signal-name">High Yield Credit Spread</span><button class="info-btn" data-info="hyoas" aria-label="About HY OAS">i</button></div><span id="hyOasRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
               <div id="hyOasValue" class="signal-value">—</div>
               <div id="hyOasMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="hyOasSpark"></canvas></div>
             </div>
             <div class="signal-card">
-              <div class="signal-head"><span>Token Index</span><span id="tokenRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">TOKEN INDEX</span><span class="signal-name">AI Token Expenditure</span><button class="info-btn" data-info="token" aria-label="About Token Index">i</button></div><span id="tokenRisk" class="risk-chip">—</span></div><div class="spark-period" id="tokenPeriod">HISTORY</div>
               <div id="tokenValue" class="signal-value">—</div>
               <div id="tokenMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="tokenSpark"></canvas></div>
             </div>
             <div class="signal-card">
-              <div class="signal-head"><span>H100 Rental</span><span id="h100SdRisk" class="risk-chip">—</span></div>
+              <div class="signal-head"><div><span class="ticker">H100 RENTAL</span><span class="signal-name">GPU Rental Price</span><button class="info-btn" data-info="h100" aria-label="About H100 Rental">i</button></div><span id="h100SdRisk" class="risk-chip">—</span></div><div class="spark-period" id="h100Period">HISTORY</div>
               <div id="h100SdValue" class="signal-value">—</div>
               <div id="h100SdMove" class="move-line">—</div>
               <div class="sparkline-wrap"><canvas id="h100Spark"></canvas></div>
@@ -108,7 +107,7 @@
 
       <section class="triple-grid">
         <article class="panel takeaways-panel">
-          <div class="eyebrow">KEY TAKEAWAYS</div>
+          <div class="eyebrow">KEY TAKEAWAYS · THIS WEEK</div>
           <div id="takeaways" class="takeaway-list"></div>
         </article>
 
@@ -145,12 +144,6 @@
               <div class="money-node-status">—</div>
               <div class="money-node-badges"></div>
             </div>
-
-            <div class="flow-arrow flow-12">→</div>
-            <div class="flow-arrow flow-23">↘</div>
-            <div class="flow-arrow flow-34">↙</div>
-            <div class="flow-arrow flow-45">←</div>
-            <div class="flow-arrow flow-51">↗</div>
 
             <div class="money-core">AI<br><span>ECOSYSTEM</span></div>
             <div class="orbit"></div>
@@ -284,6 +277,11 @@
         </article>
       </section>
     </main>
+    <div id="infoPopover" class="info-popover" hidden>
+      <button id="infoClose" class="info-close" aria-label="Close">×</button>
+      <div id="infoTitle" class="info-title"></div>
+      <div id="infoText" class="info-text"></div>
+    </div>
 
     <footer>
       <span>AI Canary Dashboard · live data from Google Sheets</span>
