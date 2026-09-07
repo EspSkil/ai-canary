@@ -6,6 +6,7 @@ const charts = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
+  setupInfoButtons();
 
   document.querySelectorAll("#rangeControls button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -16,6 +17,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+
+const INFO = {
+  sox: {
+    title:"SOX · Semiconductor Index",
+    text:"The PHLX Semiconductor Index tracks major semiconductor companies. AI infrastructure depends heavily on chips, so sustained semiconductor weakness can be an early market signal of softer expectations for the AI investment cycle."
+  },
+  vix: {
+    title:"VIX · Equity Volatility",
+    text:"The VIX reflects option-implied volatility in the S&P 500. A rising VIX normally signals increasing market stress and also makes index hedges more expensive."
+  },
+  us10y: {
+    title:"US 10Y · Treasury Yield",
+    text:"The 10-year US Treasury yield is a key global discount rate. Higher yields raise financing costs and can pressure long-duration technology valuations and capital-intensive AI projects."
+  },
+  hyoas: {
+    title:"HY OAS · High Yield Credit Spread",
+    text:"The option-adjusted spread on US high-yield corporate bonds measures the extra yield investors demand over Treasuries. Widening spreads indicate tighter credit conditions and rising financing risk."
+  },
+  token: {
+    title:"Token Index · AI Token Expenditure",
+    text:"Silicon Data's LLM Token Expenditure Index tracks the effective expenditure associated with AI token usage. It helps monitor whether monetization and usage economics are strengthening or weakening."
+  },
+  h100: {
+    title:"H100 Rental · GPU Rental Price",
+    text:"The Silicon Data H100 Rental Price Index tracks rental pricing for Nvidia H100 compute. Falling prices can signal improving supply, weaker scarcity or softer compute demand; interpretation therefore depends on the broader AI cycle."
+  }
+};
+
+function setupInfoButtons() {
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".info-btn");
+    if (btn) {
+      const info = INFO[btn.dataset.info];
+      if (!info) return;
+      setText("infoTitle", info.title);
+      setText("infoText", info.text);
+      document.getElementById("infoPopover").hidden = false;
+      return;
+    }
+    if (e.target.id === "infoClose") document.getElementById("infoPopover").hidden = true;
+  });
+}
 
 async function loadDashboard() {
   setStatus("Loading live data…", false);
@@ -56,7 +100,7 @@ function renderOverview(data) {
   const score = Number(latest.canaryScore);
   if (Number.isFinite(score)) {
     setText("canaryScore", Math.round(score));
-    document.getElementById("scoreGauge").style.setProperty("--score-deg", `${Math.max(0,Math.min(100,score))*3.6}deg`);
+    document.getElementById("scoreGauge").style.setProperty("--score-angle", `${Math.max(0,Math.min(100,score))*1.8}deg`);
   }
 
   setText("canaryStatus", latest.status || "—");
@@ -148,6 +192,8 @@ function renderOverviewSparklines(data) {
 
   const tokenSeries = seriesRows(data.tokenGpu || [], "TOKEN_SD");
   const h100Series = seriesRows(data.tokenGpu || [], "H100_SD");
+  setText("tokenPeriod", `${tokenSeries.length} OBS · AVAILABLE HISTORY`);
+  setText("h100Period", `${h100Series.length} OBS · AVAILABLE HISTORY`);
   spark("tokenSpark", tokenSeries.map(r=>r.value));
   spark("h100Spark", h100Series.map(r=>r.value));
 }
@@ -368,8 +414,12 @@ function renderEconomics(data) {
   const tokenRows = seriesRows(data.tokenGpu || [], "TOKEN_SD");
   const h100Rows = seriesRows(data.tokenGpu || [], "H100_SD");
 
-  lineChart("token","tokenChart",tokenRows.map(r=>r.date),[dataset("Token Index",tokenRows.map(r=>r.value))]);
-  lineChart("h100","h100Chart",h100Rows.map(r=>r.date),[dataset("H100 Rental",h100Rows.map(r=>r.value))]);
+  lineChart("token","tokenChart",tokenRows.map(r=>r.date),[shortAwareDataset("Token Index",tokenRows.map(r=>r.value))]);
+  lineChart("h100","h100Chart",h100Rows.map(r=>r.date),[shortAwareDataset("H100 Rental",h100Rows.map(r=>r.value))]);
+
+  if (h100Rows.length <= 3) {
+    setText("h100HeroChange", `${h100Rows.length} observations · 7D ${formatSignedPercent(h100?.["7dChange"])}`);
+  }
 }
 
 function seriesRows(rows,seriesId) {
@@ -435,6 +485,11 @@ function dataset(label,data) {
   return {label,data,borderWidth:2,pointRadius:0,tension:.18,spanGaps:true};
 }
 
+function shortAwareDataset(label,data) {
+  const short = data.length <= 3;
+  return {label,data,borderWidth:2,pointRadius:short?4:0,pointHoverRadius:short?5:3,tension:short?0:.18,spanGaps:true};
+}
+
 function lineChart(key,id,labels,datasets) {
   if (charts[key]) charts[key].destroy();
 
@@ -465,7 +520,7 @@ function spark(id,data) {
   if (charts[key]) charts[key].destroy();
   charts[key] = new Chart(document.getElementById(id), {
     type:"line",
-    data:{labels:values.map((_,i)=>i),datasets:[{data:values,borderWidth:2,pointRadius:0,tension:.2,fill:false}]},
+    data:{labels:values.map((_,i)=>i),datasets:[{data:values,borderWidth:2,pointRadius:values.length<=3?4:0,pointHoverRadius:values.length<=3?5:3,tension:values.length<=3?0:.2,fill:false}]}, 
     options:{
       responsive:true,
       maintainAspectRatio:false,
