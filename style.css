@@ -1,102 +1,555 @@
+const API_URL = "https://script.google.com/macros/s/AKfycbx53ydPhicHlX3o3jMbgm0z1HozvgkeJGA0MFmoIZqxeAzIdntHevNZ0JFqa7DTV5OoXw/exec";
 
-:root{
-  --bg:#05111d;
-  --panel:#0b2235;
-  --panel2:#0f2d45;
-  --text:#f4f8fb;
-  --muted:#8ea7ba;
-  --line:rgba(141,181,210,.16);
-  --yellow:#f7d94c;
-  --green:#4ad18a;
-  --orange:#ff9d43;
-  --red:#ff5e6f;
-  --cyan:#45d7ff;
-  --radius:18px;
+let DATA = null;
+let currentRange = 52;
+const charts = {};
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadDashboard();
+
+  document.querySelectorAll("#rangeControls button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#rangeControls button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentRange = Number(btn.dataset.range);
+      if (DATA) renderMarketCharts(DATA.marketHistory || []);
+    });
+  });
+});
+
+async function loadDashboard() {
+  setStatus("Loading live data…", false);
+
+  try {
+    const response = await fetch(API_URL, { cache:"no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.error || "API returned ok=false");
+
+    DATA = data;
+
+    renderOverview(data);
+    renderTakeaways(data);
+    renderIndicators(data);
+    renderMoneyCircle(data);
+    renderMarketCharts(data.marketHistory || []);
+    renderEconomics(data);
+    renderTokenGpuTable(data.tokenGpu || []);
+    renderCompanies(data.aiDemand || []);
+
+    setStatus("Live data", true);
+    const generated = new Date(data.generatedAt);
+    setText("lastUpdated", `API generated: ${generated.toLocaleString("nb-NO")}`);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Data error: ${err.message}`, false);
+  }
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0;color:var(--text);
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:
-    radial-gradient(circle at 12% -8%,rgba(48,137,194,.18),transparent 30%),
-    radial-gradient(circle at 90% 7%,rgba(247,217,76,.05),transparent 24%),
-    linear-gradient(180deg,#04101a,var(--bg));
+
+function renderOverview(data) {
+  const latest = data.canary?.latest || {};
+  const market = data.latestMarket || {};
+  const tg = data.latestTokenGpu || {};
+  const history = data.marketHistory || [];
+
+  const score = Number(latest.canaryScore);
+  if (Number.isFinite(score)) {
+    setText("canaryScore", Math.round(score));
+    document.getElementById("scoreGauge").style.setProperty("--score-deg", `${Math.max(0,Math.min(100,score))*3.6}deg`);
+  }
+
+  setText("canaryStatus", latest.status || "—");
+  setText("hedgeRead", `Hedge Read: ${latest.hedgeRead || "—"}`);
+  setText("snapshotDate", latest.week ? `Snapshot ${latest.week}` : "Weekly snapshot");
+
+  marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
+    Number(latest.soxChange), latest.soxPeriod || "1W", "pct", "inverse");
+
+  marketSignal("VIX", market.vix, "vixValue","vixMove","vixRisk",
+    Number(latest.vixChange), latest.vixPeriod || "1D", "pct", "direct");
+
+  marketSignal("US10Y", market.us10y, "us10yValue","us10yMove","us10yRisk",
+    Number(latest.us10yChangeBps), latest.us10yPeriod || "1W", "bps", "direct", "%");
+
+  const hyChange = weeklyDelta(history, "hyOas");
+  marketSignal("HY OAS", market.hyOas, "hyOasValue","hyOasMove","hyOasRisk",
+    hyChange, "1W", "bpsFromPct", "direct", "%");
+
+  const token = tg.TOKEN_SD;
+  const h100sd = tg.H100_SD;
+
+  if (token) {
+    setText("tokenValue", formatNumber(token.value,2));
+    renderMoveAndRisk("tokenMove","tokenRisk", Number(token["7dChange"]), "7D", "pct", "inverse");
+  }
+  if (h100sd) {
+    setText("h100SdValue", `$${formatNumber(h100sd.value,2)}`);
+    renderMoveAndRisk("h100SdMove","h100SdRisk", Number(h100sd["7dChange"]), "7D", "pct", "inverse");
+  }
+
+  renderOverviewSparklines(data);
 }
-.page-shell{width:min(1500px,calc(100% - 28px));margin:auto;padding-bottom:42px}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 0 14px}
-.brand{display:flex;align-items:center;gap:13px}.bird{font-size:30px;padding:8px 11px;border-radius:14px;background:rgba(247,217,76,.08);border:1px solid rgba(247,217,76,.22)}
-h1{margin:0;font-size:clamp(28px,3vw,40px);letter-spacing:.08em}.brand-sub{font-size:12px;color:#82cfe8;margin-top:2px}
-h2{margin:4px 0 0;font-size:clamp(21px,2.5vw,30px)}
-.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:800}
-.small{font-size:11px}.muted{color:var(--muted)}.status-block{text-align:right}.status-live{color:var(--green);font-size:12px;font-weight:800;margin-bottom:3px}
-.nav{position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow-x:auto;padding:10px 0 14px;background:linear-gradient(180deg,rgba(5,17,29,.98),rgba(5,17,29,.90),transparent);backdrop-filter:blur(10px)}
-.nav a{color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:999px;border:1px solid transparent;white-space:nowrap;font-size:13px}.nav a:hover{color:var(--text);background:rgba(255,255,255,.04);border-color:var(--line)}
-.panel{background:linear-gradient(180deg,rgba(14,43,65,.82),rgba(7,24,38,.95));border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 18px 42px rgba(0,0,0,.22)}
-.overview-grid{display:grid;grid-template-columns:.85fr 2.15fr;gap:18px;margin-top:8px}
-.score-panel{padding:24px;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:485px}
-.score-gauge{--score-deg:0deg;width:220px;aspect-ratio:1;margin:26px 0 18px;padding:13px;border-radius:50%;background:conic-gradient(var(--yellow) 0deg,var(--yellow) var(--score-deg),rgba(255,255,255,.08) var(--score-deg),rgba(255,255,255,.08) 360deg);box-shadow:0 0 36px rgba(247,217,76,.12)}
-.score-gauge-inner{height:100%;border-radius:50%;display:grid;place-content:center;background:radial-gradient(circle at 50% 38%,#102f48,#071826 72%);border:1px solid rgba(255,255,255,.05)}
-.score-value{font-size:70px;line-height:.95;font-weight:850;letter-spacing:-.04em}.score-denom{color:var(--muted)}
-.status-pill{padding:8px 16px;border-radius:999px;border:1px solid rgba(247,217,76,.28);background:rgba(247,217,76,.11);color:#fff2a3;font-size:13px;font-weight:850;letter-spacing:.1em}
-.hedge-read{margin-top:12px;color:#b2d8ed}.quote{margin-top:16px;color:#7fd7f0;font-style:italic;font-size:13px}
-.risk-scale{margin-top:auto;padding-top:28px;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.risk-scale span{font-size:9px;color:var(--muted);padding-top:7px;border-top:3px solid}.scale-green{border-color:var(--green)!important}.scale-yellow{border-color:var(--yellow)!important}.scale-orange{border-color:var(--orange)!important}.scale-red{border-color:var(--red)!important}
-.snapshot-panel{padding:24px}.section-title-row{display:flex;justify-content:space-between;align-items:end;gap:14px}.date-chip{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:6px 9px;border-radius:999px}
-.signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}.signal-card{padding:15px;border-radius:14px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.025)}
-.signal-head{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.signal-value{font-size:clamp(24px,2.3vw,35px);font-weight:830;margin-top:7px}
-.move-line{font-size:12px;font-weight:750;margin-top:5px}.move-up{color:var(--green)}.move-down{color:var(--red)}.move-flat{color:var(--muted)}
-.risk-chip{font-size:10px;letter-spacing:0;text-transform:none;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03)}.risk-up{color:#ffd0a4;border-color:rgba(255,157,67,.3);background:rgba(255,157,67,.08)}.risk-down{color:#c9ffde;border-color:rgba(74,209,138,.28);background:rgba(74,209,138,.07)}.risk-flat{color:var(--muted)}
-.sparkline-wrap{height:48px;margin-top:8px}.sparkline-wrap canvas{width:100%!important;height:48px!important}
-.triple-grid{display:grid;grid-template-columns:.9fr 1.3fr 1fr;gap:16px;margin-top:18px}
-.takeaways-panel,.money-panel,.indicators-panel{padding:20px}
-.takeaway-list{display:grid;gap:11px;margin-top:14px}.takeaway{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}.takeaway-dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900}.dot-good{background:rgba(74,209,138,.16);color:var(--green)}.dot-warn{background:rgba(255,157,67,.16);color:var(--orange)}
-.money-circle{position:relative;height:360px;margin-top:6px}.orbit{position:absolute;inset:54px 62px;border:2px solid rgba(69,215,255,.35);border-radius:50%;box-shadow:0 0 28px rgba(69,215,255,.16) inset,0 0 30px rgba(69,215,255,.12)}
-.money-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:50%;display:grid;place-content:center;text-align:center;font-size:34px;font-weight:850;background:radial-gradient(circle,#0d5d88,#0a2032 70%);border:1px solid rgba(69,215,255,.32);box-shadow:0 0 32px rgba(69,215,255,.22)}.money-core span{font-size:11px;color:#9ddff2;letter-spacing:.1em}
-.money-node{position:absolute;padding:10px 13px;border-radius:999px;background:#0b263b;border:1px solid rgba(69,215,255,.25);box-shadow:0 8px 24px rgba(0,0,0,.24);font-size:11px;font-weight:750;text-align:center;z-index:2}.node-top{left:50%;top:5px;transform:translateX(-50%)}.node-right-top{right:5px;top:88px}.node-right-bottom{right:24px;bottom:46px}.node-left-bottom{left:24px;bottom:46px}.node-left-top{left:5px;top:88px}
-.indicator-table{margin-top:12px}.indicator-row{display:grid;grid-template-columns:1.5fr .45fr .55fr .75fr;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}.indicator-row.header{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.indicator-name{font-size:12px}.indicator-score{font-weight:800}.trend{font-size:18px}.good{color:var(--green)}.watch{color:var(--yellow)}.warning{color:var(--orange)}.danger{color:var(--red)}
-.content-section{margin-top:34px;scroll-margin-top:76px}.section-head{display:flex;justify-content:space-between;gap:18px;align-items:end;margin-bottom:13px}.range-buttons{display:flex;gap:7px}.range-buttons button{cursor:pointer;color:var(--muted);background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:999px;padding:7px 11px}.range-buttons button.active,.range-buttons button:hover{color:var(--text);background:rgba(69,215,255,.08);border-color:rgba(69,215,255,.25)}
-.chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.chart-card{padding:18px;min-height:330px}.chart-title{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:750;margin-bottom:10px}.chart-title span{color:var(--muted);font-weight:500}.chart-card canvas{width:100%!important;height:255px!important}
-.economics-grid{display:grid;grid-template-columns:1.3fr 1.3fr .7fr;gap:16px}.economics-card{min-height:350px}.metric-hero{display:flex;justify-content:space-between;gap:14px;align-items:end}.hero-metric{font-size:38px;font-weight:850;margin-top:5px}.hero-change{font-size:13px;font-weight:750}.neocloud-card{padding:20px;display:flex;flex-direction:column;justify-content:center}.neocloud-note{margin-top:16px;color:var(--muted);font-size:12px;line-height:1.5}
-.raw-data{margin-top:16px;overflow:hidden}.raw-data summary{cursor:pointer;padding:14px 18px;font-weight:750}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 14px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}td{font-size:13px}
-.company-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.company-card{padding:18px}.company-name{font-size:18px;font-weight:830}.company-period{font-size:12px;color:var(--muted);margin-top:3px}.company-metrics{display:grid;gap:10px;margin-top:15px}.company-metric{padding-top:10px;border-top:1px solid var(--line)}.company-metric-label{font-size:11px;color:var(--muted)}.company-metric-value{font-size:20px;font-weight:780;margin-top:3px}.company-metric-change{font-size:11px;color:var(--muted);margin-top:2px}
-.history-card{padding:18px}.history-placeholder{display:flex;gap:18px;align-items:center}.history-score{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:rgba(247,217,76,.1);border:1px solid rgba(247,217,76,.25);color:var(--yellow);font-size:28px;font-weight:850}
-footer{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--line);padding:23px 0;margin-top:44px;color:var(--muted);font-size:12px}
-@media(max-width:1180px){.overview-grid{grid-template-columns:1fr}.triple-grid{grid-template-columns:1fr 1fr}.indicators-panel{grid-column:1/-1}.company-grid{grid-template-columns:repeat(2,1fr)}.economics-grid{grid-template-columns:1fr 1fr}.neocloud-card{grid-column:1/-1}}
-@media(max-width:800px){.page-shell{width:calc(100% - 18px)}.topbar{align-items:flex-start}.status-block{max-width:45%}.signal-grid,.chart-grid,.company-grid,.economics-grid,.triple-grid{grid-template-columns:1fr}.score-panel,.snapshot-panel{padding:18px}.score-gauge{width:188px}.score-value{font-size:60px}.section-head{flex-direction:column;align-items:flex-start}.money-circle{height:330px}.indicator-row{grid-template-columns:1.45fr .45fr .5fr .7fr}footer{flex-direction:column}}
-@media(max-width:520px){.brand .eyebrow{font-size:9px}.brand-sub{display:none}h1{font-size:26px}.bird{font-size:26px}.status-block{font-size:10px}.nav a{font-size:12px;padding:7px 10px}.signal-card{padding:14px}.money-circle{transform:scale(.9);transform-origin:center top;margin-bottom:-25px}}
+
+function marketSignal(name,item,valueId,moveId,riskId,change,period,mode,riskMode,suffix="") {
+  if (!item) return;
+  setText(valueId, `${formatNumber(item.value,name==="SOX"?0:2)}${suffix}`);
+  renderMoveAndRisk(moveId,riskId,change,period,mode,riskMode);
+}
+
+function renderMoveAndRisk(moveId,riskId,change,period,mode,riskMode) {
+  if (!Number.isFinite(change)) {
+    setText(moveId,"—");
+    setRiskChip(riskId,"→ Risk","flat");
+    return;
+  }
+
+  const arrow = change > 0 ? "↑" : change < 0 ? "↓" : "→";
+  const moveClass = change > 0 ? "up" : change < 0 ? "down" : "flat";
+  let text = "—";
+
+  if (mode === "bps") text = `${arrow} ${Math.abs(change).toFixed(0)} bps · ${period}`;
+  else if (mode === "bpsFromPct") text = `${arrow} ${Math.abs(change*100).toFixed(0)} bps · ${period}`;
+  else text = `${arrow} ${formatPercent(Math.abs(change))} · ${period}`;
+
+  const el = document.getElementById(moveId);
+  if (el) {
+    el.textContent = text;
+    el.className = `move-line move-${moveClass}`;
+  }
+
+  let riskDir = "flat";
+  if (change !== 0) {
+    if (riskMode === "direct") riskDir = change > 0 ? "up" : "down";
+    if (riskMode === "inverse") riskDir = change > 0 ? "down" : "up";
+  }
+  setRiskChip(riskId, riskDir==="up"?"↑ Risk":riskDir==="down"?"↓ Risk":"→ Risk", riskDir);
+}
+
+function setRiskChip(id,text,dir) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `risk-chip risk-${dir}`;
+}
+
+function weeklyDelta(history,key) {
+  const valid = history.filter(r => Number.isFinite(Number(r[key])));
+  if (valid.length < 2) return NaN;
+  return Number(valid[valid.length-1][key]) - Number(valid[valid.length-2][key]);
+}
+
+function renderOverviewSparklines(data) {
+  const history = data.marketHistory || [];
+  spark("soxSpark", history.slice(-52).map(r=>r.sox));
+  spark("vixSpark", history.slice(-52).map(r=>r.vix));
+  spark("us10ySpark", history.slice(-52).map(r=>r.us10y));
+  spark("hyOasSpark", history.slice(-52).map(r=>r.hyOas));
+
+  const tokenSeries = seriesRows(data.tokenGpu || [], "TOKEN_SD");
+  const h100Series = seriesRows(data.tokenGpu || [], "H100_SD");
+  spark("tokenSpark", tokenSeries.map(r=>r.value));
+  spark("h100Spark", h100Series.map(r=>r.value));
+}
+
+function renderTakeaways(data) {
+  const latest = data.canary?.latest || {};
+  const tg = data.latestTokenGpu || {};
+  const history = data.marketHistory || [];
+  const items = [];
+
+  if (Number.isFinite(Number(latest.soxChange))) {
+    items.push({
+      good:Number(latest.soxChange) > 0,
+      text:`SOX ${Number(latest.soxChange)>0?"strengthened":"weakened"} ${formatPercent(Math.abs(Number(latest.soxChange)))}`
+    });
+  }
+
+  const token = tg.TOKEN_SD;
+  if (token && Number.isFinite(Number(token["7dChange"]))) {
+    items.push({
+      good:Number(token["7dChange"]) > 0,
+      text:`Token economics ${Number(token["7dChange"])>0?"improved":"weakened"} ${formatPercent(Math.abs(Number(token["7dChange"])))} over 7D`
+    });
+  }
+
+  const hy = weeklyDelta(history,"hyOas");
+  if (Number.isFinite(hy)) {
+    items.push({
+      good:hy < 0,
+      text:`HY credit spreads ${hy>0?"widened":"tightened"} ${Math.abs(hy*100).toFixed(0)} bps`
+    });
+  }
+
+  items.push({
+    good:false,
+    text:`Commitment Overhang remains ${scoreStatus(Number(latest.commitmentScore))}`
+  });
+
+  items.push({
+    good:false,
+    text:`Financing Conditions remain ${scoreStatus(Number(latest.financingScore))}`
+  });
+
+  document.getElementById("takeaways").innerHTML = items.slice(0,5).map(x => `
+    <div class="takeaway">
+      <div class="takeaway-dot ${x.good?"dot-good":"dot-warn"}">${x.good?"↑":"!"}</div>
+      <div>${escapeHtml(x.text)}</div>
+    </div>`).join("");
+}
 
 
-/* ===== v3.1: data-driven Money Circle ===== */
-.money-panel{overflow:hidden}
-.money-circle{min-height:390px}
-.money-node{
-  min-width:150px;
-  max-width:190px;
-  padding:10px 12px;
-  border-radius:16px;
-  background:linear-gradient(180deg,rgba(13,39,59,.98),rgba(8,28,43,.98));
-  border:1px solid var(--line);
-  text-align:left;
-  transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;
+function renderMoneyCircle(data) {
+  const x = data.canary?.latest || {};
+  const market = data.latestMarket || {};
+  const tg = data.latestTokenGpu || {};
+
+  const token = tg.TOKEN_SD || {};
+  const h100 = tg.H100_SD || {};
+
+  const nodes = [
+    {
+      id:"moneyNode1",
+      scores:[toNum(x.financingScore),toNum(x.commitmentScore)],
+      badges:[
+        `Financing ${fmtScore(x.financingScore)}`,
+        `Commitments ${fmtScore(x.commitmentScore)}`,
+        market.hyOas ? `HY OAS ${formatNumber(market.hyOas.value,2)}%` : null
+      ]
+    },
+    {
+      id:"moneyNode2",
+      scores:[toNum(x.capexScore),toNum(x.commitmentScore)],
+      badges:[
+        `CAPEX ${fmtScore(x.capexScore)}`,
+        `Commitments ${fmtScore(x.commitmentScore)}`
+      ]
+    },
+    {
+      id:"moneyNode3",
+      scores:[toNum(x.semisScore),toNum(x.computeScore)],
+      badges:[
+        `Semis ${fmtScore(x.semisScore)}`,
+        `Compute ${fmtScore(x.computeScore)}`,
+        market.sox ? `SOX ${formatNumber(market.sox.value,0)}` : null
+      ]
+    },
+    {
+      id:"moneyNode4",
+      scores:[toNum(x.computeScore),toNum(x.tokenScore)],
+      badges:[
+        `Compute ${fmtScore(x.computeScore)}`,
+        Number.isFinite(toNum(h100.value)) ? `H100 $${formatNumber(h100.value,2)}` : null,
+        `Token score ${fmtScore(x.tokenScore)}`
+      ]
+    },
+    {
+      id:"moneyNode5",
+      scores:[toNum(x.demandScore),toNum(x.tokenScore)],
+      badges:[
+        `Demand ${fmtScore(x.demandScore)}`,
+        Number.isFinite(toNum(token.value)) ? `Token ${formatNumber(token.value,2)}` : null
+      ]
+    }
+  ];
+
+  nodes.forEach(node => {
+    const el = document.getElementById(node.id);
+    if (!el) return;
+
+    // Node status is NOT a new score. It uses the highest risk category
+    // among the existing Canary indicators mapped to this node.
+    const valid = node.scores.filter(Number.isFinite);
+    const worstScore = valid.length ? Math.max(...valid) : NaN;
+    const status = scoreStatus(worstScore);
+    const tone = statusTone(status);
+
+    el.classList.remove("node-healthy","node-watch","node-warning","node-danger");
+    el.classList.add(`node-${tone}`);
+
+    const statusEl = el.querySelector(".money-node-status");
+    statusEl.textContent = status;
+    statusEl.className = `money-node-status ${tone}`;
+
+    const badgeEl = el.querySelector(".money-node-badges");
+    badgeEl.innerHTML = node.badges
+      .filter(Boolean)
+      .map(b => `<span class="money-badge">${escapeHtml(b)}</span>`)
+      .join("");
+  });
 }
-.money-node-title{font-size:11px;font-weight:850;line-height:1.25}
-.money-node-status{display:inline-block;margin-top:6px;padding:3px 7px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.08em}
-.money-node-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
-.money-badge{font-size:9px;color:#bcd5e5;border:1px solid rgba(141,181,210,.14);background:rgba(255,255,255,.025);border-radius:999px;padding:3px 6px;white-space:nowrap}
-.money-node.node-healthy{border-color:rgba(74,209,138,.42);box-shadow:0 0 22px rgba(74,209,138,.08)}
-.money-node.node-watch{border-color:rgba(247,217,76,.42);box-shadow:0 0 22px rgba(247,217,76,.08)}
-.money-node.node-warning{border-color:rgba(255,157,67,.52);box-shadow:0 0 26px rgba(255,157,67,.10)}
-.money-node.node-danger{border-color:rgba(255,94,111,.58);box-shadow:0 0 28px rgba(255,94,111,.12)}
-.money-node-status.healthy{color:var(--green);background:rgba(74,209,138,.10)}
-.money-node-status.watch{color:var(--yellow);background:rgba(247,217,76,.10)}
-.money-node-status.warning{color:var(--orange);background:rgba(255,157,67,.10)}
-.money-node-status.danger{color:var(--red);background:rgba(255,94,111,.10)}
-.flow-arrow{position:absolute;z-index:3;color:#51d7ff;font-size:18px;font-weight:900;text-shadow:0 0 12px rgba(69,215,255,.45);opacity:.85}
-.flow-12{left:63%;top:76px}.flow-23{right:84px;top:170px}.flow-34{left:50%;bottom:54px}.flow-45{left:79px;top:235px}.flow-51{left:93px;top:116px}
-.company-card.has-data-warning{border-color:rgba(255,157,67,.30)}
-.company-data-note{margin-top:10px;font-size:10px;color:var(--orange)}
-@media(max-width:800px){
-  .money-circle{height:auto;min-height:0;display:grid;grid-template-columns:1fr;gap:10px;padding:12px 0}
-  .money-node{position:static!important;transform:none!important;max-width:none;width:100%}
-  .money-core,.orbit,.flow-arrow{display:none}
+
+function fmtScore(value) {
+  const n = toNum(value);
+  return Number.isFinite(n) ? Math.round(n) : "—";
+}
+
+function toNum(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+  if (value === null || value === undefined || value === "") return NaN;
+
+  let s = String(value).trim().replace(/\s/g,"");
+  if (!s) return NaN;
+
+  // Supports both 16.6 and locale text such as 16,6.
+  if (s.includes(",") && !s.includes(".")) s = s.replace(",",".");
+  else if (s.includes(",") && s.includes(".")) s = s.replace(/,/g,"");
+
+  const n = Number(s.replace(/%$/,""));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function renderIndicators(data) {
+  const x = data.canary?.latest || {};
+  const items = [
+    ["Token Economics",x.tokenScore],
+    ["AI Demand",x.demandScore],
+    ["Compute Supply",x.computeScore],
+    ["Semiconductor Market",x.semisScore],
+    ["CAPEX Investment",x.capexScore],
+    ["Commitment Overhang",x.commitmentScore],
+    ["Financing Conditions",x.financingScore],
+    ["Macro & Risk",x.macroScore]
+  ];
+
+  let html = `<div class="indicator-row header"><div>Indicator</div><div>Score</div><div>Trend</div><div>Status</div></div>`;
+  html += items.map(([name,score]) => {
+    const n = Number(score);
+    const status = scoreStatus(n);
+    const tone = statusTone(status);
+    return `<div class="indicator-row">
+      <div class="indicator-name">${escapeHtml(name)}</div>
+      <div class="indicator-score ${tone}">${Number.isFinite(n)?Math.round(n):"—"}</div>
+      <div class="trend">—</div>
+      <div class="${tone}">${status}</div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("indicatorTable").innerHTML = html;
+}
+
+function renderMarketCharts(history) {
+  if (!history.length || typeof Chart === "undefined") return;
+
+  const rows = currentRange >= 9999 ? history : history.slice(-currentRange);
+  const labels = rows.map(r => r.weekEnding);
+
+  lineChart("sox","soxChart",labels,[dataset("SOX",rows.map(r=>r.sox))]);
+  lineChart("vix","vixChart",labels,[dataset("VIX",rows.map(r=>r.vix))]);
+  lineChart("rates","ratesChart",labels,[dataset("US 10Y",rows.map(r=>r.us10y)),dataset("Real 10Y",rows.map(r=>r.real10y))]);
+  lineChart("credit","creditChart",labels,[dataset("IG OAS",rows.map(r=>r.igOas)),dataset("HY OAS",rows.map(r=>r.hyOas))]);
+
+  const last = history[history.length-1] || {};
+  setText("soxLatestMini", formatNumber(last.sox,0));
+  setText("vixLatestMini", formatNumber(last.vix,2));
+  setText("ratesLatestMini", `${formatNumber(last.us10y,2)}% / ${formatNumber(last.real10y,2)}%`);
+  setText("creditLatestMini", `${formatNumber(last.igOas,2)}% / ${formatNumber(last.hyOas,2)}%`);
+}
+
+function renderEconomics(data) {
+  const tg = data.latestTokenGpu || {};
+  const token = tg.TOKEN_SD;
+  const h100 = tg.H100_SD;
+  const ccir = tg.H100_CCIR;
+
+  if (token) {
+    setText("tokenHeroValue", formatNumber(token.value,2));
+    setText("tokenHeroChange", `7D ${formatSignedPercent(token["7dChange"])}`);
+  }
+  if (h100) {
+    setText("h100HeroValue", `$${formatNumber(h100.value,2)}`);
+    setText("h100HeroChange", `7D ${formatSignedPercent(h100["7dChange"])}`);
+  }
+  if (ccir) {
+    setText("ccirHeroValue", `$${formatNumber(ccir.value,2)}`);
+    setText("ccirHeroDate", ccir.date || "—");
+  }
+
+  const tokenRows = seriesRows(data.tokenGpu || [], "TOKEN_SD");
+  const h100Rows = seriesRows(data.tokenGpu || [], "H100_SD");
+
+  lineChart("token","tokenChart",tokenRows.map(r=>r.date),[dataset("Token Index",tokenRows.map(r=>r.value))]);
+  lineChart("h100","h100Chart",h100Rows.map(r=>r.date),[dataset("H100 Rental",h100Rows.map(r=>r.value))]);
+}
+
+function seriesRows(rows,seriesId) {
+  return rows
+    .filter(r => r.comparableSeriesId === seriesId && Number.isFinite(Number(r.value)))
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+
+function renderTokenGpuTable(rows) {
+  const sorted = [...rows].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,14);
+  document.getElementById("tokenGpuTable").innerHTML = sorted.map(r => `
+    <tr>
+      <td>${escapeHtml(r.date || "—")}</td>
+      <td>${escapeHtml(r.metric || "—")}</td>
+      <td>${formatTokenGpuValue(r)}</td>
+      <td>${formatPercent(r["7dChange"])}</td>
+      <td>${escapeHtml(r.provider || "—")}</td>
+      <td>${escapeHtml(r.verificationStatus || "—")}</td>
+    </tr>`).join("");
+}
+
+function renderCompanies(rows) {
+  const groups = new Map();
+
+  rows.forEach(r => {
+    const c = r.company || "Unknown";
+    if (!groups.has(c)) groups.set(c,[]);
+    groups.get(c).push(r);
+  });
+
+  const html = [];
+
+  groups.forEach((companyRows,company) => {
+    const periods = companyRows.map(r=>r.period).filter(Boolean).sort();
+    const latestPeriod = periods[periods.length-1] || "—";
+    const currentRows = companyRows.filter(r=>r.period===latestPeriod);
+
+    let missingCount = 0;
+
+    const metrics = currentRows.map(r => {
+      const display = formatDemandValue(r);
+      if (display.includes("—")) missingCount++;
+
+      return `
+        <div class="company-metric">
+          <div class="company-metric-label">${escapeHtml(r.metric || "—")}</div>
+          <div class="company-metric-value">${display}</div>
+          <div class="company-metric-change">${formatDemandChange(r)}</div>
+        </div>`;
+    }).join("");
+
+    html.push(`<article class="panel company-card ${missingCount ? "has-data-warning" : ""}">
+      <div class="company-name">${escapeHtml(company)}</div>
+      <div class="company-period">${escapeHtml(latestPeriod)}</div>
+      <div class="company-metrics">${metrics}</div>
+      ${missingCount ? `<div class="company-data-note">${missingCount} value${missingCount>1?"s":""} need checking in AI_Demand.</div>` : ""}
+    </article>`);
+  });
+
+  document.getElementById("companyCards").innerHTML = html.join("");
+}
+function dataset(label,data) {
+  return {label,data,borderWidth:2,pointRadius:0,tension:.18,spanGaps:true};
+}
+
+function lineChart(key,id,labels,datasets) {
+  if (charts[key]) charts[key].destroy();
+
+  charts[key] = new Chart(document.getElementById(id), {
+    type:"line",
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{labels:{color:"#9CB3C8",usePointStyle:true,boxWidth:7,boxHeight:7}},
+        tooltip:{backgroundColor:"#071826",borderColor:"rgba(137,181,214,.22)",borderWidth:1,titleColor:"#F5F8FC",bodyColor:"#DDE9F2"}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:"#7895AA",maxTicksLimit:7}},
+        y:{grid:{color:"rgba(137,181,214,.08)"},ticks:{color:"#7895AA"}}
+      }
+    }
+  });
+}
+
+function spark(id,data) {
+  if (typeof Chart === "undefined") return;
+  const values = data.filter(v => Number.isFinite(Number(v))).map(Number);
+  if (!values.length) return;
+  const key = `spark-${id}`;
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart(document.getElementById(id), {
+    type:"line",
+    data:{labels:values.map((_,i)=>i),datasets:[{data:values,borderWidth:2,pointRadius:0,tension:.2,fill:false}]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}},
+      elements:{line:{borderColor:"#45d7ff"}}
+    }
+  });
+}
+
+function formatDemandValue(r) {
+  let n = toNum(r.value);
+
+  // If API sends a percent as 43 rather than 0.43, normalize for display.
+  if (r.unit === "%" && Number.isFinite(n) && Math.abs(n) > 1) n = n / 100;
+
+  if (r.unit === "%") return formatPercent(n);
+  if (r.unit === "$bn") return Number.isFinite(n) ? `$${formatNumber(n, n<10?2:1)}bn` : "$—bn";
+  return Number.isFinite(n) ? `${formatNumber(n,2)} ${r.unit || ""}`.trim() : `— ${r.unit || ""}`.trim();
+}
+
+function formatDemandChange(r) {
+  if (r.yoyChange === null || r.yoyChange === undefined || r.yoyChange === "") return "";
+  let n = toNum(r.yoyChange);
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) > 1) n = n / 100;
+  return `YoY ${formatPercent(n)}`;
+}
+
+function formatTokenGpuValue(r) {
+  if (r.unit === "$/GPU-hour") return `$${formatNumber(r.value,2)}`;
+  return formatNumber(r.value,2);
+}
+
+function scoreStatus(score) {
+  if (!Number.isFinite(score)) return "N/A";
+  if (score <= 25) return "HEALTHY";
+  if (score <= 50) return "WATCH";
+  if (score <= 75) return "WARNING";
+  return "DANGER";
+}
+
+function statusTone(status) {
+  if (status === "HEALTHY") return "good";
+  if (status === "WARNING") return "warning";
+  if (status === "DANGER") return "danger";
+  return "watch";
+}
+
+function setStatus(text,ok) {
+  const el = document.getElementById("dataStatus");
+  el.textContent = text;
+  el.style.color = ok ? "#4AD18A" : "#F7D94C";
+}
+
+function setText(id,text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text ?? "—";
+}
+
+function formatNumber(value,decimals=2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("nb-NO",{minimumFractionDigits:decimals,maximumFractionDigits:decimals}).format(n);
+}
+
+function formatPercent(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("nb-NO",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(n);
+}
+
+function formatSignedPercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return `${n>0?"+":""}${formatPercent(n)}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
