@@ -10,18 +10,18 @@
   <script defer src="script.js"></script>
 </head>
 <body>
-  <div class="shell">
+  <div class="page-shell">
     <header class="topbar">
       <div class="brand">
         <div class="bird">🐤</div>
         <div>
-          <div class="small-label">fiascofinance.no</div>
+          <div class="eyebrow">FIASCOFINANCE.NO</div>
           <h1>AI CANARY</h1>
         </div>
       </div>
-      <div class="update-block">
-        <div id="dataStatus">Loading live data…</div>
-        <div id="lastUpdated" class="muted">—</div>
+      <div class="status-block">
+        <div id="dataStatus" class="status-live">Loading live data…</div>
+        <div id="lastUpdated" class="muted small">—</div>
       </div>
     </header>
 
@@ -33,53 +33,127 @@
     </nav>
 
     <main>
-      <section id="overview" class="hero-grid">
-        <article class="card score-card">
-          <div class="small-label">CANARY SCORE</div>
-          <div class="gauge" id="scoreGauge">
-            <div class="gauge-inner">
-              <div id="canaryScore" class="score-number">—</div>
-              <div class="muted">/100</div>
+      <section id="overview" class="overview-grid">
+        <article class="panel score-panel">
+          <div class="eyebrow">CANARY SCORE</div>
+          <div id="scoreGauge" class="score-gauge">
+            <div class="score-gauge-inner">
+              <div id="canaryScore" class="score-value">—</div>
+              <div class="score-denom">/100</div>
             </div>
           </div>
-          <div id="canaryStatus" class="pill">—</div>
-          <div id="hedgeRead" class="muted hedge">Hedge Read: —</div>
+          <div id="canaryStatus" class="status-pill">—</div>
+          <div id="hedgeRead" class="hedge-read">Hedge Read: —</div>
+          <div class="risk-scale">
+            <span class="scale-green">Healthy</span>
+            <span class="scale-yellow">Watch</span>
+            <span class="scale-orange">Warning</span>
+            <span class="scale-red">Danger</span>
+          </div>
         </article>
 
-        <article class="card overview-card">
-          <div class="small-label">KEY MARKET SIGNALS</div>
-          <div class="metric-grid">
-            <div class="metric"><div>SOX</div><strong id="soxValue">—</strong><span id="soxDate">—</span></div>
-            <div class="metric"><div>VIX</div><strong id="vixValue">—</strong><span id="vixDate">—</span></div>
-            <div class="metric"><div>US 10Y</div><strong id="us10yValue">—</strong><span id="us10yDate">—</span></div>
-            <div class="metric"><div>Real 10Y</div><strong id="real10yValue">—</strong><span id="real10yDate">—</span></div>
-            <div class="metric"><div>IG OAS</div><strong id="igOasValue">—</strong><span id="igOasDate">—</span></div>
-            <div class="metric"><div>HY OAS</div><strong id="hyOasValue">—</strong><span id="hyOasDate">—</span></div>
+        <article class="panel market-panel">
+          <div class="section-title-row">
+            <div>
+              <div class="eyebrow">WEEKLY SNAPSHOT</div>
+              <h2>Key Market Signals</h2>
+            </div>
+            <div id="snapshotDate" class="date-chip">—</div>
+          </div>
+
+          <div class="signal-grid">
+            <div class="signal-card">
+              <div class="signal-head"><span>SOX</span><span id="soxRisk" class="risk-chip">—</span></div>
+              <div id="soxValue" class="signal-value">—</div>
+              <div id="soxMove" class="move-line">—</div>
+              <div id="soxDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card">
+              <div class="signal-head"><span>VIX</span><span id="vixRisk" class="risk-chip">—</span></div>
+              <div id="vixValue" class="signal-value">—</div>
+              <div id="vixMove" class="move-line">—</div>
+              <div id="vixDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card">
+              <div class="signal-head"><span>US 10Y</span><span id="us10yRisk" class="risk-chip">—</span></div>
+              <div id="us10yValue" class="signal-value">—</div>
+              <div id="us10yMove" class="move-line">—</div>
+              <div id="us10yDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card">
+              <div class="signal-head"><span>REAL 10Y</span><span id="real10yRisk" class="risk-chip">—</span></div>
+              <div id="real10yValue" class="signal-value">—</div>
+              <div id="real10yMove" class="move-line">—</div>
+              <div id="real10yDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card">
+              <div class="signal-head"><span>IG OAS</span><span id="igOasRisk" class="risk-chip">—</span></div>
+              <div id="igOasValue" class="signal-value">—</div>
+              <div id="igOasMove" class="move-line">—</div>
+              <div id="igOasDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card">
+              <div class="signal-head"><span>HY OAS</span><span id="hyOasRisk" class="risk-chip">—</span></div>
+              <div id="hyOasValue" class="signal-value">—</div>
+              <div id="hyOasMove" class="move-line">—</div>
+              <div id="hyOasDate" class="muted tiny">—</div>
+            </div>
           </div>
 
           <div class="divider"></div>
 
-          <div class="small-label">AI ECONOMICS</div>
-          <div class="metric-grid three">
-            <div class="metric accent"><div>Token Index</div><strong id="tokenValue">—</strong><span id="tokenChange">—</span></div>
-            <div class="metric accent"><div>H100 Rental</div><strong id="h100SdValue">—</strong><span id="h100SdChange">—</span></div>
-            <div class="metric accent"><div>H100 Neocloud</div><strong id="h100CcirValue">—</strong><span id="h100CcirDate">—</span></div>
+          <div class="section-title-row">
+            <div>
+              <div class="eyebrow">LATEST LIVE</div>
+              <h2>AI Economics</h2>
+            </div>
+          </div>
+
+          <div class="signal-grid three">
+            <div class="signal-card accent">
+              <div class="signal-head"><span>Token Index</span><span id="tokenRisk" class="risk-chip">—</span></div>
+              <div id="tokenValue" class="signal-value">—</div>
+              <div id="tokenMove" class="move-line">—</div>
+              <div id="tokenDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card accent">
+              <div class="signal-head"><span>H100 Rental</span><span id="h100SdRisk" class="risk-chip">—</span></div>
+              <div id="h100SdValue" class="signal-value">—</div>
+              <div id="h100SdMove" class="move-line">—</div>
+              <div id="h100SdDate" class="muted tiny">—</div>
+            </div>
+            <div class="signal-card accent">
+              <div class="signal-head"><span>H100 Neocloud</span><span class="risk-chip neutral">Reference</span></div>
+              <div id="h100CcirValue" class="signal-value">—</div>
+              <div class="move-line neutral-text">Guaranteed neocloud rate</div>
+              <div id="h100CcirDate" class="muted tiny">—</div>
+            </div>
           </div>
         </article>
       </section>
 
-      <section class="card indicators-card">
-        <div class="small-label">CANARY INDICATORS</div>
+      <section class="panel changed-panel">
+        <div class="section-title-row">
+          <div>
+            <div class="eyebrow">WHAT CHANGED?</div>
+            <h2>Weekly Canary Read</h2>
+          </div>
+        </div>
+        <div id="changeHighlights" class="change-grid"></div>
+      </section>
+
+      <section class="panel indicators-panel">
+        <div class="eyebrow">CANARY INDICATORS</div>
         <div id="indicatorStrip" class="indicator-strip"></div>
       </section>
 
-      <section id="markets" class="section">
+      <section id="markets" class="content-section">
         <div class="section-head">
           <div>
-            <div class="small-label">MARKETS</div>
+            <div class="eyebrow">MARKETS</div>
             <h2>Market & Financing Monitor</h2>
           </div>
-          <div class="range-buttons" id="rangeControls">
+          <div id="rangeControls" class="range-buttons">
             <button data-range="13">3M</button>
             <button data-range="26">6M</button>
             <button data-range="52" class="active">1Y</button>
@@ -88,25 +162,44 @@
         </div>
 
         <div class="chart-grid">
-          <article class="card chart-card"><div class="chart-title">SOX <span id="soxLatestMini">—</span></div><canvas id="soxChart"></canvas></article>
-          <article class="card chart-card"><div class="chart-title">VIX <span id="vixLatestMini">—</span></div><canvas id="vixChart"></canvas></article>
-          <article class="card chart-card"><div class="chart-title">US 10Y & Real 10Y <span id="ratesLatestMini">—</span></div><canvas id="ratesChart"></canvas></article>
-          <article class="card chart-card"><div class="chart-title">IG & HY OAS <span id="creditLatestMini">—</span></div><canvas id="creditChart"></canvas></article>
+          <article class="panel chart-card">
+            <div class="chart-title">SOX <span id="soxLatestMini">—</span></div>
+            <canvas id="soxChart"></canvas>
+          </article>
+          <article class="panel chart-card">
+            <div class="chart-title">VIX <span id="vixLatestMini">—</span></div>
+            <canvas id="vixChart"></canvas>
+          </article>
+          <article class="panel chart-card">
+            <div class="chart-title">US 10Y & Real 10Y <span id="ratesLatestMini">—</span></div>
+            <canvas id="ratesChart"></canvas>
+          </article>
+          <article class="panel chart-card">
+            <div class="chart-title">IG & HY OAS <span id="creditLatestMini">—</span></div>
+            <canvas id="creditChart"></canvas>
+          </article>
         </div>
       </section>
 
-      <section id="economics" class="section">
+      <section id="economics" class="content-section">
         <div class="section-head">
           <div>
-            <div class="small-label">AI ECONOMICS</div>
+            <div class="eyebrow">AI ECONOMICS</div>
             <h2>Token & GPU Monitor</h2>
           </div>
         </div>
-        <div class="card table-card">
+        <div class="panel table-panel">
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Date</th><th>Metric</th><th>Value</th><th>7D Change</th><th>Provider</th><th>Status</th></tr>
+                <tr>
+                  <th>Date</th>
+                  <th>Metric</th>
+                  <th>Value</th>
+                  <th>7D Change</th>
+                  <th>Provider</th>
+                  <th>Status</th>
+                </tr>
               </thead>
               <tbody id="tokenGpuTable"></tbody>
             </table>
@@ -114,10 +207,10 @@
         </div>
       </section>
 
-      <section id="demand" class="section">
+      <section id="demand" class="content-section">
         <div class="section-head">
           <div>
-            <div class="small-label">AI DEMAND</div>
+            <div class="eyebrow">AI DEMAND</div>
             <h2>Company Demand Signals</h2>
           </div>
         </div>
