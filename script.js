@@ -77,6 +77,7 @@ async function loadDashboard() {
     renderTakeaways(data);
     renderIndicators(data);
     renderMoneyCircle(data);
+    renderFinancialRisk(data);
     renderMarketCharts(data.marketHistory || []);
     renderEconomics(data);
     renderTokenGpuTable(data.tokenGpu || []);
@@ -227,14 +228,16 @@ function renderTakeaways(data) {
     });
   }
 
+  const dynCommit = dynamicScore(data,"commitmentOverhang",latest.commitmentScore);
+  const dynFin = dynamicScore(data,"financingConditions",latest.financingScore);
   items.push({
-    good:false,
-    text:`Commitment Overhang remains ${scoreStatus(Number(latest.commitmentScore))}`
+    good:Number(dynCommit.score) <= 25,
+    text:`Commitment Overhang ${fmtScore(dynCommit.score)} · ${dynCommit.status}`
   });
 
   items.push({
-    good:false,
-    text:`Financing Conditions remain ${scoreStatus(Number(latest.financingScore))}`
+    good:Number(dynFin.score) <= 25,
+    text:`Financing Conditions ${fmtScore(dynFin.score)} · ${dynFin.status}`
   });
 
   document.getElementById("takeaways").innerHTML = items.slice(0,5).map(x => `
@@ -252,23 +255,25 @@ function renderMoneyCircle(data) {
 
   const token = tg.TOKEN_SD || {};
   const h100 = tg.H100_SD || {};
+  const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
+  const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
 
   const nodes = [
     {
       id:"moneyNode1",
-      scores:[toNum(x.financingScore),toNum(x.commitmentScore)],
+      scores:[toNum(dynFin.score),toNum(dynCommit.score)],
       badges:[
-        `Financing ${fmtScore(x.financingScore)}`,
-        `Commitments ${fmtScore(x.commitmentScore)}`,
+        `Financing ${fmtScore(dynFin.score)}`,
+        `Commitments ${fmtScore(dynCommit.score)}`,
         market.hyOas ? `HY OAS ${formatNumber(market.hyOas.value,2)}%` : null
       ]
     },
     {
       id:"moneyNode2",
-      scores:[toNum(x.capexScore),toNum(x.commitmentScore)],
+      scores:[toNum(x.capexScore),toNum(dynCommit.score)],
       badges:[
         `CAPEX ${fmtScore(x.capexScore)}`,
-        `Commitments ${fmtScore(x.commitmentScore)}`
+        `Commitments ${fmtScore(dynCommit.score)}`
       ]
     },
     {
@@ -347,14 +352,16 @@ function toNum(value) {
 
 function renderIndicators(data) {
   const x = data.canary?.latest || {};
+  const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
+  const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
   const items = [
     ["Token Economics",x.tokenScore],
     ["AI Demand",x.demandScore],
     ["Compute Supply",x.computeScore],
     ["Semiconductor Market",x.semisScore],
     ["CAPEX Investment",x.capexScore],
-    ["Commitment Overhang",x.commitmentScore],
-    ["Financing Conditions",x.financingScore],
+    ["Commitment Overhang",dynCommit.score],
+    ["Financing Conditions",dynFin.score],
     ["Macro & Risk",x.macroScore]
   ];
 
@@ -372,6 +379,101 @@ function renderIndicators(data) {
   }).join("");
 
   document.getElementById("indicatorTable").innerHTML = html;
+}
+
+
+function dynamicScore(data,key,fallback) {
+  const item = data?.dynamicScores?.[key] || {};
+  const n = toNum(item.score);
+  const fb = toNum(fallback);
+  const score = Number.isFinite(n) ? n : fb;
+  return { score, status: item.status || scoreStatus(score) };
+}
+
+function summaryValue(summary,key) {
+  const item = summary?.byMetric?.[key];
+  return item ? toNum(item.value) : NaN;
+}
+
+function setRiskCard(cardId,score,status,barId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  const n = toNum(score);
+  const tone = statusTone(status || scoreStatus(n));
+  const colors = {good:"#4ad18a",watch:"#f7d94c",warning:"#f59f40",danger:"#f6535b"};
+  card.style.setProperty("--risk-accent",colors[tone] || colors.watch);
+  const bar = document.getElementById(barId);
+  if (bar && Number.isFinite(n)) bar.style.width = `${Math.max(0,Math.min(100,n))}%`;
+}
+
+function renderFinancialRisk(data) {
+  const commit = dynamicScore(data,"commitmentOverhang",data.canary?.latest?.commitmentScore);
+  const fin = dynamicScore(data,"financingConditions",data.canary?.latest?.financingScore);
+  const cSummary = data.commitmentMomentum?.summary || {};
+  const fSummary = data.financingMomentum?.summary || {};
+
+  setText("commitmentScore",fmtScore(commit.score));
+  setText("commitmentStatus",commit.status);
+  setText("financingScore",fmtScore(fin.score));
+  setText("financingStatus",fin.status);
+  setRiskCard("commitmentRiskCard",commit.score,commit.status,"commitmentBar");
+  setRiskCard("financingRiskCard",fin.score,fin.status,"financingBar");
+
+  const cAvg = summaryValue(cSummary,"averageCompanyRisk");
+  const cBreadth = summaryValue(cSummary,"breadth");
+  const cElev = summaryValue(cSummary,"companiesAbove50");
+  const cTotal = summaryValue(cSummary,"totalCompanies");
+  setText("commitmentAvg",Number.isFinite(cAvg)?formatNumber(cAvg,1):"—");
+  setText("commitmentBreadth",Number.isFinite(cBreadth)?formatPercent(cBreadth):"—");
+  setText("commitmentElevated",Number.isFinite(cElev)&&Number.isFinite(cTotal)?`${cElev}/${cTotal}`:"—");
+
+  const general = summaryValue(fSummary,"generalFinancingScore");
+  const aiCredit = summaryValue(fSummary,"aiCreditStressScore");
+  const burden = summaryValue(fSummary,"companyFinancingBurden");
+  setText("generalFinancingScore",fmtScore(general));
+  setText("aiCreditScore",fmtScore(aiCredit));
+  setText("companyBurdenScore",fmtScore(burden));
+  setText("generalFinancingMini",fmtScore(general));
+  setText("aiCreditMini",fmtScore(aiCredit));
+  const gb = document.getElementById("generalFinancingBar");
+  const ab = document.getElementById("aiCreditBar");
+  if (gb && Number.isFinite(general)) gb.style.width=`${Math.max(0,Math.min(100,general))}%`;
+  if (ab && Number.isFinite(aiCredit)) ab.style.width=`${Math.max(0,Math.min(100,aiCredit))}%`;
+  if (Number.isFinite(general) && Number.isFinite(aiCredit)) {
+    const gap = aiCredit-general;
+    setText("divergenceText",`AI-specific credit stress is ${formatNumber(Math.abs(gap),1)} points ${gap>=0?"above":"below"} broad financing conditions. This divergence is a Canary early-warning feature, not a broad-market crisis signal.`);
+  }
+
+  renderCommitmentCompanies(data.commitmentMomentum?.rows || []);
+  renderCreditStress(data.financingMomentum?.rows || []);
+}
+
+function renderCommitmentCompanies(rows) {
+  const valid = rows.filter(r=>r.company && Number.isFinite(toNum(r.compositeRisk)));
+  const html = valid.map(r=>{
+    const score=toNum(r.compositeRisk), status=r.status || scoreStatus(score), tone=statusTone(status);
+    const colors={good:"#4ad18a",watch:"#f7d94c",warning:"#f59f40",danger:"#f6535b"};
+    const change=toNum(r.change);
+    return `<div class="company-risk-item" style="--tone:${colors[tone]}">
+      <div class="company-risk-name">${escapeHtml(r.company)}</div>
+      <div class="company-risk-score ${tone}">${formatNumber(score,1)}</div>
+      <div class="company-risk-sub">${escapeHtml(status)} · ${Number.isFinite(change)?formatSignedPercent(change):"—"}</div>
+    </div>`;
+  }).join("");
+  const el=document.getElementById("commitmentCompanyGrid"); if(el) el.innerHTML=html || '<div class="muted">No commitment momentum data.</div>';
+}
+
+function renderCreditStress(rows) {
+  const valid = rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS" && Number.isFinite(toNum(r.compositeRisk)));
+  const html = valid.map(r=>{
+    const score=toNum(r.compositeRisk), status=r.status || scoreStatus(score), tone=statusTone(status);
+    const cur=toNum(r.currentValue), ch=toNum(r.change);
+    return `<div class="credit-item">
+      <div><div class="credit-name">${escapeHtml(r.entityMarket || "AI credit")}</div><div class="credit-meta">${Number.isFinite(cur)?formatNumber(cur,0):"—"} ${escapeHtml(r.unit||"")} · ${Number.isFinite(ch)?formatSignedPercent(ch):"—"}</div></div>
+      <div><div class="credit-score ${tone}">${formatNumber(score,0)}</div><div class="credit-status ${tone}">${escapeHtml(status)}</div></div>
+    </div>`;
+  }).join("");
+  const el=document.getElementById("creditStressGrid"); if(el) el.innerHTML=html || '<div class="muted">No AI credit stress data.</div>';
 }
 
 function renderMarketCharts(history) {
