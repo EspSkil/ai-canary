@@ -241,3 +241,47 @@ footer{display:flex;justify-content:space-between;gap:18px;border-top:1px solid 
   .score-gauge-semi .score-value{font-size:68px}
   .score-marker{top:136px;width:121px}
 }
+
+/* ===== v3.3 financial risk stack ===== */
+.section-sub{margin-top:6px;color:#7f9db3;font-size:.82rem;max-width:680px}
+.model-chip{font-size:.67rem;font-weight:800;letter-spacing:.14em;color:#76e4ff;border:1px solid rgba(69,215,255,.28);background:rgba(69,215,255,.07);padding:7px 10px;border-radius:999px}
+.risk-stack-grid{display:grid;grid-template-columns:1fr 1fr .92fr;gap:14px;margin-bottom:14px}
+.risk-score-card,.divergence-card,.detail-card{min-width:0}
+.risk-score-card{position:relative;overflow:hidden}
+.risk-score-card:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,var(--risk-accent,#f7d94c),transparent);opacity:.9}
+.risk-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.risk-card-title{font-size:1rem;font-weight:700;color:#dbe9f4;margin-top:3px}
+.status-pill.compact{padding:5px 8px;font-size:.66rem;min-width:auto}
+.risk-score-line{display:flex;align-items:baseline;margin-top:14px}
+.risk-big-score{font-size:3.1rem;line-height:.95;font-weight:850;letter-spacing:-.055em;color:#f6f9fc}
+.risk-denom{font-size:.9rem;margin-left:6px;color:#6f8da2;font-weight:700}
+.mini-bar{height:7px;margin:13px 0 14px;background:linear-gradient(90deg,rgba(74,209,138,.22) 0 25%,rgba(247,217,76,.22) 25% 50%,rgba(245,159,64,.22) 50% 75%,rgba(246,83,91,.22) 75% 100%);border:1px solid rgba(128,171,202,.12);border-radius:999px;overflow:hidden}
+.mini-bar span{display:block;width:0;height:100%;background:var(--risk-accent,#f7d94c);box-shadow:0 0 16px var(--risk-accent,#f7d94c);transition:width .5s ease}
+.risk-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.risk-meta-grid>div{background:rgba(9,28,43,.6);border:1px solid rgba(129,172,201,.11);border-radius:9px;padding:9px}
+.risk-meta-label{display:block;color:#718fa5;font-size:.64rem;line-height:1.15;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.risk-meta-grid strong{font-size:.94rem;color:#e7f1f8}
+.divergence-card h3,.detail-card h3{font-size:1rem;margin:4px 0 12px;color:#e7f0f7}
+.divergence-track{display:grid;gap:11px;margin-top:16px}
+.divergence-row{display:grid;grid-template-columns:104px 1fr 30px;align-items:center;gap:8px;font-size:.72rem;color:#8eabbf}
+.divergence-bar{height:7px;background:rgba(114,151,176,.14);border-radius:999px;overflow:hidden}
+.divergence-bar i{display:block;height:100%;width:0;background:#45d7ff;border-radius:999px;transition:width .5s ease}
+.divergence-row:nth-child(2) .divergence-bar i{background:#f45b63}
+.divergence-row strong{color:#e6f0f8;font-size:.78rem;text-align:right}
+.divergence-text{margin-top:16px;padding-top:12px;border-top:1px solid rgba(128,171,202,.12);font-size:.76rem;line-height:1.45;color:#8ba8ba}
+.risk-detail-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+.detail-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.company-risk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.company-risk-item{background:rgba(7,25,39,.66);border:1px solid rgba(126,170,199,.11);border-radius:10px;padding:10px;position:relative;overflow:hidden}
+.company-risk-item:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tone,#f7d94c)}
+.company-risk-name{font-size:.71rem;font-weight:800;color:#dfeaf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-risk-score{font-size:1.35rem;font-weight:850;margin-top:4px;letter-spacing:-.03em}
+.company-risk-sub{font-size:.61rem;color:#708da2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.credit-stress-grid{display:grid;gap:8px}
+.credit-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:rgba(7,25,39,.66);border:1px solid rgba(126,170,199,.11);border-radius:10px;padding:10px 11px}
+.credit-name{font-size:.74rem;font-weight:750;color:#dfeaf3}
+.credit-meta{font-size:.64rem;color:#7290a5;margin-top:3px}
+.credit-score{text-align:right;font-size:1.05rem;font-weight:850}
+.credit-status{font-size:.59rem;letter-spacing:.07em;font-weight:850;margin-top:2px}
+@media(max-width:980px){.risk-stack-grid{grid-template-columns:1fr 1fr}.divergence-card{grid-column:1/-1}.risk-detail-grid{grid-template-columns:1fr}.company-risk-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:680px){.risk-stack-grid{grid-template-columns:1fr}.divergence-card{grid-column:auto}.risk-meta-grid{grid-template-columns:1fr 1fr 1fr}.company-risk-grid{grid-template-columns:repeat(2,1fr)}.risk-big-score{font-size:2.7rem}.section-sub{font-size:.75rem}}
