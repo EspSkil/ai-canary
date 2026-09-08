@@ -29,6 +29,7 @@
     <nav class="nav">
       <a href="#overview">Overview</a>
       <a href="#moneycircle">Money Circle</a>
+      <a href="#financialrisk">Financial Risk</a>
       <a href="#markets">Markets</a>
       <a href="#economics">AI Economics</a>
       <a href="#demand">AI Demand</a>
@@ -154,6 +155,74 @@
           <div class="eyebrow">CANARY INDICATORS</div>
           <div id="indicatorTable" class="indicator-table"></div>
         </article>
+      </section>
+
+      <section id="financialrisk" class="content-section financial-risk-section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">FINANCIAL RISK STACK</div>
+            <h2>Commitments & Credit Stress</h2>
+            <div class="section-sub">Dynamic model outputs from the Google Sheet calculation layer.</div>
+          </div>
+          <div class="model-chip">LIVE MODEL</div>
+        </div>
+
+        <div class="risk-stack-grid">
+          <article class="panel risk-score-card" id="commitmentRiskCard">
+            <div class="risk-card-head">
+              <div>
+                <div class="eyebrow">COMMITMENT OVERHANG</div>
+                <div class="risk-card-title">Future obligations</div>
+              </div>
+              <div id="commitmentStatus" class="status-pill compact">—</div>
+            </div>
+            <div class="risk-score-line"><span id="commitmentScore" class="risk-big-score">—</span><span class="risk-denom">/100</span></div>
+            <div class="mini-bar"><span id="commitmentBar"></span></div>
+            <div class="risk-meta-grid">
+              <div><span class="risk-meta-label">Average company risk</span><strong id="commitmentAvg">—</strong></div>
+              <div><span class="risk-meta-label">Breadth</span><strong id="commitmentBreadth">—</strong></div>
+              <div><span class="risk-meta-label">Elevated companies</span><strong id="commitmentElevated">—</strong></div>
+            </div>
+          </article>
+
+          <article class="panel risk-score-card" id="financingRiskCard">
+            <div class="risk-card-head">
+              <div>
+                <div class="eyebrow">FINANCING CONDITIONS</div>
+                <div class="risk-card-title">Funding & credit pressure</div>
+              </div>
+              <div id="financingStatus" class="status-pill compact">—</div>
+            </div>
+            <div class="risk-score-line"><span id="financingScore" class="risk-big-score">—</span><span class="risk-denom">/100</span></div>
+            <div class="mini-bar"><span id="financingBar"></span></div>
+            <div class="risk-meta-grid">
+              <div><span class="risk-meta-label">General financing</span><strong id="generalFinancingScore">—</strong></div>
+              <div><span class="risk-meta-label">AI credit stress</span><strong id="aiCreditScore">—</strong></div>
+              <div><span class="risk-meta-label">Company burden</span><strong id="companyBurdenScore">—</strong></div>
+            </div>
+          </article>
+
+          <article class="panel divergence-card">
+            <div class="eyebrow">CANARY DIVERGENCE</div>
+            <h3>Broad credit calm. AI credit stressed.</h3>
+            <div class="divergence-track">
+              <div class="divergence-row"><span>General financing</span><div class="divergence-bar"><i id="generalFinancingBar"></i></div><strong id="generalFinancingMini">—</strong></div>
+              <div class="divergence-row"><span>AI credit stress</span><div class="divergence-bar"><i id="aiCreditBar"></i></div><strong id="aiCreditMini">—</strong></div>
+            </div>
+            <div id="divergenceText" class="divergence-text">—</div>
+          </article>
+        </div>
+
+        <div class="risk-detail-grid">
+          <article class="panel detail-card">
+            <div class="detail-card-head"><div><div class="eyebrow">COMMITMENT MOMENTUM</div><h3>Company risk map</h3></div><span class="muted small">Latest comparable series</span></div>
+            <div id="commitmentCompanyGrid" class="company-risk-grid"></div>
+          </article>
+          <article class="panel detail-card">
+            <div class="detail-card-head"><div><div class="eyebrow">AI CREDIT STRESS</div><h3>Credit signals</h3></div><span class="muted small">Level + momentum</span></div>
+            <div id="creditStressGrid" class="credit-stress-grid"></div>
+          </article>
+        </div>
       </section>
 
       <section id="markets" class="content-section">
