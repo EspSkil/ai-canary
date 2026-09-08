@@ -44,6 +44,13 @@ const INFO = {
     title:"H100 Rental · GPU Rental Price",
     text:"The Silicon Data H100 Rental Price Index tracks rental pricing for Nvidia H100 compute. Falling prices can signal improving supply, weaker scarcity or softer compute demand; interpretation therefore depends on the broader AI cycle."
   }
+  ,moneycircle: {title:"AI Money Circle",text:"Maps the AI economic loop from capital and financing through hyperscalers, semiconductors, compute and end-user monetization. Node status uses the highest risk category among existing mapped Canary indicators; it is not a separate invented score."}
+  ,indicators: {title:"Canary Indicators",text:"The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Commitment and Financing now use the live calculation models."}
+  ,commitment: {title:"Commitment Overhang",text:"Measures the scale, momentum and binding nature of future AI-related obligations across companies, normalized where useful against company revenue. Breadth matters because simultaneous elevated commitments across many firms can increase cycle vulnerability."}
+  ,financing: {title:"Financing Conditions",text:"Combines broad financing conditions, AI-specific credit stress and company financing burden. It is designed to distinguish a broad credit tightening from stress that is still concentrated inside the AI investment ecosystem."}
+  ,divergence: {title:"Canary Divergence",text:"Compares broad financing conditions with AI-specific credit stress. A large positive gap can be an early-warning signal when AI credit deteriorates before general corporate credit markets do."}
+  ,commitmentMomentum: {title:"Commitment Momentum",text:"Shows company-level Composite Risk from commitment scale, recent change and how binding the obligation is. Current and previous values are pulled dynamically from the Commitments data table."}
+  ,creditStress: {title:"AI Credit Stress · 5Y CDS",text:"Shows five-year credit-default-swap spreads for selected AI-linked companies. CDS is the annualized spread paid for default protection, quoted in basis points. Higher and rapidly rising spreads indicate greater credit stress, but thin CDS liquidity means the signal should not be treated as a precise default probability."}
 };
 
 function setupInfoButtons() {
@@ -101,7 +108,16 @@ function renderOverview(data) {
   const score = Number(latest.canaryScore);
   if (Number.isFinite(score)) {
     setText("canaryScore", Math.round(score));
-    document.getElementById("scoreGauge").style.setProperty("--score-angle", `${Math.max(0,Math.min(100,score))*1.8}deg`);
+    const gauge = document.getElementById("scoreGauge");
+    const marker = gauge?.querySelector(".score-marker");
+    if (marker) {
+      const bounded = Math.max(0,Math.min(100,score));
+      const theta = Math.PI - (bounded/100)*Math.PI;
+      const x = 50 + 40.6*Math.cos(theta);
+      const y = 78.9 - 70.5*Math.sin(theta);
+      marker.style.left = `calc(${x}% - 7px)`;
+      marker.style.top = `calc(${y}% - 7px)`;
+    }
   }
 
   setText("canaryStatus", latest.status || "—");
@@ -469,7 +485,7 @@ function renderCreditStress(rows) {
     const score=toNum(r.compositeRisk), status=r.status || scoreStatus(score), tone=statusTone(status);
     const cur=toNum(r.currentValue), ch=toNum(r.change);
     return `<div class="credit-item">
-      <div><div class="credit-name">${escapeHtml(r.entityMarket || "AI credit")}</div><div class="credit-meta">${Number.isFinite(cur)?formatNumber(cur,0):"—"} ${escapeHtml(r.unit||"")} · ${Number.isFinite(ch)?formatSignedPercent(ch):"—"}</div></div>
+      <div><div class="credit-name">${escapeHtml(r.entityMarket || "AI credit")} · 5Y CDS <button class="info-btn" data-info="creditStress" aria-label="About 5Y CDS">i</button></div><div class="credit-meta">CDS spread ${Number.isFinite(cur)?formatNumber(cur,0):"—"} ${escapeHtml(r.unit||"")} · ${Number.isFinite(ch)?formatSignedPercent(ch):"—"}</div></div>
       <div><div class="credit-score ${tone}">${formatNumber(score,0)}</div><div class="credit-status ${tone}">${escapeHtml(status)}</div></div>
     </div>`;
   }).join("");
