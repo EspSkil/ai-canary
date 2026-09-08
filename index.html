@@ -1,361 +1,335 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#06121f">
-  <title>AI Canary Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script defer src="script.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="#06121f" name="theme-color"/>
+<title>AI Canary Dashboard</title>
+<link href="style.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script defer="" src="script.js"></script>
 </head>
 <body>
-  <div class="page-shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="bird">🐤</div>
-        <div>
-          <div class="eyebrow">FIASCOFINANCE.NO</div>
-          <h1>AI CANARY</h1>
-          <div class="brand-sub">Tracking the AI cycle. Spotting risks early.</div>
-        </div>
-      </div>
-      <div class="status-block">
-        <div id="dataStatus" class="status-live">Loading live data…</div>
-        <div id="lastUpdated" class="muted small">—</div>
-      </div>
-    </header>
+<div class="page-shell">
+<header class="topbar">
+<div class="brand">
+<div class="bird">🐤</div>
+<div>
+<div class="eyebrow">FIASCOFINANCE.NO</div>
+<h1>AI CANARY</h1>
+<div class="brand-sub">Tracking the AI cycle. Spotting risks early.</div>
+</div>
+</div>
+<div class="header-purpose"><strong>Early warning for the AI investment cycle</strong><span>Tracks demand, compute, CAPEX, commitments, credit and markets to spot stress before it becomes broad.</span></div><div class="status-block">
+<div class="status-live" id="dataStatus">Loading live data…</div>
+<div class="muted small" id="lastUpdated">—</div>
+</div>
+</header>
+<nav class="nav">
+<a href="#overview">Overview</a>
+<a href="#moneycircle">Money Circle</a>
+<a href="#financialrisk">Financial Risk</a>
+<a href="#markets">Markets</a>
+<a href="#economics">AI Economics</a>
+<a href="#demand">AI Demand</a>
+<a href="#history">History</a>
+</nav>
+<main>
+<section class="overview-grid" id="overview">
+<article class="panel score-panel">
+<div class="eyebrow">CANARY SCORE</div>
+<div class="score-gauge-semi" id="scoreGauge">
+<div class="semi-arc"></div>
+<div class="semi-mask"></div>
+<div class="score-marker"><span></span></div>
+<div class="semi-score-content">
+<div class="semi-label">CANARY SCORE</div>
+<div class="score-value" id="canaryScore">—</div>
+<div class="score-denom">/100</div>
+</div>
+</div>
+<div class="status-pill" id="canaryStatus">—</div>
+<div class="baseline-note">vs. last week: <strong>—</strong><br/><span>v3 baseline</span></div>
+<div class="hedge-read" id="hedgeRead">Hedge Read: —</div>
+<div class="quote">“Same data. A clearer story.”</div>
+</article>
 
-    <nav class="nav">
-      <a href="#overview">Overview</a>
-      <a href="#moneycircle">Money Circle</a>
-      <a href="#financialrisk">Financial Risk</a>
-      <a href="#markets">Markets</a>
-      <a href="#economics">AI Economics</a>
-      <a href="#demand">AI Demand</a>
-      <a href="#history">History</a>
-    </nav>
-
-    <main>
-      <section id="overview" class="overview-grid">
-        <article class="panel score-panel">
-          <div class="eyebrow">CANARY SCORE</div>
-          <div id="scoreGauge" class="score-gauge-semi">
-            <div class="semi-arc"></div>
-            <div class="semi-mask"></div>
-            <div class="score-marker"><span></span></div>
-            <div class="semi-score-content">
-              <div class="semi-label">CANARY SCORE</div>
-              <div id="canaryScore" class="score-value">—</div>
-              <div class="score-denom">/100</div>
-            </div>
-          </div>
-          <div id="canaryStatus" class="status-pill">—</div>
-          <div class="baseline-note">vs. last week: <strong>—</strong><br><span>v3 baseline</span></div>
-          <div id="hedgeRead" class="hedge-read">Hedge Read: —</div>
-          <div class="quote">“Same data. A clearer story.”</div>
-        </article>
-
-        <article class="panel snapshot-panel">
-          <div class="section-title-row">
-            <div>
-              <div class="eyebrow">WEEKLY SNAPSHOT</div>
-              <h2>Key Market Signals</h2>
-            </div>
-            <div id="snapshotDate" class="date-chip">—</div>
-          </div>
-
-          <div class="signal-grid">
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">SOX</span><span class="signal-name">Semiconductor Index</span><button class="info-btn" data-info="sox" aria-label="About SOX">i</button></div><span id="soxRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
-              <div id="soxValue" class="signal-value">—</div>
-              <div id="soxMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="soxSpark"></canvas></div>
-            </div>
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">VIX</span><span class="signal-name">Equity Volatility</span><button class="info-btn" data-info="vix" aria-label="About VIX">i</button></div><span id="vixRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
-              <div id="vixValue" class="signal-value">—</div>
-              <div id="vixMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="vixSpark"></canvas></div>
-            </div>
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">US 10Y</span><span class="signal-name">Treasury Yield</span><button class="info-btn" data-info="us10y" aria-label="About US 10Y">i</button></div><span id="us10yRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
-              <div id="us10yValue" class="signal-value">—</div>
-              <div id="us10yMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="us10ySpark"></canvas></div>
-            </div>
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">HY OAS</span><span class="signal-name">High Yield Credit Spread</span><button class="info-btn" data-info="hyoas" aria-label="About HY OAS">i</button></div><span id="hyOasRisk" class="risk-chip">—</span></div><div class="spark-period">12M</div>
-              <div id="hyOasValue" class="signal-value">—</div>
-              <div id="hyOasMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="hyOasSpark"></canvas></div>
-            </div>
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">TOKEN INDEX</span><span class="signal-name">AI Token Expenditure</span><button class="info-btn" data-info="token" aria-label="About Token Index">i</button></div><span id="tokenRisk" class="risk-chip">—</span></div><div class="spark-period" id="tokenPeriod">HISTORY</div>
-              <div id="tokenValue" class="signal-value">—</div>
-              <div id="tokenMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="tokenSpark"></canvas></div>
-            </div>
-            <div class="signal-card">
-              <div class="signal-head"><div><span class="ticker">H100 RENTAL</span><span class="signal-name">GPU Rental Price</span><button class="info-btn" data-info="h100" aria-label="About H100 Rental">i</button></div><span id="h100SdRisk" class="risk-chip">—</span></div><div class="spark-period" id="h100Period">HISTORY</div>
-              <div id="h100SdValue" class="signal-value">—</div>
-              <div id="h100SdMove" class="move-line">—</div>
-              <div class="sparkline-wrap"><canvas id="h100Spark"></canvas></div>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section class="triple-grid">
-        <article class="panel takeaways-panel">
-          <div class="eyebrow">KEY TAKEAWAYS · THIS WEEK</div>
-          <div id="takeaways" class="takeaway-list"></div>
-        </article>
-
-        <article id="moneycircle" class="panel money-panel">
-          <div class="section-title-row">
-            <div>
-              <div class="eyebrow">THE AI MONEY CIRCLE</div>
-              <h2>Where risk sits in the loop</h2>
-            </div>
-          </div>
-          <div class="money-circle">
-            <div id="moneyNode1" class="money-node node-top">
-              <div class="money-node-title">1. Capital & Financing</div>
-              <div class="money-node-status">—</div>
-              <div class="money-node-badges"></div>
-            </div>
-            <div id="moneyNode2" class="money-node node-right-top">
-              <div class="money-node-title">2. Hyperscalers & Neocloud</div>
-              <div class="money-node-status">—</div>
-              <div class="money-node-badges"></div>
-            </div>
-            <div id="moneyNode3" class="money-node node-right-bottom">
-              <div class="money-node-title">3. Semis & Hardware</div>
-              <div class="money-node-status">—</div>
-              <div class="money-node-badges"></div>
-            </div>
-            <div id="moneyNode4" class="money-node node-left-bottom">
-              <div class="money-node-title">4. Compute & AI Models</div>
-              <div class="money-node-status">—</div>
-              <div class="money-node-badges"></div>
-            </div>
-            <div id="moneyNode5" class="money-node node-left-top">
-              <div class="money-node-title">5. End Users & Monetization</div>
-              <div class="money-node-status">—</div>
-              <div class="money-node-badges"></div>
-            </div>
-
-            <div class="money-core">AI<br><span>ECOSYSTEM</span></div>
-            <div class="orbit"></div>
-          </div>
-        </article>
-
-        <article class="panel indicators-panel">
-          <div class="eyebrow">CANARY INDICATORS</div>
-          <div id="indicatorTable" class="indicator-table"></div>
-        </article>
-      </section>
-
-      <section id="financialrisk" class="content-section financial-risk-section">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">FINANCIAL RISK STACK</div>
-            <h2>Commitments & Credit Stress</h2>
-            <div class="section-sub">Dynamic model outputs from the Google Sheet calculation layer.</div>
-          </div>
-          <div class="model-chip">LIVE MODEL</div>
-        </div>
-
-        <div class="risk-stack-grid">
-          <article class="panel risk-score-card" id="commitmentRiskCard">
-            <div class="risk-card-head">
-              <div>
-                <div class="eyebrow">COMMITMENT OVERHANG</div>
-                <div class="risk-card-title">Future obligations</div>
-              </div>
-              <div id="commitmentStatus" class="status-pill compact">—</div>
-            </div>
-            <div class="risk-score-line"><span id="commitmentScore" class="risk-big-score">—</span><span class="risk-denom">/100</span></div>
-            <div class="mini-bar"><span id="commitmentBar"></span></div>
-            <div class="risk-meta-grid">
-              <div><span class="risk-meta-label">Average company risk</span><strong id="commitmentAvg">—</strong></div>
-              <div><span class="risk-meta-label">Breadth</span><strong id="commitmentBreadth">—</strong></div>
-              <div><span class="risk-meta-label">Elevated companies</span><strong id="commitmentElevated">—</strong></div>
-            </div>
-          </article>
-
-          <article class="panel risk-score-card" id="financingRiskCard">
-            <div class="risk-card-head">
-              <div>
-                <div class="eyebrow">FINANCING CONDITIONS</div>
-                <div class="risk-card-title">Funding & credit pressure</div>
-              </div>
-              <div id="financingStatus" class="status-pill compact">—</div>
-            </div>
-            <div class="risk-score-line"><span id="financingScore" class="risk-big-score">—</span><span class="risk-denom">/100</span></div>
-            <div class="mini-bar"><span id="financingBar"></span></div>
-            <div class="risk-meta-grid">
-              <div><span class="risk-meta-label">General financing</span><strong id="generalFinancingScore">—</strong></div>
-              <div><span class="risk-meta-label">AI credit stress</span><strong id="aiCreditScore">—</strong></div>
-              <div><span class="risk-meta-label">Company burden</span><strong id="companyBurdenScore">—</strong></div>
-            </div>
-          </article>
-
-          <article class="panel divergence-card">
-            <div class="eyebrow">CANARY DIVERGENCE</div>
-            <h3>Broad credit calm. AI credit stressed.</h3>
-            <div class="divergence-track">
-              <div class="divergence-row"><span>General financing</span><div class="divergence-bar"><i id="generalFinancingBar"></i></div><strong id="generalFinancingMini">—</strong></div>
-              <div class="divergence-row"><span>AI credit stress</span><div class="divergence-bar"><i id="aiCreditBar"></i></div><strong id="aiCreditMini">—</strong></div>
-            </div>
-            <div id="divergenceText" class="divergence-text">—</div>
-          </article>
-        </div>
-
-        <div class="risk-detail-grid">
-          <article class="panel detail-card">
-            <div class="detail-card-head"><div><div class="eyebrow">COMMITMENT MOMENTUM</div><h3>Company risk map</h3></div><span class="muted small">Latest comparable series</span></div>
-            <div id="commitmentCompanyGrid" class="company-risk-grid"></div>
-          </article>
-          <article class="panel detail-card">
-            <div class="detail-card-head"><div><div class="eyebrow">AI CREDIT STRESS</div><h3>Credit signals</h3></div><span class="muted small">Level + momentum</span></div>
-            <div id="creditStressGrid" class="credit-stress-grid"></div>
-          </article>
-        </div>
-      </section>
-
-      <section id="markets" class="content-section">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">MARKETS</div>
-            <h2>Market & Financing Monitor</h2>
-          </div>
-          <div id="rangeControls" class="range-buttons">
-            <button data-range="13">3M</button>
-            <button data-range="26">6M</button>
-            <button data-range="52" class="active">1Y</button>
-            <button data-range="9999">3Y</button>
-          </div>
-        </div>
-
-        <div class="chart-grid">
-          <article class="panel chart-card">
-            <div class="chart-title">SOX <span id="soxLatestMini">—</span></div>
-            <canvas id="soxChart"></canvas>
-          </article>
-          <article class="panel chart-card">
-            <div class="chart-title">VIX <span id="vixLatestMini">—</span></div>
-            <canvas id="vixChart"></canvas>
-          </article>
-          <article class="panel chart-card">
-            <div class="chart-title">US 10Y & Real 10Y <span id="ratesLatestMini">—</span></div>
-            <canvas id="ratesChart"></canvas>
-          </article>
-          <article class="panel chart-card">
-            <div class="chart-title">IG & HY OAS <span id="creditLatestMini">—</span></div>
-            <canvas id="creditChart"></canvas>
-          </article>
-        </div>
-      </section>
-
-      <section id="economics" class="content-section">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">AI ECONOMICS</div>
-            <h2>Token & GPU Monitor</h2>
-          </div>
-        </div>
-
-        <div class="economics-grid">
-          <article class="panel chart-card economics-card">
-            <div class="metric-hero">
-              <div>
-                <div class="eyebrow">TOKEN ECONOMICS</div>
-                <div id="tokenHeroValue" class="hero-metric">—</div>
-              </div>
-              <div id="tokenHeroChange" class="hero-change">—</div>
-            </div>
-            <canvas id="tokenChart"></canvas>
-          </article>
-
-          <article class="panel chart-card economics-card">
-            <div class="metric-hero">
-              <div>
-                <div class="eyebrow">H100 RENTAL PRICE</div>
-                <div id="h100HeroValue" class="hero-metric">—</div>
-              </div>
-              <div id="h100HeroChange" class="hero-change">—</div>
-            </div>
-            <canvas id="h100Chart"></canvas>
-          </article>
-
-          <article class="panel neocloud-card">
-            <div class="eyebrow">NEOCLOUD GUARANTEED</div>
-            <div id="ccirHeroValue" class="hero-metric">—</div>
-            <div id="ccirHeroDate" class="muted small">—</div>
-            <div class="neocloud-note">Separate methodology. Reference rate only.</div>
-          </article>
-        </div>
-
-        <details class="panel raw-data">
-          <summary>View underlying Token & GPU data</summary>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Metric</th>
-                  <th>Value</th>
-                  <th>7D Change</th>
-                  <th>Provider</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="tokenGpuTable"></tbody>
-            </table>
-          </div>
-        </details>
-      </section>
-
-      <section id="demand" class="content-section">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">AI DEMAND</div>
-            <h2>Company Demand Signals</h2>
-          </div>
-        </div>
-        <div id="companyCards" class="company-grid"></div>
-      </section>
-
-      <section id="history" class="content-section">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">HISTORY</div>
-            <h2>Canary Score History</h2>
-          </div>
-        </div>
-        <article class="panel history-card">
-          <div class="history-placeholder">
-            <div class="history-score">41</div>
-            <div>
-              <strong>v3 baseline</strong>
-              <div class="muted">History starts here. Future weekly snapshots will build the comparable trend.</div>
-            </div>
-          </div>
-        </article>
-      </section>
-    </main>
-    <div id="infoPopover" class="info-popover" hidden>
-      <button id="infoClose" class="info-close" aria-label="Close">×</button>
-      <div id="infoTitle" class="info-title"></div>
-      <div id="infoText" class="info-text"></div>
-    </div>
-
-    <footer>
-      <span>AI Canary Dashboard · live data from Google Sheets</span>
-      <span>Research use only — not investment advice.</span>
-    </footer>
-  </div>
+<div class="primary-insight-grid"><article class="panel money-panel" id="moneycircle">
+<div class="section-title-row">
+<div>
+<div class="eyebrow">THE AI MONEY CIRCLE <button aria-label="About the AI Money Circle" class="info-btn" data-info="moneycircle">i</button></div>
+<h2>Where risk sits in the loop</h2>
+</div>
+</div>
+<div class="money-circle">
+<div class="money-node node-top" id="moneyNode1">
+<div class="money-node-title">1. Capital &amp; Financing</div>
+<div class="money-node-status">—</div>
+<div class="money-node-badges"></div>
+</div>
+<div class="money-node node-right-top" id="moneyNode2">
+<div class="money-node-title">2. Hyperscalers &amp; Neocloud</div>
+<div class="money-node-status">—</div>
+<div class="money-node-badges"></div>
+</div>
+<div class="money-node node-right-bottom" id="moneyNode3">
+<div class="money-node-title">3. Semis &amp; Hardware</div>
+<div class="money-node-status">—</div>
+<div class="money-node-badges"></div>
+</div>
+<div class="money-node node-left-bottom" id="moneyNode4">
+<div class="money-node-title">4. Compute &amp; AI Models</div>
+<div class="money-node-status">—</div>
+<div class="money-node-badges"></div>
+</div>
+<div class="money-node node-left-top" id="moneyNode5">
+<div class="money-node-title">5. End Users &amp; Monetization</div>
+<div class="money-node-status">—</div>
+<div class="money-node-badges"></div>
+</div>
+<div class="money-core">AI<br/><span>ECOSYSTEM</span></div>
+<div class="orbit"></div>
+</div>
+</article><article class="panel indicators-panel">
+<div class="eyebrow">CANARY INDICATORS <button aria-label="About Canary Indicators" class="info-btn" data-info="indicators">i</button></div>
+<div class="indicator-table" id="indicatorTable"></div>
+</article></div></section>
+<section class="secondary-overview-grid"><article class="panel takeaways-panel">
+<div class="eyebrow">KEY TAKEAWAYS · THIS WEEK</div>
+<div class="takeaway-list" id="takeaways"></div>
+</article><article class="panel snapshot-panel">
+<div class="section-title-row">
+<div>
+<div class="eyebrow">WEEKLY SNAPSHOT</div>
+<h2>Key Market Signals</h2>
+</div>
+<div class="date-chip" id="snapshotDate">—</div>
+</div>
+<div class="signal-grid">
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">SOX</span><span class="signal-name">Semiconductor Index</span><button aria-label="About SOX" class="info-btn" data-info="sox">i</button></div><span class="risk-chip" id="soxRisk">—</span></div><div class="spark-period">12M</div>
+<div class="signal-value" id="soxValue">—</div>
+<div class="move-line" id="soxMove">—</div>
+<div class="sparkline-wrap"><canvas id="soxSpark"></canvas></div>
+</div>
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">VIX</span><span class="signal-name">Equity Volatility</span><button aria-label="About VIX" class="info-btn" data-info="vix">i</button></div><span class="risk-chip" id="vixRisk">—</span></div><div class="spark-period">12M</div>
+<div class="signal-value" id="vixValue">—</div>
+<div class="move-line" id="vixMove">—</div>
+<div class="sparkline-wrap"><canvas id="vixSpark"></canvas></div>
+</div>
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">US 10Y</span><span class="signal-name">Treasury Yield</span><button aria-label="About US 10Y" class="info-btn" data-info="us10y">i</button></div><span class="risk-chip" id="us10yRisk">—</span></div><div class="spark-period">12M</div>
+<div class="signal-value" id="us10yValue">—</div>
+<div class="move-line" id="us10yMove">—</div>
+<div class="sparkline-wrap"><canvas id="us10ySpark"></canvas></div>
+</div>
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">HY OAS</span><span class="signal-name">High Yield Credit Spread</span><button aria-label="About HY OAS" class="info-btn" data-info="hyoas">i</button></div><span class="risk-chip" id="hyOasRisk">—</span></div><div class="spark-period">12M</div>
+<div class="signal-value" id="hyOasValue">—</div>
+<div class="move-line" id="hyOasMove">—</div>
+<div class="sparkline-wrap"><canvas id="hyOasSpark"></canvas></div>
+</div>
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">TOKEN INDEX</span><span class="signal-name">AI Token Expenditure</span><button aria-label="About Token Index" class="info-btn" data-info="token">i</button></div><span class="risk-chip" id="tokenRisk">—</span></div><div class="spark-period" id="tokenPeriod">HISTORY</div>
+<div class="signal-value" id="tokenValue">—</div>
+<div class="move-line" id="tokenMove">—</div>
+<div class="sparkline-wrap"><canvas id="tokenSpark"></canvas></div>
+</div>
+<div class="signal-card">
+<div class="signal-head"><div><span class="ticker">H100 RENTAL</span><span class="signal-name">GPU Rental Price</span><button aria-label="About H100 Rental" class="info-btn" data-info="h100">i</button></div><span class="risk-chip" id="h100SdRisk">—</span></div><div class="spark-period" id="h100Period">HISTORY</div>
+<div class="signal-value" id="h100SdValue">—</div>
+<div class="move-line" id="h100SdMove">—</div>
+<div class="sparkline-wrap"><canvas id="h100Spark"></canvas></div>
+</div>
+</div>
+</article></section>
+<section class="content-section financial-risk-section" id="financialrisk">
+<div class="section-head">
+<div>
+<div class="eyebrow">FINANCIAL RISK STACK</div>
+<h2>Commitments &amp; Credit Stress</h2>
+<div class="section-sub">Dynamic model outputs from the Google Sheet calculation layer.</div>
+</div>
+<div class="model-chip">LIVE MODEL</div>
+</div>
+<div class="risk-stack-grid">
+<article class="panel risk-score-card" id="commitmentRiskCard">
+<div class="risk-card-head">
+<div>
+<div class="eyebrow">COMMITMENT OVERHANG <button aria-label="About Commitment Overhang" class="info-btn" data-info="commitment">i</button></div>
+<div class="risk-card-title">Future obligations</div>
+</div>
+<div class="status-pill compact" id="commitmentStatus">—</div>
+</div>
+<div class="risk-score-line"><span class="risk-big-score" id="commitmentScore">—</span><span class="risk-denom">/100</span></div>
+<div class="mini-bar"><span id="commitmentBar"></span></div>
+<div class="risk-meta-grid">
+<div><span class="risk-meta-label">Average company risk</span><strong id="commitmentAvg">—</strong></div>
+<div><span class="risk-meta-label">Breadth</span><strong id="commitmentBreadth">—</strong></div>
+<div><span class="risk-meta-label">Elevated companies</span><strong id="commitmentElevated">—</strong></div>
+</div>
+</article>
+<article class="panel risk-score-card" id="financingRiskCard">
+<div class="risk-card-head">
+<div>
+<div class="eyebrow">FINANCING CONDITIONS <button aria-label="About Financing Conditions" class="info-btn" data-info="financing">i</button></div>
+<div class="risk-card-title">Funding &amp; credit pressure</div>
+</div>
+<div class="status-pill compact" id="financingStatus">—</div>
+</div>
+<div class="risk-score-line"><span class="risk-big-score" id="financingScore">—</span><span class="risk-denom">/100</span></div>
+<div class="mini-bar"><span id="financingBar"></span></div>
+<div class="risk-meta-grid">
+<div><span class="risk-meta-label">General financing</span><strong id="generalFinancingScore">—</strong></div>
+<div><span class="risk-meta-label">AI credit stress</span><strong id="aiCreditScore">—</strong></div>
+<div><span class="risk-meta-label">Company burden</span><strong id="companyBurdenScore">—</strong></div>
+</div>
+</article>
+<article class="panel divergence-card">
+<div class="eyebrow">CANARY DIVERGENCE <button aria-label="About Canary Divergence" class="info-btn" data-info="divergence">i</button></div>
+<h3>Broad credit calm. AI credit stressed.</h3>
+<div class="divergence-track">
+<div class="divergence-row"><span>General financing</span><div class="divergence-bar"><i id="generalFinancingBar"></i></div><strong id="generalFinancingMini">—</strong></div>
+<div class="divergence-row"><span>AI credit stress</span><div class="divergence-bar"><i id="aiCreditBar"></i></div><strong id="aiCreditMini">—</strong></div>
+</div>
+<div class="divergence-text" id="divergenceText">—</div>
+</article>
+</div>
+<div class="risk-detail-grid">
+<article class="panel detail-card">
+<div class="detail-card-head"><div><div class="eyebrow">COMMITMENT MOMENTUM <button aria-label="About Commitment Momentum" class="info-btn" data-info="commitmentMomentum">i</button></div><h3>Company risk map</h3></div><span class="muted small">Latest comparable series</span></div>
+<div class="company-risk-grid" id="commitmentCompanyGrid"></div>
+</article>
+<article class="panel detail-card">
+<div class="detail-card-head"><div><div class="eyebrow">AI CREDIT STRESS <button aria-label="About AI Credit Stress" class="info-btn" data-info="creditStress">i</button></div><h3>5Y CDS credit signals</h3></div><span class="muted small">Level + momentum</span></div>
+<div class="credit-stress-grid" id="creditStressGrid"></div>
+</article>
+</div>
+</section>
+<section class="content-section" id="markets">
+<div class="section-head">
+<div>
+<div class="eyebrow">MARKETS</div>
+<h2>Market &amp; Financing Monitor</h2>
+</div>
+<div class="range-buttons" id="rangeControls">
+<button data-range="13">3M</button>
+<button data-range="26">6M</button>
+<button class="active" data-range="52">1Y</button>
+<button data-range="9999">3Y</button>
+</div>
+</div>
+<div class="chart-grid">
+<article class="panel chart-card">
+<div class="chart-title">SOX <span id="soxLatestMini">—</span></div>
+<canvas id="soxChart"></canvas>
+</article>
+<article class="panel chart-card">
+<div class="chart-title">VIX <span id="vixLatestMini">—</span></div>
+<canvas id="vixChart"></canvas>
+</article>
+<article class="panel chart-card">
+<div class="chart-title">US 10Y &amp; Real 10Y <span id="ratesLatestMini">—</span></div>
+<canvas id="ratesChart"></canvas>
+</article>
+<article class="panel chart-card">
+<div class="chart-title">IG &amp; HY OAS <span id="creditLatestMini">—</span></div>
+<canvas id="creditChart"></canvas>
+</article>
+</div>
+</section>
+<section class="content-section" id="economics">
+<div class="section-head">
+<div>
+<div class="eyebrow">AI ECONOMICS</div>
+<h2>Token &amp; GPU Monitor</h2>
+</div>
+</div>
+<div class="economics-grid">
+<article class="panel chart-card economics-card">
+<div class="metric-hero">
+<div>
+<div class="eyebrow">TOKEN ECONOMICS</div>
+<div class="hero-metric" id="tokenHeroValue">—</div>
+</div>
+<div class="hero-change" id="tokenHeroChange">—</div>
+</div>
+<canvas id="tokenChart"></canvas>
+</article>
+<article class="panel chart-card economics-card">
+<div class="metric-hero">
+<div>
+<div class="eyebrow">H100 RENTAL PRICE</div>
+<div class="hero-metric" id="h100HeroValue">—</div>
+</div>
+<div class="hero-change" id="h100HeroChange">—</div>
+</div>
+<canvas id="h100Chart"></canvas>
+</article>
+<article class="panel neocloud-card">
+<div class="eyebrow">NEOCLOUD GUARANTEED</div>
+<div class="hero-metric" id="ccirHeroValue">—</div>
+<div class="muted small" id="ccirHeroDate">—</div>
+<div class="neocloud-note">Separate methodology. Reference rate only.</div>
+</article>
+</div>
+<details class="panel raw-data">
+<summary>View underlying Token &amp; GPU data</summary>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Metric</th>
+<th>Value</th>
+<th>7D Change</th>
+<th>Provider</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="tokenGpuTable"></tbody>
+</table>
+</div>
+</details>
+</section>
+<section class="content-section" id="demand">
+<div class="section-head">
+<div>
+<div class="eyebrow">AI DEMAND</div>
+<h2>Company Demand Signals</h2>
+</div>
+</div>
+<div class="company-grid" id="companyCards"></div>
+</section>
+<section class="content-section" id="history">
+<div class="section-head">
+<div>
+<div class="eyebrow">HISTORY</div>
+<h2>Canary Score History</h2>
+</div>
+</div>
+<article class="panel history-card">
+<div class="history-placeholder">
+<div class="history-score">41</div>
+<div>
+<strong>v3 baseline</strong>
+<div class="muted">History starts here. Future weekly snapshots will build the comparable trend.</div>
+</div>
+</div>
+</article>
+</section>
+</main>
+<div class="info-popover" hidden="" id="infoPopover">
+<button aria-label="Close" class="info-close" id="infoClose">×</button>
+<div class="info-title" id="infoTitle"></div>
+<div class="info-text" id="infoText"></div>
+</div>
+<footer>
+<span>AI Canary Dashboard · live data from Google Sheets</span>
+<span>Research use only — not investment advice.</span>
+</footer>
+</div>
 </body>
 </html>
