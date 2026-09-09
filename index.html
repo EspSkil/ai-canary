@@ -34,8 +34,39 @@
 <a href="#economics">AI Economics</a>
 <a href="#demand">AI Demand</a>
 <a href="#history">History</a>
+<button class="nav-explain" type="button" data-detail="explain">Explain</button>
 </nav>
 <main>
+<section class="mobile-dashboard" id="mobileDashboard" aria-label="AI Canary mobile overview">
+  <article class="panel mobile-score-card">
+    <div class="eyebrow">CANARY SCORE · WEEKLY OVERVIEW</div>
+    <div class="mobile-gauge" id="mobileGauge">
+      <div class="mobile-gauge-arc"></div>
+      <div class="mobile-gauge-needle" id="mobileGaugeNeedle"></div>
+      <div class="mobile-gauge-score"><strong id="mobileCanaryScore">—</strong><span>/100</span><b id="mobileCanaryStatus">—</b></div>
+    </div>
+    <div class="mobile-score-meta"><span id="mobileHedgeRead">Hedge Read: —</span><span class="baseline-chip">Headline v3 baseline</span></div>
+  </article>
+  <article class="panel mobile-weekly-card">
+    <div class="mobile-section-head"><div><div class="eyebrow">LIVE / WEEKLY DATA</div><h2>Key signals</h2></div><div class="date-chip" id="mobileSnapshotDate">—</div></div>
+    <div class="mobile-signal-grid" id="mobileSignalGrid"></div>
+  </article>
+  <article class="panel mobile-indicators-card">
+    <div class="mobile-section-head"><div><div class="eyebrow">CANARY INDICATORS</div><h2>Risk components</h2></div><button class="info-btn" data-info="indicators" aria-label="About Canary Indicators">i</button></div>
+    <div class="mobile-indicator-list" id="mobileIndicatorList"></div>
+  </article>
+  <article class="panel mobile-cycle-card">
+    <div class="eyebrow">EXPLORE THE AI CYCLE</div>
+    <div class="mobile-cycle-links">
+      <button data-detail="money-financing">Capital &amp; Financing <span>›</span></button>
+      <button data-detail="money-hyperscalers">Hyperscalers &amp; Neocloud <span>›</span></button>
+      <button data-detail="money-semis">Semis &amp; Hardware <span>›</span></button>
+      <button data-detail="money-compute">Compute &amp; AI Models <span>›</span></button>
+      <button data-detail="money-monetization">End Users &amp; Monetization <span>›</span></button>
+    </div>
+  </article>
+</section>
+
 <section class="overview-grid" id="overview">
 <article class="panel score-panel">
 <div class="eyebrow">CANARY SCORE</div>
@@ -43,6 +74,7 @@
 <div class="semi-arc"></div>
 <div class="semi-mask"></div>
 <div class="score-marker"><span></span></div>
+<div class="gauge-needle" id="scoreNeedle" aria-hidden="true"><span></span></div>
 <div class="semi-score-content">
 <div class="semi-label">CANARY SCORE</div>
 <div class="score-value" id="canaryScore">—</div>
