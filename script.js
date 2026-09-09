@@ -92,6 +92,7 @@ async function loadDashboard() {
     renderOverview(data);
     renderTakeaways(data);
     renderIndicators(data);
+    renderMobileDashboard(data);
     renderMoneyCircle(data);
     renderFinancialRisk(data);
     renderMarketCharts(data.marketHistory || []);
@@ -127,6 +128,8 @@ function renderOverview(data) {
       marker.style.left = `calc(${x}% - 7px)`;
       marker.style.top = `calc(${y}% - 7px)`;
     }
+    const needle = document.getElementById("scoreNeedle");
+    if (needle) needle.style.setProperty("--needle-angle", `${-90 + Math.max(0,Math.min(100,score))*1.8}deg`);
   }
 
   setText("canaryStatus", latest.status || "—");
@@ -379,6 +382,7 @@ function renderIndicators(data) {
   const x = data.canary?.latest || {};
   const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
+  const dynMacro = dynamicScore(data,"macroRisk",x.macroScore);
   const items = [
     {name:"Token Economics",score:x.tokenScore,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Usage & monetization economics"},
     {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Revenue, cloud growth & backlog"},
@@ -387,7 +391,7 @@ function renderIndicators(data) {
     {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"AI infrastructure spending"},
     {name:"Commitment Overhang",score:dynCommit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Future obligations & momentum"},
     {name:"Financing Conditions",score:dynFin.score,icon:"🏦",detail:"financing",info:"financingConditionsIndicator",subtitle:"Credit, rates & financing burden"},
-    {name:"Macro & Risk",score:x.macroScore,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Rates, volatility & broad risk"}
+    {name:"Macro & Risk",score:dynMacro.score,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Dynamic · VIX, USDJPY & US 10Y"}
   ];
 
   let html = `<div class="indicator-row header"><div>Indicator</div><div>Score</div><div>Trend</div><div>Status</div></div>`;
@@ -406,6 +410,35 @@ function renderIndicators(data) {
   document.getElementById("indicatorTable").innerHTML = html;
 }
 
+
+function renderMobileDashboard(data) {
+  const x=data.canary?.latest||{}, m=data.latestMarket||{}, tg=data.latestTokenGpu||{};
+  const score=toNum(x.canaryScore);
+  setText("mobileCanaryScore",Number.isFinite(score)?Math.round(score):"—");
+  setText("mobileCanaryStatus",x.status||scoreStatus(score));
+  setText("mobileHedgeRead",`Hedge Read: ${x.hedgeRead||"—"}`);
+  setText("mobileSnapshotDate",x.week||"Latest");
+  const needle=document.getElementById("mobileGaugeNeedle");
+  if(needle&&Number.isFinite(score)) needle.style.setProperty("--needle-angle",`${-90+Math.max(0,Math.min(100,score))*1.8}deg`);
+  const history=data.marketHistory||[];
+  const hy=weeklyDelta(history,"hyOas");
+  const signals=[
+    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",Number.isFinite(toNum(x.soxChange))?`${toNum(x.soxChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.soxChange)))}`:"—"],
+    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",Number.isFinite(toNum(x.vixChange))?`${toNum(x.vixChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.vixChange)))}`:"—"],
+    ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",marketMonthChange("us10y","bps").text],
+    ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",Number.isFinite(hy)?`${hy>0?"↑":"↓"} ${Math.abs(hy*100).toFixed(0)} bps · 1W`:"—"],
+    ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"])))}`:"—"],
+    ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"])))}`:"—"]
+  ];
+  const sg=document.getElementById("mobileSignalGrid");
+  if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
+  const commit=dynamicScore(data,"commitmentOverhang",x.commitmentScore), fin=dynamicScore(data,"financingConditions",x.financingScore), macro=dynamicScore(data,"macroRisk",x.macroScore);
+  const items=[
+    ["🪙","Token Economics",x.tokenScore,"token"],["☁️","AI Demand",x.demandScore,"demand"],["🖥️","Compute Supply",x.computeScore,"compute"],["💾","Semiconductor Market",x.semisScore,"semis"],["🏗️","CAPEX Investment",x.capexScore,"capex"],["📜","Commitment Overhang",commit.score,"commitment"],["🏦","Financing Conditions",fin.score,"financing"],["🌐","Macro & Risk",macro.score,"macro"]
+  ];
+  const list=document.getElementById("mobileIndicatorList");
+  if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><small>${st}</small><b>›</b></button>`}).join("");
+}
 
 function dynamicScore(data,key,fallback) {
   const item = data?.dynamicScores?.[key] || {};
@@ -752,7 +785,8 @@ const DETAIL_META = {
   "money-hyperscalers":{icon:"☁",kicker:"AI MONEY CIRCLE · 2",title:"Hyperscalers & Neocloud",subtitle:"CAPEX, commitments and demand across the largest AI infrastructure buyers."},
   "money-semis":{icon:"◇",kicker:"AI MONEY CIRCLE · 3",title:"Semis & Hardware",subtitle:"Chips, hardware demand and market confirmation."},
   "money-compute":{icon:"▦",kicker:"AI MONEY CIRCLE · 4",title:"Compute & AI Models",subtitle:"GPU economics, supply, token activity and model-layer demand."},
-  "money-monetization":{icon:"↗",kicker:"AI MONEY CIRCLE · 5",title:"End Users & Monetization",subtitle:"The part of the loop that must ultimately justify the infrastructure buildout."}
+  "money-monetization":{icon:"↗",kicker:"AI MONEY CIRCLE · 5",title:"End Users & Monetization",subtitle:"The part of the loop that must ultimately justify the infrastructure buildout."},
+  explain:{icon:"🐤",kicker:"AI CANARY · EXPLAIN",title:"How AI Canary works",subtitle:"Purpose, model logic, scoring and how to read the dashboard."}
 };
 
 function setupIndicatorDetails() {
@@ -843,6 +877,7 @@ function detailScoreInfo(key) {
   const x=DATA?.canary?.latest || {};
   const commit=dynamicScore(DATA,"commitmentOverhang",x.commitmentScore);
   const fin=dynamicScore(DATA,"financingConditions",x.financingScore);
+  const macro=dynamicScore(DATA,"macroRisk",x.macroScore);
   const map={
     token:{score:toNum(x.tokenScore),label:"TOKEN ECONOMICS SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
@@ -851,7 +886,7 @@ function detailScoreInfo(key) {
     capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     commitment:{score:toNum(commit.score),status:commit.status,label:"COMMITMENT OVERHANG SCORE",meta:"Dynamic Google Sheet model"},
     financing:{score:toNum(fin.score),status:fin.status,label:"FINANCING CONDITIONS SCORE",meta:"Dynamic Google Sheet model"},
-    macro:{score:toNum(x.macroScore),label:"MACRO & RISK SCORE",meta:"Locked v3 baseline · dynamic macro model pending"}
+    macro:{score:toNum(macro.score),status:macro.status,label:"MACRO & RISK SCORE",meta:"Dynamic Google Sheet model · headline Canary 41 remains locked"}
   };
   const item=map[key];
   if (!item) return {score:NaN};
@@ -874,6 +909,7 @@ function buildDetailBody(key) {
     case "money-semis": return moneySemisHtml();
     case "money-compute": return moneyComputeHtml();
     case "money-monetization": return moneyMonetizationHtml();
+    case "explain": return explainDetailHtml();
     default: return sectionHtml("DETAIL","More detail will be added as this Canary component is connected to the common evidence model.");
   }
 }
@@ -1034,14 +1070,58 @@ function capexDetailHtml() {
 
 function macroDetailHtml() {
   const m=DATA.latestMarket || {};
+  const rows=(DATA.macroMomentum?.rows || []).filter(r=>r.metric && Number.isFinite(toNum(r.compositeRisk)));
+  const summary=DATA.macroMomentum?.summary || {};
+  const dyn=dynamicScore(DATA,"macroRisk",DATA.canary?.latest?.macroScore);
+  const old=toNum(DATA.canary?.latest?.macroScore);
   const v=marketMonthChange("vix","pct"), n=marketMonthChange("us10y","bps"), rr=marketMonthChange("real10y","bps"), hy=marketMonthChange("hyOas","bps"), ig=marketMonthChange("igOas","bps");
-  return sectionHtml("WHY IT MATTERS","Macro conditions influence discount rates, funding costs, risk appetite and the ability of capital-intensive AI projects to refinance through a downturn.",metricCards([
-    {label:"VIX",value:m.vix?formatNumber(m.vix.value,2):"—",note:m.vix?.date||"",trend:v.text,trendTone:v.tone},
-    {label:"US 10Y",value:m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",note:"Nominal yield",trend:n.text,trendTone:n.tone},
-    {label:"Real 10Y",value:m.real10y?`${formatNumber(m.real10y.value,2)}%`:"—",note:"Real discount rate",trend:rr.text,trendTone:rr.tone},
-    {label:"HY OAS",value:m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",note:"Broad credit stress",trend:hy.text,trendTone:hy.tone},
-    {label:"IG OAS",value:m.igOas?`${formatNumber(m.igOas.value,2)}%`:"—",note:"Investment grade credit",trend:ig.text,trendTone:ig.tone}
-  ]))+sectionHtml("HOW THE 45 SCORE IS TREATED","Macro & Risk 45 is still the locked v3 baseline. The live market values and 1M arrows above are evidence around that score, but they do not yet recalculate it. A dynamic Macro_Momentum model is a later upgrade.",sourceNote("Score locked · live evidence connected"))+sectionHtml("DATA & EVIDENCE","MarketHistory provides weekly end-of-period / last-available observations. 1M change compares the latest valid weekly observation with roughly four weeks earlier.",sourceNote("Live market-history connection"));
+  const cards=metricCards([
+    {label:"VIX",value:m.vix?formatNumber(m.vix.value,2):"—",note:m.vix?.date||"",trend:v.text,trendTone:v.tone,riskScore:rowRisk(rows,"VIX")},
+    {label:"USDJPY",value:m.usdJpy?formatNumber(m.usdJpy.value,2):latestHistoryValue("usdJpy",2),note:"Japan / carry proxy",trend:macroRowTrend(rows,"USDJPY"),trendTone:macroTrendTone(rows,"USDJPY"),riskScore:rowRisk(rows,"USDJPY")},
+    {label:"US 10Y",value:m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",note:"Nominal yield",trend:n.text,trendTone:n.tone,riskScore:rowRisk(rows,"US 10Y")},
+    {label:"Real 10Y",value:m.real10y?`${formatNumber(m.real10y.value,2)}%`:"—",note:"Financing context · not in Macro v1",trend:rr.text,trendTone:rr.tone},
+    {label:"HY OAS",value:m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",note:"Financing model · avoid double count",trend:hy.text,trendTone:hy.tone},
+    {label:"IG OAS",value:m.igOas?`${formatNumber(m.igOas.value,2)}%`:"—",note:"Financing model · avoid double count",trend:ig.text,trendTone:ig.tone}
+  ]);
+  const breakdown=evidenceTable(rows.map(r=>({
+    label:r.metric || r.indicator || "Macro signal",
+    value:`${formatNumber(toNum(r.compositeRisk),2)} · ${r.status || scoreStatus(toNum(r.compositeRisk))}`,
+    context:`Level ${formatNumber(toNum(r.levelScore),0)} · Momentum ${formatNumber(toNum(r.momentumScore),0)} · Weight ${formatPercent(toNum(r.weight))}`
+  })));
+  const formula=`Macro & Risk = 45% VIX + 30% USDJPY + 25% US 10Y = ${Number.isFinite(toNum(dyn.score))?formatNumber(toNum(dyn.score),2):"—"}/100.`;
+  return sectionHtml("WHY IT MATTERS","Macro conditions can amplify or cushion AI-cycle stress through volatility, discount rates, global funding and risk appetite.",cards)
+    + sectionHtml("DYNAMIC MACRO MODEL",formula,breakdown)
+    + sectionHtml("WHY THE WEIGHTS DIFFER","The same change does not mean the same thing across markets. VIX uses 60% level / 40% momentum; USDJPY uses 35% level / 65% momentum because rapid FX moves can signal carry-trade stress; US 10Y uses 70% level / 30% momentum because the absolute discount-rate regime matters most.",macroWeightCards(rows))
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Dynamic Macro is ${escapeHtml(dyn.status || scoreStatus(toNum(dyn.score)))} at ${formatNumber(toNum(dyn.score),1)}/100.</div><p>The original v3 Macro baseline was ${Number.isFinite(old)?Math.round(old):"—"}. The dynamic score is now shown in this deep dive and indicator list, while the headline Canary 41 remains the locked baseline until all upgraded components are deliberately rolled into a new comparable headline model.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","Macro_Momentum is calculated in Google Sheets from MarketHistory. The v1 model intentionally excludes IG OAS, HY OAS and Real 10Y from the Macro score because those are already used in Financing Conditions; this limits double counting.",sourceNote("Live Macro_Momentum · dynamic score"));
+}
+
+function macroRow(rows,label){ return rows.find(r=>String(r.metric||r.indicator||"").toUpperCase().includes(String(label).toUpperCase())); }
+function rowRisk(rows,label){ const r=macroRow(rows,label); return r?toNum(r.compositeRisk):NaN; }
+function macroRowTrend(rows,label){ const r=macroRow(rows,label); if(!r) return "—"; const ch=toNum(r.change); if(!Number.isFinite(ch)) return r.trend||"—"; return `${r.trend|| (ch>0?"↑":ch<0?"↓":"→")} ${formatPercent(Math.abs(ch))} · 1M`; }
+function macroTrendTone(rows,label){ const r=macroRow(rows,label); if(!r) return "neutral"; const ch=toNum(r.change); if(!Number.isFinite(ch)) return "neutral"; if(label==="USDJPY") return Math.abs(ch)>=.02?"danger":"neutral"; return ch>0?"danger":ch<0?"good":"neutral"; }
+function latestHistoryValue(key,dec=2){ const rows=(DATA?.marketHistory||[]).filter(r=>Number.isFinite(toNum(r[key]))); return rows.length?formatNumber(toNum(rows[rows.length-1][key]),dec):"—"; }
+function macroWeightCards(rows){
+  const defs=[
+    ["VIX","60% level + 40% momentum","45% of Macro"],
+    ["USDJPY","35% level + 65% momentum","30% of Macro"],
+    ["US 10Y","70% level + 30% momentum","25% of Macro"]
+  ];
+  return metricCards(defs.map(([label,logic,note])=>({label,value:logic,note,riskScore:rowRisk(rows,label),trend:macroRowTrend(rows,label),trendTone:macroTrendTone(rows,label)})));
+}
+
+function explainDetailHtml(){
+  return sectionHtml("PURPOSE","AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.")
+  + sectionHtml("HOW THE LOOP WORKS","Monetization → Demand → Compute & Semis → CAPEX & Commitments → Financing & Macro. The model becomes more concerning when fundamental, financing and market signals deteriorate together.",metricCards([
+    {label:"Monetization",value:"Can AI usage pay?",note:"Token economics + end-user adoption"},
+    {label:"Demand",value:"Is capacity absorbed?",note:"Cloud growth, RPO/backlog, usage"},
+    {label:"Compute",value:"Scarcity or oversupply?",note:"GPU pricing, utilization, semis"},
+    {label:"Commitments",value:"How much is locked in?",note:"Leases, purchases, take-or-pay"},
+    {label:"Financing",value:"Can the cycle fund itself?",note:"Rates, credit, CDS, burden"},
+    {label:"Macro",value:"Amplifier or cushion?",note:"VIX, rates, global liquidity"}
+  ]))
+  + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Level Score asks whether the current level is risky; Momentum Score asks whether the signal is moving in a concerning direction. Dynamic components are calculated in Google Sheets. Locked v3 components remain clearly labelled until their replacement models are ready.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div>`)
+  + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Its value is in showing when multiple parts of the AI circular economy start confirming the same risk story — and in making the evidence and methodology inspectable.",sourceNote("Research framework · source-first · no invented data"));
 }
 
 function moneyFinancingHtml(){ return sectionHtml("WHAT SITS HERE","This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.",metricCards([{label:"Financing",value:fmtScore(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score)},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"HY OAS",value:DATA.latestMarket?.hyOas?`${formatNumber(DATA.latestMarket.hyOas.value,2)}%`:"—",note:"Broad credit"}]))+sourceNote("Click the dedicated Commitment or Financing indicator for full scoring detail."); }
