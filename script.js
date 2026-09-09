@@ -380,14 +380,14 @@ function renderIndicators(data) {
   const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
   const items = [
-    {name:"Token Economics",score:x.tokenScore,icon:"◈",detail:"token",info:"tokenEconomics",subtitle:"Usage & monetization economics"},
-    {name:"AI Demand",score:x.demandScore,icon:"↗",detail:"demand",info:"aiDemandIndicator",subtitle:"Revenue, cloud growth & backlog"},
-    {name:"Compute Supply",score:x.computeScore,icon:"▦",detail:"compute",info:"computeSupply",subtitle:"GPU pricing, supply & utilization"},
-    {name:"Semiconductor Market",score:x.semisScore,icon:"◇",detail:"semis",info:"semiconductorMarket",subtitle:"Chip-cycle market confirmation"},
-    {name:"CAPEX Investment",score:x.capexScore,icon:"$",detail:"capex",info:"capexInvestment",subtitle:"AI infrastructure spending"},
-    {name:"Commitment Overhang",score:dynCommit.score,icon:"∞",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Future obligations & momentum"},
-    {name:"Financing Conditions",score:dynFin.score,icon:"≈",detail:"financing",info:"financingConditionsIndicator",subtitle:"Credit, rates & financing burden"},
-    {name:"Macro & Risk",score:x.macroScore,icon:"△",detail:"macro",info:"macroRisk",subtitle:"Rates, volatility & broad risk"}
+    {name:"Token Economics",score:x.tokenScore,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Usage & monetization economics"},
+    {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Revenue, cloud growth & backlog"},
+    {name:"Compute Supply",score:x.computeScore,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"GPU pricing, supply & utilization"},
+    {name:"Semiconductor Market",score:x.semisScore,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Chip-cycle market confirmation"},
+    {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"AI infrastructure spending"},
+    {name:"Commitment Overhang",score:dynCommit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Future obligations & momentum"},
+    {name:"Financing Conditions",score:dynFin.score,icon:"🏦",detail:"financing",info:"financingConditionsIndicator",subtitle:"Credit, rates & financing burden"},
+    {name:"Macro & Risk",score:x.macroScore,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Rates, volatility & broad risk"}
   ];
 
   let html = `<div class="indicator-row header"><div>Indicator</div><div>Score</div><div>Trend</div><div>Status</div></div>`;
@@ -396,7 +396,7 @@ function renderIndicators(data) {
     const status = scoreStatus(n);
     const tone = statusTone(status);
     return `<div class="indicator-row indicator-row-clickable" role="button" tabindex="0" data-detail="${item.detail}" aria-label="Open ${escapeHtml(item.name)} deep dive">
-      <div class="indicator-name-wrap"><span class="indicator-icon">${item.icon}</span><div><div class="indicator-name">${escapeHtml(item.name)} <button class="info-btn indicator-info" data-info="${item.info}" aria-label="About ${escapeHtml(item.name)}">i</button><span class="indicator-chevron">›</span></div><span class="indicator-subtitle">${escapeHtml(item.subtitle)}</span></div></div>
+      <div class="indicator-name-wrap"><span class="indicator-icon icon-${tone}">${item.icon}</span><div><div class="indicator-name">${escapeHtml(item.name)} <button class="info-btn indicator-info" data-info="${item.info}" aria-label="About ${escapeHtml(item.name)}">i</button><span class="indicator-chevron">›</span></div><span class="indicator-subtitle">${escapeHtml(item.subtitle)}</span></div></div>
       <div class="indicator-score ${tone}">${Number.isFinite(n)?Math.round(n):"—"}</div>
       <div class="trend">—</div>
       <div class="${tone}">${status}</div>
@@ -482,7 +482,7 @@ function renderCommitmentCompanies(rows) {
     return `<div class="company-risk-item detail-inline-trigger" role="button" tabindex="0" data-detail="commitment" style="--tone:${colors[tone]}">
       <div class="company-risk-name">${escapeHtml(r.company)}</div>
       <div class="company-risk-score ${tone}">${formatNumber(score,1)}</div>
-      <div class="company-risk-sub">${escapeHtml(status)} · ${Number.isFinite(change)?formatSignedPercent(change):"—"}</div>
+      <div class="company-risk-sub">${escapeHtml(status)} · ${Number.isFinite(change)?`${change>0?"↑":change<0?"↓":"→"} ${formatSignedPercent(change)}`:"—"}</div>
     </div>`;
   }).join("");
   const el=document.getElementById("commitmentCompanyGrid"); if(el) el.innerHTML=html || '<div class="muted">No commitment momentum data.</div>';
@@ -844,14 +844,14 @@ function detailScoreInfo(key) {
   const commit=dynamicScore(DATA,"commitmentOverhang",x.commitmentScore);
   const fin=dynamicScore(DATA,"financingConditions",x.financingScore);
   const map={
-    token:{score:toNum(x.tokenScore),label:"TOKEN ECONOMICS SCORE"},
-    demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE"},
-    compute:{score:toNum(x.computeScore),label:"COMPUTE SUPPLY SCORE",meta:"Current component · GPU utilization not yet included"},
-    semis:{score:toNum(x.semisScore),label:"SEMICONDUCTOR MARKET SCORE"},
-    capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE"},
+    token:{score:toNum(x.tokenScore),label:"TOKEN ECONOMICS SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    compute:{score:toNum(x.computeScore),label:"COMPUTE SUPPLY SCORE",meta:"Locked v3 baseline · GPU utilization not yet included"},
+    semis:{score:toNum(x.semisScore),label:"SEMICONDUCTOR MARKET SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     commitment:{score:toNum(commit.score),status:commit.status,label:"COMMITMENT OVERHANG SCORE",meta:"Dynamic Google Sheet model"},
     financing:{score:toNum(fin.score),status:fin.status,label:"FINANCING CONDITIONS SCORE",meta:"Dynamic Google Sheet model"},
-    macro:{score:toNum(x.macroScore),label:"MACRO & RISK SCORE"}
+    macro:{score:toNum(x.macroScore),label:"MACRO & RISK SCORE",meta:"Locked v3 baseline · dynamic macro model pending"}
   };
   const item=map[key];
   if (!item) return {score:NaN};
@@ -882,8 +882,39 @@ function sectionHtml(label,text,inner="") {
   return `<section class="drawer-section"><div class="drawer-section-label">${escapeHtml(label)}</div>${text?`<p>${escapeHtml(text)}</p>`:""}${inner}</section>`;
 }
 function metricCards(cards) {
-  return `<div class="connected-grid detail-metric-grid">${cards.map(c=>`<div class="connected-card"><span>${escapeHtml(c.label)}</span><strong>${escapeHtml(c.value ?? "—")}</strong><small>${escapeHtml(c.note || "")}</small></div>`).join("")}</div>`;
+  return `<div class="connected-grid detail-metric-grid">${cards.map(c=>{
+    const risk=toNum(c.riskScore);
+    const tone=Number.isFinite(risk)?statusTone(scoreStatus(risk)):(c.trendTone||"neutral");
+    const scoreBadge=Number.isFinite(risk)?`<span class="metric-risk-badge ${tone}">${Math.round(risk)} · ${scoreStatus(risk)}</span>`:"";
+    const trend=c.trend?`<span class="metric-trend ${c.trendTone||"neutral"}">${escapeHtml(c.trend)}</span>`:"";
+    const locked=c.locked?`<span class="metric-lock">LOCKED BASELINE</span>`:"";
+    return `<div class="connected-card metric-tone-${tone}"><div class="metric-card-top"><span>${escapeHtml(c.label)}</span>${scoreBadge}</div><strong>${escapeHtml(c.value ?? "—")}</strong><div class="metric-card-foot"><small>${escapeHtml(c.note || "")}</small>${trend}${locked}</div></div>`;
+  }).join("")}</div>`;
 }
+
+function riskTrendForRows(rows) {
+  const vals=rows.map(r=>toNum(r.change)).filter(Number.isFinite);
+  if (!vals.length) return {text:"→ no comparable trend",tone:"neutral"};
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  if (avg > 0.015) return {text:"↑ risk trend",tone:"danger"};
+  if (avg < -0.015) return {text:"↓ risk trend",tone:"good"};
+  return {text:"→ broadly flat",tone:"neutral"};
+}
+
+function marketMonthChange(key, mode="pct") {
+  const rows=(DATA?.marketHistory||[]).filter(r=>Number.isFinite(toNum(r[key])));
+  if (rows.length < 2) return {text:"—",tone:"neutral"};
+  const latest=toNum(rows[rows.length-1][key]);
+  const prev=toNum(rows[Math.max(0,rows.length-5)][key]);
+  if (!Number.isFinite(latest)||!Number.isFinite(prev)) return {text:"—",tone:"neutral"};
+  const diff=latest-prev;
+  let text;
+  if (mode==="bps") text=`${diff>0?"↑":diff<0?"↓":"→"} ${Math.abs(diff*100).toFixed(0)} bps · 1M`;
+  else { const pct=prev!==0?diff/prev:NaN; text=Number.isFinite(pct)?`${pct>0?"↑":pct<0?"↓":"→"} ${formatPercent(Math.abs(pct))} · 1M`:"—"; }
+  const tone=diff>0?"danger":diff<0?"good":"neutral";
+  return {text,tone};
+}
+
 function evidenceTable(rows) {
   if (!rows.length) return `<div class="detail-empty">No connected evidence rows yet.</div>`;
   return `<div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Signal</th><th>Latest</th><th>Change / context</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td>${escapeHtml(r.value)}</td><td>${escapeHtml(r.context || "")}</td></tr>`).join("")}</tbody></table></div>`;
@@ -897,7 +928,7 @@ function commitmentDetailHtml() {
   const rows=(DATA.commitmentMomentum?.rows || []).filter(r=>r.company && Number.isFinite(toNum(r.compositeRisk)));
   const avg=summaryValue(s,"averageCompanyRisk"), breadth=summaryValue(s,"breadth"), elevated=summaryValue(s,"companiesAbove50"), total=summaryValue(s,"totalCompanies");
   const cards=metricCards([
-    {label:"Average company risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"Across modeled companies"},
+    {label:"Average company risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"Across modeled companies",riskScore:avg,trend:riskTrendForRows(rows).text,trendTone:riskTrendForRows(rows).tone},
     {label:"Breadth",value:Number.isFinite(breadth)?formatPercent(breadth):"—",note:"Share with elevated risk"},
     {label:"Elevated",value:Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated}/${total}`:"—",note:"Composite risk above 50"}
   ]);
@@ -913,16 +944,22 @@ function financingDetailHtml() {
   const s=DATA.financingMomentum?.summary || {};
   const rows=DATA.financingMomentum?.rows || [];
   const general=summaryValue(s,"generalFinancingScore"), ai=summaryValue(s,"aiCreditStressScore"), burden=summaryValue(s,"companyFinancingBurden");
+  const generalRows=rows.filter(r=>r.signalGroup==="GENERAL_FINANCING");
+  const aiRows=rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS");
+  const burdenRows=rows.filter(r=>r.signalGroup==="COMPANY_FINANCING");
+  const gt=riskTrendForRows(generalRows), at=riskTrendForRows(aiRows), bt=riskTrendForRows(burdenRows);
   const cards=metricCards([
-    {label:"General financing",value:fmtScore(general),note:"Rates + broad credit"},
-    {label:"AI credit stress",value:fmtScore(ai),note:"AI-linked CDS"},
-    {label:"Company burden",value:fmtScore(burden),note:"Interest burden"}
+    {label:"General financing",value:fmtScore(general),note:"Rates + broad credit",riskScore:general,trend:gt.text,trendTone:gt.tone},
+    {label:"AI credit stress",value:fmtScore(ai),note:"AI-linked CDS",riskScore:ai,trend:at.text,trendTone:at.tone},
+    {label:"Company burden",value:fmtScore(burden),note:"Interest burden",riskScore:burden,trend:bt.text,trendTone:bt.tone}
   ]);
-  const credit=rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS").map(r=>({label:`${r.entityMarket||"AI credit"} · 5Y CDS`,value:`${formatNumber(toNum(r.currentValue),0)} ${r.unit||"bp"}`,context:`${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"} · risk ${formatNumber(toNum(r.compositeRisk),0)}`}));
+  const breakdown=evidenceTable(generalRows.map(r=>({label:r.metric||r.entityMarket||"General financing",value:`risk ${formatNumber(toNum(r.compositeRisk),0)}`,context:`Level ${formatNumber(toNum(r.levelScore),0)} · Momentum ${formatNumber(toNum(r.momentumScore),0)} · ${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"}`})));
+  const credit=aiRows.map(r=>({label:`${r.entityMarket||"AI credit"} · 5Y CDS`,value:`${formatNumber(toNum(r.currentValue),0)} ${r.unit||"bp"}`,context:`${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"} · risk ${formatNumber(toNum(r.compositeRisk),0)}`}));
   return sectionHtml("WHY IT MATTERS","Financing can break an investment cycle before end demand disappears. Canary separates broad-market funding conditions from AI-specific stress.",cards)
+    + sectionHtml("GENERAL FINANCING · SCORE BREAKDOWN","The 33 score is generated from the live General Financing rows — not entered manually. Level, momentum and breadth/burden logic feed the Financing_Momentum model.",breakdown)
     + sectionHtml("AI CREDIT STRESS","5Y CDS spreads are shown as market stress indicators, not precise default probabilities.",evidenceTable(credit))
     + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">The divergence matters more than the broad market alone.</div><p>AI-linked credit can deteriorate while IG/HY spreads remain calm. That is exactly the kind of localized stress the Canary is designed to surface early.</p></section>`
-    + sectionHtml("HOW WE SCORE IT","General financing, AI credit stress and company financing burden are combined in the dynamic Financing_Momentum model.")
+    + sectionHtml("HOW WE SCORE IT","General financing, AI credit stress and company financing burden are combined in the dynamic Financing_Momentum model. The arrows above show current risk direction in the underlying rows, not a fabricated weekly score history.")
     + sectionHtml("DATA & EVIDENCE","Market rates/spreads come from MarketHistory; AI credit and company financing inputs come from Financing and Company_Financials.",sourceNote("Live API-connected · dynamic score"));
 }
 
@@ -931,8 +968,8 @@ function divergenceDetailHtml() {
   const general=summaryValue(s,"generalFinancingScore"), ai=summaryValue(s,"aiCreditStressScore");
   const gap=(Number.isFinite(general)&&Number.isFinite(ai))?ai-general:NaN;
   return sectionHtml("WHAT IT SHOWS","Compares the broad financing environment with AI-specific credit stress.",metricCards([
-    {label:"General financing",value:fmtScore(general),note:"Broad conditions"},
-    {label:"AI credit stress",value:fmtScore(ai),note:"AI-linked credit"},
+    {label:"General financing",value:fmtScore(general),note:"Broad conditions",riskScore:general},
+    {label:"AI credit stress",value:fmtScore(ai),note:"AI-linked credit",riskScore:ai},
     {label:"Divergence",value:Number.isFinite(gap)?formatNumber(gap,1):"—",note:"AI minus general"}
   ]))+`<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Localized stress can lead the broader market.</div><p>A positive gap is not a crisis signal by itself. It tells us that financing pressure is appearing inside the AI ecosystem before broad corporate credit confirms it.</p></section>`;
 }
@@ -943,7 +980,7 @@ function computeDetailHtml() {
   return sectionHtml("WHY IT MATTERS","Compute Supply asks whether expanding AI accelerator capacity is still being absorbed. Oversupply risk rises when capacity expands while utilization/pricing weaken.",metricCards([
     {label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:Number.isFinite(toNum(h["7dChange"]))?`7D ${formatSignedPercent(toNum(h["7dChange"]))}`:"Silicon Data"},
     {label:"Neocloud reference",value:Number.isFinite(toNum(c.value))?`$${formatNumber(c.value,2)}`:"—",note:"CCIR · separate methodology"},
-    {label:"Semis score",value:fmtScore(x.semisScore),note:"Connected confirmation signal"}
+    {label:"Semis score",value:fmtScore(x.semisScore),note:"Connected confirmation signal",riskScore:toNum(x.semisScore),locked:true}
   ]))
   + sectionHtml("NEXT DATA UPGRADE · GPU UTILIZATION","Direct GPU utilization is not connected to the score yet. It should be added as an underlying input only after a stable source and comparable history are selected.",`<div class="utilization-empty compact-empty"><div class="empty-grid"></div><div class="empty-content"><strong>GPU utilization series not connected</strong><span>Target: 12–24 months, weekly / best available. Until then, do not interpret Compute Supply 35 as a GPU-utilization score.</span></div></div>`)
   + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Current score is Compute Supply — not GPU Utilization.</div><p>The deep dive deliberately separates connected market data from planned utilization data so the methodology stays transparent.</p></section>`
@@ -968,7 +1005,7 @@ function demandDetailHtml() {
   const recent=rows.slice(-8).map(r=>({label:`${r.company||"—"} · ${r.metric||"Metric"}`,value:formatDemandValue(r),context:r.yoyChange!==undefined&&r.yoyChange!==null?formatDemandChange(r):r.period||""}));
   return sectionHtml("WHY IT MATTERS","Demand is the bridge between infrastructure investment and monetization. Canary follows growth, backlog/RPO and operating signals across major AI/cloud companies.",metricCards([
     {label:"Companies tracked",value:String(companies.length),note:"Current AI_Demand dataset"},
-    {label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Current Canary component"},
+    {label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Current Canary component",riskScore:toNum(DATA.canary?.latest?.demandScore),locked:true},
     {label:"Evidence rows",value:String(rows.length),note:"API-connected observations"}
   ]))+sectionHtml("RECENT COMPANY SIGNALS","Selected live rows from AI_Demand.",evidenceTable(recent))+sectionHtml("DATA & EVIDENCE","Company demand rows come from the AI_Demand Google Sheet tab with source, observation date and verification fields retained in the API.",sourceNote("Live API-connected"));
 }
@@ -978,8 +1015,8 @@ function semisDetailHtml() {
   const sox=m.sox||{};
   return sectionHtml("WHY IT MATTERS","Semiconductors are a market-sensitive checkpoint on AI infrastructure expectations. Persistent chip weakness can challenge otherwise strong reported fundamentals.",metricCards([
     {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
-    {label:"Semis score",value:fmtScore(x.semisScore),note:"Current Canary component"},
-    {label:"Compute score",value:fmtScore(x.computeScore),note:"Connected cycle signal"}
+    {label:"Semis score",value:fmtScore(x.semisScore),note:"Current Canary component",riskScore:toNum(x.semisScore),locked:true},
+    {label:"Compute score",value:fmtScore(x.computeScore),note:"Connected cycle signal",riskScore:toNum(x.computeScore),locked:true}
   ]))+sectionHtml("DATA & EVIDENCE","SOX history is supplied through MarketHistory. The current Semiconductor Market score remains the existing Canary component.",sourceNote("Market history connected"));
 }
 
@@ -989,7 +1026,7 @@ function capexDetailHtml() {
   rows.forEach(r=>{ const c=r.company; if(!c) return; const d=String(r.observationDate||r.publicationDate||r.period||""); if(!latestByCompany[c] || d>String(latestByCompany[c].observationDate||latestByCompany[c].publicationDate||latestByCompany[c].period||"")) latestByCompany[c]=r; });
   const latest=Object.values(latestByCompany).slice(0,8).map(r=>({label:`${r.company} · ${r.metric||"CAPEX"}`,value:Number.isFinite(toNum(r.value))?`${formatNumber(toNum(r.value),1)} ${r.unit||""}`:(Number.isFinite(toNum(r.low))&&Number.isFinite(toNum(r.high))?`${formatNumber(toNum(r.low),0)}–${formatNumber(toNum(r.high),0)} ${r.unit||""}`:"—"),context:r.period||r.dataType||""}));
   return sectionHtml("WHY IT MATTERS","CAPEX is the physical investment pulse of the AI cycle. The risk comes from the relationship between spending, demand, commitments and financing — not from a high CAPEX number alone.",metricCards([
-    {label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Current Canary component"},
+    {label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Current Canary component",riskScore:toNum(DATA.canary?.latest?.capexScore),locked:true},
     {label:"Raw rows",value:String(rows.length),note:"CAPEX API dataset"},
     {label:"Companies",value:String(new Set(rows.map(r=>r.company).filter(Boolean)).size),note:"Tracked issuers"}
   ]))+sectionHtml("LATEST COMPANY OBSERVATIONS","Latest available row per company from the connected CAPEX dataset.",evidenceTable(latest))+sectionHtml("DATA & EVIDENCE","CAPEX keeps reported actuals and guidance as separate data types so changes in accounting classification do not silently become economic changes.",sourceNote("Live API-connected"));
@@ -997,17 +1034,18 @@ function capexDetailHtml() {
 
 function macroDetailHtml() {
   const m=DATA.latestMarket || {};
+  const v=marketMonthChange("vix","pct"), n=marketMonthChange("us10y","bps"), rr=marketMonthChange("real10y","bps"), hy=marketMonthChange("hyOas","bps"), ig=marketMonthChange("igOas","bps");
   return sectionHtml("WHY IT MATTERS","Macro conditions influence discount rates, funding costs, risk appetite and the ability of capital-intensive AI projects to refinance through a downturn.",metricCards([
-    {label:"VIX",value:m.vix?formatNumber(m.vix.value,2):"—",note:m.vix?.date||""},
-    {label:"US 10Y",value:m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",note:"Nominal yield"},
-    {label:"Real 10Y",value:m.real10y?`${formatNumber(m.real10y.value,2)}%`:"—",note:"Real discount rate"},
-    {label:"HY OAS",value:m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",note:"Broad credit stress"},
-    {label:"IG OAS",value:m.igOas?`${formatNumber(m.igOas.value,2)}%`:"—",note:"Investment grade credit"}
-  ]))+sectionHtml("DATA & EVIDENCE","MarketHistory provides weekly end-of-period / last-available observations. The current Macro & Risk score remains the locked Canary component.",sourceNote("Live market-history connection"));
+    {label:"VIX",value:m.vix?formatNumber(m.vix.value,2):"—",note:m.vix?.date||"",trend:v.text,trendTone:v.tone},
+    {label:"US 10Y",value:m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",note:"Nominal yield",trend:n.text,trendTone:n.tone},
+    {label:"Real 10Y",value:m.real10y?`${formatNumber(m.real10y.value,2)}%`:"—",note:"Real discount rate",trend:rr.text,trendTone:rr.tone},
+    {label:"HY OAS",value:m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",note:"Broad credit stress",trend:hy.text,trendTone:hy.tone},
+    {label:"IG OAS",value:m.igOas?`${formatNumber(m.igOas.value,2)}%`:"—",note:"Investment grade credit",trend:ig.text,trendTone:ig.tone}
+  ]))+sectionHtml("HOW THE 45 SCORE IS TREATED","Macro & Risk 45 is still the locked v3 baseline. The live market values and 1M arrows above are evidence around that score, but they do not yet recalculate it. A dynamic Macro_Momentum model is a later upgrade.",sourceNote("Score locked · live evidence connected"))+sectionHtml("DATA & EVIDENCE","MarketHistory provides weekly end-of-period / last-available observations. 1M change compares the latest valid weekly observation with roughly four weeks earlier.",sourceNote("Live market-history connection"));
 }
 
-function moneyFinancingHtml(){ return sectionHtml("WHAT SITS HERE","This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.",metricCards([{label:"Financing",value:fmtScore(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score),note:"Dynamic"},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic"},{label:"HY OAS",value:DATA.latestMarket?.hyOas?`${formatNumber(DATA.latestMarket.hyOas.value,2)}%`:"—",note:"Broad credit"}]))+sourceNote("Click the dedicated Commitment or Financing indicator for full scoring detail."); }
-function moneyHyperscalersHtml(){ return sectionHtml("WHAT SITS HERE","Hyperscalers and neocloud providers convert financing into AI infrastructure. Canary connects CAPEX, commitments and demand rather than assigning this node a new score.",metricCards([{label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Existing component"},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic"},{label:"Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Existing component"}]))+sourceNote("Use CAPEX, Commitment Overhang and AI Demand deep dives for underlying rows."); }
-function moneySemisHtml(){ return sectionHtml("WHAT SITS HERE","Semis & Hardware links chip-market confirmation to compute supply.",metricCards([{label:"Semis score",value:fmtScore(DATA.canary?.latest?.semisScore),note:"Existing component"},{label:"Compute",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component"},{label:"SOX",value:DATA.latestMarket?.sox?formatNumber(DATA.latestMarket.sox.value,0):"—",note:"Market signal"}]))+sourceNote("No separate Money Circle node score is created."); }
-function moneyComputeHtml(){ const h=DATA.latestTokenGpu?.H100_SD||{}; return sectionHtml("WHAT SITS HERE","Compute & AI Models links supply conditions, GPU pricing and token activity.",metricCards([{label:"Compute score",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component"},{label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Silicon Data"},{label:"Token score",value:fmtScore(DATA.canary?.latest?.tokenScore),note:"Monetization context"}]))+sourceNote("GPU utilization remains a planned, not yet connected, input."); }
+function moneyFinancingHtml(){ return sectionHtml("WHAT SITS HERE","This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.",metricCards([{label:"Financing",value:fmtScore(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score)},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"HY OAS",value:DATA.latestMarket?.hyOas?`${formatNumber(DATA.latestMarket.hyOas.value,2)}%`:"—",note:"Broad credit"}]))+sourceNote("Click the dedicated Commitment or Financing indicator for full scoring detail."); }
+function moneyHyperscalersHtml(){ return sectionHtml("WHAT SITS HERE","Hyperscalers and neocloud providers convert financing into AI infrastructure. Canary connects CAPEX, commitments and demand rather than assigning this node a new score.",metricCards([{label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.capexScore),locked:true},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.demandScore),locked:true}]))+sourceNote("Use CAPEX, Commitment Overhang and AI Demand deep dives for underlying rows."); }
+function moneySemisHtml(){ return sectionHtml("WHAT SITS HERE","Semis & Hardware links chip-market confirmation to compute supply.",metricCards([{label:"Semis score",value:fmtScore(DATA.canary?.latest?.semisScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.semisScore),locked:true},{label:"Compute",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"SOX",value:DATA.latestMarket?.sox?formatNumber(DATA.latestMarket.sox.value,0):"—",note:"Market signal"}]))+sourceNote("No separate Money Circle node score is created."); }
+function moneyComputeHtml(){ const h=DATA.latestTokenGpu?.H100_SD||{}; return sectionHtml("WHAT SITS HERE","Compute & AI Models links supply conditions, GPU pricing and token activity.",metricCards([{label:"Compute score",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Silicon Data"},{label:"Token score",value:fmtScore(DATA.canary?.latest?.tokenScore),note:"Monetization context",riskScore:toNum(DATA.canary?.latest?.tokenScore),locked:true}]))+sourceNote("GPU utilization remains a planned, not yet connected, input."); }
 function moneyMonetizationHtml(){ const t=DATA.latestTokenGpu?.TOKEN_SD||{}; return sectionHtml("WHAT SITS HERE","End Users & Monetization is where the AI cycle ultimately has to pay for itself.",metricCards([{label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Company demand"},{label:"Token score",value:fmtScore(DATA.canary?.latest?.tokenScore),note:"Usage economics"},{label:"Token index",value:Number.isFinite(toNum(t.value))?formatNumber(t.value,2):"—",note:"Silicon Data"}]))+sourceNote("Future enterprise-adoption data such as Ramp can strengthen this node once a stable series is integrated."); }
