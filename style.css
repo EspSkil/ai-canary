@@ -468,3 +468,95 @@ body.detail-open{overflow:hidden}
   .mobile-signal-grid{grid-template-columns:1fr 1fr}.mobile-signal strong{font-size:20px}
   .mobile-indicator{grid-template-columns:32px minmax(0,1fr) 34px 58px 10px;gap:5px}.mobile-indicator small{font-size:8px}.mobile-indicator-name{font-size:10.5px}
 }
+
+
+/* ===== v3.9 headline speedometer polish ===== */
+/* Keep the arc/score semantics unchanged; only improve hierarchy and needle readability. */
+.score-gauge-semi{
+  height:270px;
+  width:min(360px,98%);
+  margin:14px auto 0;
+  overflow:visible;
+}
+.score-gauge-semi .semi-arc{
+  width:326px;
+  height:326px;
+  top:4px;
+}
+.score-gauge-semi .semi-arc:after{inset:20px}
+.gauge-needle{
+  z-index:9;
+  top:169px;
+  height:122px;
+  width:6px;
+}
+.gauge-needle:before{
+  border-left-width:7px;
+  border-right-width:7px;
+  border-bottom-width:98px;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.55));
+}
+.gauge-needle span{
+  width:22px;
+  height:22px;
+  bottom:-10px;
+  border-width:5px;
+  box-shadow:0 0 18px rgba(247,217,76,.72);
+}
+.semi-score-content{
+  top:190px;
+  z-index:10;
+  width:100%;
+  pointer-events:none;
+}
+.gauge-result-line{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:5px;
+  white-space:nowrap;
+}
+.score-gauge-semi .score-value{
+  font-size:58px;
+  line-height:.88;
+}
+.score-gauge-semi .score-denom{
+  margin:0 0 5px;
+  font-size:18px;
+  font-weight:750;
+}
+.gauge-status{
+  margin-top:9px!important;
+  min-width:112px!important;
+  padding:7px 20px!important;
+  font-size:12px!important;
+}
+.gauge-scale-labels{
+  left:10px;
+  right:10px;
+  top:169px;
+  font-size:8px;
+  z-index:8;
+}
+.score-panel .baseline-note{margin-top:2px}
+
+@media(max-width:720px){
+  /* Desktop gauge is hidden in the mobile hierarchy, but keep it safe for tablet breakpoints. */
+  .score-gauge-semi{height:250px;width:100%}
+  .score-gauge-semi .semi-arc{width:300px;height:300px}
+  .gauge-needle{top:157px;height:110px}
+  .semi-score-content{top:178px}
+  .score-gauge-semi .score-value{font-size:54px}
+  .gauge-scale-labels{top:157px}
+
+  /* Match the same hierarchy in the dedicated mobile speedometer. */
+  .mobile-gauge{height:250px;max-width:365px}
+  .mobile-gauge-needle{top:164px;height:112px;width:6px;z-index:7}
+  .mobile-gauge-needle:before{border-left-width:7px;border-right-width:7px;border-bottom-width:90px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.55))}
+  .mobile-gauge-needle:after{width:21px;height:21px;bottom:-10px;border-width:5px;box-shadow:0 0 18px rgba(247,217,76,.65)}
+  .mobile-gauge-score{top:187px;z-index:8}
+  .mobile-gauge-score strong{font-size:50px}
+  .mobile-gauge-score span{font-size:17px;margin-bottom:5px;font-weight:750}
+  .mobile-gauge-score b{margin-top:8px;min-width:108px;padding:7px 18px;font-size:11px}
+  .mobile-score-meta{margin-top:0}
+}
