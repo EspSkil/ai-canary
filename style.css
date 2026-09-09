@@ -356,3 +356,75 @@ body.detail-open{overflow:hidden}
 .compact-empty{height:150px;margin-top:13px}.compact-empty .empty-content{padding:20px}
 .indicator-row .info-btn{position:relative;z-index:3}
 @media(max-width:720px){.detail-metric-grid{grid-template-columns:1fr 1fr}.money-node-clickable:after{display:none}.indicator-info{display:inline-grid!important;width:16px;height:16px}.detail-table th,.detail-table td{font-size:9px;padding:8px}.source-note{flex-direction:column;gap:4px}}
+
+
+/* ===== v3.7 visual hierarchy, score semantics & mobile parity ===== */
+/* Money Circle: highlight without overriding the positioning transforms. */
+.money-node-clickable{transition:border-color .18s ease,box-shadow .18s ease,filter .18s ease!important}
+.money-node-clickable:hover,.money-node-clickable:focus-visible{transform:inherit!important;filter:brightness(1.16);border-color:rgba(124,228,255,.65)!important;box-shadow:0 0 0 1px rgba(69,215,255,.18),0 12px 32px rgba(0,0,0,.28),0 0 28px rgba(69,215,255,.14)!important;outline:none}
+.node-top.money-node-clickable:hover,.node-top.money-node-clickable:focus-visible{transform:translateX(-50%)!important}
+.money-node-clickable:active{filter:brightness(1.24)}
+.money-node-clickable:after{opacity:.9;font-weight:900}
+
+/* Canary score: cleaner speedometer treatment, no rectangular mask. */
+.score-panel{min-height:485px}
+.score-gauge-semi{height:225px;width:min(345px,96%);overflow:hidden;margin:18px auto 4px}
+.semi-arc{width:320px;height:320px;top:6px}
+.semi-arc:after{inset:20px;background:radial-gradient(circle at 50% 42%,#10304a 0,#071b2b 68%,#06131f 100%)}
+.semi-mask{display:none!important}
+.semi-score-content{top:70px;z-index:7}
+.semi-label{font-size:12px;color:#dcecf5}
+.score-gauge-semi .score-value{font-size:72px}
+.score-gauge-semi .score-denom{margin-top:2px;font-size:15px}
+.gauge-status{display:inline-block!important;margin-top:9px!important;padding:6px 18px!important;min-width:94px!important;font-size:11px!important}
+.gauge-scale-labels{position:absolute;z-index:8;left:16px;right:16px;top:169px;display:flex;justify-content:space-between;color:#5d7f94;font-size:8px;font-weight:800;pointer-events:none}
+.score-panel>.status-pill{display:none}
+.baseline-note{margin-top:0}
+
+/* More illustrative indicator icons with risk-colored containers. */
+.indicator-icon{width:34px;height:34px;border-radius:11px;font-size:17px;line-height:1;background:rgba(69,215,255,.07);border-width:1px;box-shadow:inset 0 0 16px rgba(255,255,255,.025)}
+.indicator-icon.icon-good{background:rgba(74,209,138,.12);border-color:rgba(74,209,138,.32)}
+.indicator-icon.icon-watch{background:rgba(247,217,76,.10);border-color:rgba(247,217,76,.28)}
+.indicator-icon.icon-warning{background:rgba(255,157,67,.12);border-color:rgba(255,157,67,.32)}
+.indicator-icon.icon-danger{background:rgba(255,94,111,.12);border-color:rgba(255,94,111,.34)}
+.indicator-name-wrap{gap:11px}
+
+/* Deep-dive metric cards: risk colors, arrows and locked-model badges. */
+.connected-card{position:relative;overflow:hidden;border-width:1px}
+.connected-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
+.connected-card.metric-tone-good{background:linear-gradient(135deg,rgba(224,248,236,.95),rgba(255,255,255,.72));border-color:rgba(49,183,119,.24)}
+.connected-card.metric-tone-good:before{background:#31b777}
+.connected-card.metric-tone-watch{background:linear-gradient(135deg,rgba(255,247,205,.94),rgba(255,255,255,.72));border-color:rgba(214,183,42,.28)}
+.connected-card.metric-tone-watch:before{background:#d6b72a}
+.connected-card.metric-tone-warning{background:linear-gradient(135deg,rgba(255,232,208,.95),rgba(255,255,255,.72));border-color:rgba(239,156,57,.27)}
+.connected-card.metric-tone-warning:before{background:#ef9c39}
+.connected-card.metric-tone-danger{background:linear-gradient(135deg,rgba(255,224,228,.95),rgba(255,255,255,.72));border-color:rgba(232,77,94,.27)}
+.connected-card.metric-tone-danger:before{background:#e84d5e}
+.connected-card.metric-tone-neutral{background:rgba(255,255,255,.66)}
+.metric-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.metric-risk-badge{font-size:7.5px;font-weight:900;letter-spacing:.04em;padding:3px 5px;border-radius:999px;white-space:nowrap}
+.metric-risk-badge.good{color:#116842;background:rgba(49,183,119,.14)}
+.metric-risk-badge.watch{color:#7c650a;background:rgba(214,183,42,.17)}
+.metric-risk-badge.warning{color:#98500d;background:rgba(239,156,57,.16)}
+.metric-risk-badge.danger{color:#962b38;background:rgba(232,77,94,.14)}
+.metric-card-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.metric-trend{font-size:9px;font-weight:850;white-space:nowrap}.metric-trend.good{color:#168458}.metric-trend.danger{color:#c23b49}.metric-trend.neutral{color:#758b98}
+.metric-lock{display:block;width:100%;margin-top:6px;font-size:7px;font-weight:900;letter-spacing:.10em;color:#6f8390}
+
+/* Improve deep-dive tables/readability. */
+.detail-table td:nth-child(2){font-size:10px}.detail-table td:nth-child(3){line-height:1.45}
+.drawer-meta{max-width:230px;line-height:1.35}
+
+@media(max-width:720px){
+  .score-gauge-semi{height:205px;width:100%}.semi-arc{width:292px;height:292px}.semi-score-content{top:64px}.score-gauge-semi .score-value{font-size:66px}.gauge-scale-labels{top:157px;left:8px;right:8px}
+  .indicator-icon{display:grid!important;width:30px;height:30px;font-size:15px;border-radius:9px}.indicator-name-wrap{gap:8px}.indicator-row{grid-template-columns:minmax(0,1.7fr) .38fr .38fr .62fr;gap:4px}.indicator-name{font-size:11px}.indicator-info{width:15px;height:15px}.indicator-chevron{font-size:16px}
+  .detail-metric-grid{grid-template-columns:1fr 1fr}.connected-card{padding:11px}.connected-card strong{font-size:19px}.metric-risk-badge{font-size:7px}
+  .drawer-scroll{padding:18px 16px 30px 20px}.drawer-head{gap:10px}.drawer-head h2{font-size:25px}.drawer-subtitle{font-size:11px}.drawer-hero{padding:20px 0 16px}.drawer-score-line span{font-size:52px}.drawer-status-wrap{max-width:48%}
+  .detail-table-wrap{overflow-x:auto}.detail-table{min-width:520px}.source-note{font-size:9px}
+  .money-node-clickable:after{display:block;right:10px;top:8px}.money-node-clickable:hover,.money-node-clickable:focus-visible{transform:none!important}.node-top.money-node-clickable:hover,.node-top.money-node-clickable:focus-visible{transform:none!important}
+}
+@media(max-width:500px){
+  .detail-metric-grid{grid-template-columns:1fr}.indicator-row{grid-template-columns:minmax(0,1.55fr) .38fr .34fr .62fr}.indicator-icon{width:28px;height:28px;font-size:14px}.indicator-subtitle{display:none}.trend{font-size:15px}
+  .drawer-head{align-items:flex-start}.drawer-icon{width:44px;height:44px;font-size:21px}.drawer-close{width:34px;height:34px;font-size:23px}.drawer-hero{align-items:center}.drawer-score-line span{font-size:48px}
+  .gauge-scale-labels{font-size:7px}.score-panel{padding-left:12px;padding-right:12px}
+}
