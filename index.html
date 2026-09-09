@@ -63,27 +63,27 @@
 </div>
 </div>
 <div class="money-circle">
-<div class="money-node node-top" id="moneyNode1">
+<div class="money-node node-top money-node-clickable" id="moneyNode1" role="button" tabindex="0" data-detail="money-financing" aria-label="Open details for this AI Money Circle theme">
 <div class="money-node-title">1. Capital &amp; Financing</div>
 <div class="money-node-status">—</div>
 <div class="money-node-badges"></div>
 </div>
-<div class="money-node node-right-top" id="moneyNode2">
+<div class="money-node node-right-top money-node-clickable" id="moneyNode2" role="button" tabindex="0" data-detail="money-hyperscalers" aria-label="Open details for this AI Money Circle theme">
 <div class="money-node-title">2. Hyperscalers &amp; Neocloud</div>
 <div class="money-node-status">—</div>
 <div class="money-node-badges"></div>
 </div>
-<div class="money-node node-right-bottom" id="moneyNode3">
+<div class="money-node node-right-bottom money-node-clickable" id="moneyNode3" role="button" tabindex="0" data-detail="money-semis" aria-label="Open details for this AI Money Circle theme">
 <div class="money-node-title">3. Semis &amp; Hardware</div>
 <div class="money-node-status">—</div>
 <div class="money-node-badges"></div>
 </div>
-<div class="money-node node-left-bottom" id="moneyNode4">
+<div class="money-node node-left-bottom money-node-clickable" id="moneyNode4" role="button" tabindex="0" data-detail="money-compute" aria-label="Open details for this AI Money Circle theme">
 <div class="money-node-title">4. Compute &amp; AI Models</div>
 <div class="money-node-status">—</div>
 <div class="money-node-badges"></div>
 </div>
-<div class="money-node node-left-top" id="moneyNode5">
+<div class="money-node node-left-top money-node-clickable" id="moneyNode5" role="button" tabindex="0" data-detail="money-monetization" aria-label="Open details for this AI Money Circle theme">
 <div class="money-node-title">5. End Users &amp; Monetization</div>
 <div class="money-node-status">—</div>
 <div class="money-node-badges"></div>
@@ -155,7 +155,7 @@
 <div class="model-chip">LIVE MODEL</div>
 </div>
 <div class="risk-stack-grid">
-<article class="panel risk-score-card" id="commitmentRiskCard">
+<article class="panel risk-score-card detail-trigger-card" id="commitmentRiskCard" role="button" tabindex="0" data-detail="commitment" aria-label="Open Commitment Overhang deep dive">
 <div class="risk-card-head">
 <div>
 <div class="eyebrow">COMMITMENT OVERHANG <button aria-label="About Commitment Overhang" class="info-btn" data-info="commitment">i</button></div>
@@ -171,7 +171,7 @@
 <div><span class="risk-meta-label">Elevated companies</span><strong id="commitmentElevated">—</strong></div>
 </div>
 </article>
-<article class="panel risk-score-card" id="financingRiskCard">
+<article class="panel risk-score-card detail-trigger-card" id="financingRiskCard" role="button" tabindex="0" data-detail="financing" aria-label="Open Financing Conditions deep dive">
 <div class="risk-card-head">
 <div>
 <div class="eyebrow">FINANCING CONDITIONS <button aria-label="About Financing Conditions" class="info-btn" data-info="financing">i</button></div>
@@ -187,7 +187,7 @@
 <div><span class="risk-meta-label">Company burden</span><strong id="companyBurdenScore">—</strong></div>
 </div>
 </article>
-<article class="panel divergence-card">
+<article class="panel divergence-card detail-trigger-card" role="button" tabindex="0" data-detail="divergence" aria-label="Open Canary Divergence deep dive">
 <div class="eyebrow">CANARY DIVERGENCE <button aria-label="About Canary Divergence" class="info-btn" data-info="divergence">i</button></div>
 <h3>Broad credit calm. AI credit stressed.</h3>
 <div class="divergence-track">
@@ -198,11 +198,11 @@
 </article>
 </div>
 <div class="risk-detail-grid">
-<article class="panel detail-card">
+<article class="panel detail-card detail-trigger-card" role="button" tabindex="0" data-detail="commitment" aria-label="Open Commitment Momentum deep dive">
 <div class="detail-card-head"><div><div class="eyebrow">COMMITMENT MOMENTUM <button aria-label="About Commitment Momentum" class="info-btn" data-info="commitmentMomentum">i</button></div><h3>Company risk map</h3></div><span class="muted small">Latest comparable series</span></div>
 <div class="company-risk-grid" id="commitmentCompanyGrid"></div>
 </article>
-<article class="panel detail-card">
+<article class="panel detail-card detail-trigger-card" role="button" tabindex="0" data-detail="financing" aria-label="Open AI Credit Stress deep dive">
 <div class="detail-card-head"><div><div class="eyebrow">AI CREDIT STRESS <button aria-label="About AI Credit Stress" class="info-btn" data-info="creditStress">i</button></div><h3>5Y CDS credit signals</h3></div><span class="muted small">Level + momentum</span></div>
 <div class="credit-stress-grid" id="creditStressGrid"></div>
 </article>
@@ -326,6 +326,38 @@
 <div class="info-title" id="infoTitle"></div>
 <div class="info-text" id="infoText"></div>
 </div>
+
+<div class="detail-backdrop" id="detailBackdrop" hidden></div>
+<aside class="indicator-drawer" id="detailDrawer" aria-hidden="true" aria-labelledby="detailTitle">
+  <div class="drawer-accent" id="detailAccent"></div>
+  <div class="drawer-scroll">
+    <div class="drawer-head">
+      <div class="drawer-identity">
+        <div class="drawer-icon" id="detailIcon" aria-hidden="true">◈</div>
+        <div>
+          <div class="drawer-kicker" id="detailKicker">CANARY DEEP DIVE</div>
+          <h2 id="detailTitle">Indicator detail</h2>
+          <div class="drawer-subtitle" id="detailSubtitle">Underlying data, scoring and interpretation.</div>
+        </div>
+      </div>
+      <button class="drawer-close" id="detailClose" aria-label="Close detail view">×</button>
+    </div>
+
+    <section class="drawer-hero" id="detailHero">
+      <div>
+        <div class="drawer-label" id="detailScoreLabel">CANARY SCORE</div>
+        <div class="drawer-score-line"><span id="detailScore">—</span><small id="detailScoreDenom">/100</small></div>
+      </div>
+      <div class="drawer-status-wrap">
+        <div class="drawer-status" id="detailStatus">—</div>
+        <div class="drawer-meta" id="detailMeta">Live Canary component</div>
+      </div>
+    </section>
+
+    <div id="detailBody"></div>
+  </div>
+</aside>
+
 <footer>
 <span>AI Canary Dashboard · live data from Google Sheets</span>
 <span>Research use only — not investment advice.</span>
