@@ -560,3 +560,102 @@ body.detail-open{overflow:hidden}
   .mobile-gauge-score b{margin-top:8px;min-width:108px;padding:7px 18px;font-size:11px}
   .mobile-score-meta{margin-top:0}
 }
+
+
+/* ===== v4.0 dynamic components + compact risk strip + explain data map ===== */
+.indicator-strip{
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  gap:4px;
+  width:100%;
+  max-width:350px;
+  margin:8px auto 10px;
+}
+.strip-item{
+  appearance:none;
+  border:0;
+  background:transparent;
+  min-width:0;
+  padding:3px 1px;
+  display:grid;
+  place-items:center;
+  gap:4px;
+  cursor:pointer;
+  border-radius:9px;
+}
+.strip-item:hover,.strip-item:focus-visible{background:rgba(255,255,255,.045);outline:none}
+.strip-icon{font-size:18px;line-height:1}
+.strip-dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.strip-item.good{color:var(--green)}
+.strip-item.watch{color:var(--yellow)}
+.strip-item.warning{color:var(--orange)}
+.strip-item.danger{color:var(--red)}
+.desktop-indicator-strip{margin-top:-2px;margin-bottom:8px}
+
+.source-registry{
+  margin-top:12px;
+  border:1px solid rgba(141,181,210,.14);
+  border-radius:12px;
+  overflow:hidden;
+}
+.source-registry-head,.source-registry-row{
+  display:grid;
+  grid-template-columns:1.15fr .72fr .9fr 1.25fr 1.55fr 1.15fr;
+  gap:8px;
+  align-items:start;
+  padding:9px 10px;
+}
+.source-registry-head{
+  background:rgba(69,215,255,.075);
+  color:#9fdff2;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+.source-registry-row{
+  border-top:1px solid rgba(141,181,210,.10);
+  font-size:10px;
+  line-height:1.35;
+  color:#c8dae5;
+}
+.source-registry-row span:nth-child(2){font-weight:850;color:#7ce4ff}
+
+@media(max-width:720px){
+  .mobile-score-card{overflow:visible}
+  .mobile-gauge{
+    height:262px;
+    overflow:visible;
+    margin-bottom:0;
+  }
+  .mobile-gauge-arc{top:4px}
+  .mobile-gauge-needle{top:161px}
+  .mobile-gauge-score{top:176px}
+  .mobile-gauge-score b{position:relative;z-index:10}
+  .mobile-indicator-strip{
+    max-width:360px;
+    margin:0 auto 7px;
+    padding:0 3px;
+  }
+  .mobile-indicator-strip .strip-icon{font-size:17px}
+  .mobile-indicator-strip .strip-dot{width:8px;height:8px}
+  .desktop-indicator-strip{display:none}
+
+  .source-registry{overflow:visible;border:0}
+  .source-registry-head{display:none}
+  .source-registry-row{
+    grid-template-columns:1fr 1fr;
+    gap:4px 10px;
+    margin-bottom:8px;
+    border:1px solid rgba(141,181,210,.13);
+    border-radius:10px;
+    background:rgba(255,255,255,.018);
+    padding:10px;
+  }
+  .source-registry-row span{display:block}
+  .source-registry-row span:nth-child(1){grid-column:1/-1;font-size:11px;font-weight:850;color:#eef7fb}
+  .source-registry-row span:nth-child(2)::before{content:"Mode · ";color:#7897aa;font-weight:500}
+  .source-registry-row span:nth-child(3)::before{content:"Frequency · ";color:#7897aa}
+  .source-registry-row span:nth-child(4)::before{content:"Source · ";color:#7897aa}
+  .source-registry-row span:nth-child(5)::before{content:"Use · ";color:#7897aa}
+  .source-registry-row span:nth-child(6)::before{content:"Indicator · ";color:#7897aa}
+}
