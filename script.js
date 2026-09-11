@@ -356,7 +356,14 @@ function renderMoneyCircle(data) {
     const badgeEl = el.querySelector(".money-node-badges");
     badgeEl.innerHTML = node.badges
       .filter(Boolean)
-      .map(b => `<span class="money-badge">${escapeHtml(b)}</span>`)
+      .map(b => {
+        const match = String(b).match(/(-?\d+(?:[.,]\d+)?)(?!.*\d)/);
+        const badgeScore = match ? toNum(match[1]) : NaN;
+        const label = String(b).toLowerCase();
+        const isScoreBadge = /financing|commitments|capex|demand|semis|compute|token score/.test(label);
+        const badgeTone = isScoreBadge && Number.isFinite(badgeScore) ? statusTone(scoreStatus(badgeScore)) : "neutral";
+        return `<span class="money-badge badge-${badgeTone}">${escapeHtml(b)}</span>`;
+      })
       .join("");
   });
 }
@@ -406,9 +413,10 @@ function renderIndicatorStrip(data) {
     const n = toNum(item.score);
     const status = scoreStatus(n);
     const tone = statusTone(status);
+    const riskColor = tone === "good" ? "#4ad18a" : tone === "watch" ? "#f7d94c" : tone === "warning" ? "#ff9d43" : "#ff5e6f";
     return `<button class="strip-item ${tone}" data-detail="${item.detail}" title="${escapeHtml(item.name)} · ${Number.isFinite(n)?formatNumber(n,1):"—"} · ${escapeHtml(status)}" aria-label="${escapeHtml(item.name)} ${escapeHtml(status)}">
       <span class="strip-icon">${item.icon}</span>
-      <span class="strip-dot"></span>
+      <span class="strip-dot" style="background:${riskColor};color:${riskColor};box-shadow:0 0 12px ${riskColor}"></span>
     </button>`;
   }).join("");
 

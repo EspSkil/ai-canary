@@ -734,3 +734,65 @@ body.detail-open{overflow:hidden}
     justify-content:center;
   }
 }
+
+
+/* ===== v4.3 final strip placement + contributor colors ===== */
+/* The dial is a full circle visually; keep the summary strip clearly below it. */
+.desktop-indicator-strip{
+  margin:42px auto 14px !important;
+  position:relative;
+  z-index:20;
+}
+.strip-dot{
+  display:block !important;
+  width:12px !important;
+  height:12px !important;
+  min-width:12px;
+  min-height:12px;
+  border:0 !important;
+  opacity:1 !important;
+}
+
+/* Money Circle contributor badges: color only badges that are themselves Canary scores. */
+.money-badge.badge-good{
+  color:#a9f2cb;
+  border-color:rgba(74,209,138,.65);
+  background:rgba(74,209,138,.15);
+}
+.money-badge.badge-watch{
+  color:#fff0a5;
+  border-color:rgba(247,217,76,.65);
+  background:rgba(247,217,76,.14);
+}
+.money-badge.badge-warning{
+  color:#ffd0a4;
+  border-color:rgba(255,157,67,.72);
+  background:rgba(255,157,67,.15);
+}
+.money-badge.badge-danger{
+  color:#ffc0c7;
+  border-color:rgba(255,94,111,.78);
+  background:rgba(255,94,111,.16);
+}
+.money-badge.badge-neutral{
+  color:#bcd5e5;
+  border-color:rgba(141,181,210,.18);
+  background:rgba(255,255,255,.025);
+}
+
+@media(max-width:720px){
+  .mobile-gauge{
+    margin-bottom:0 !important;
+  }
+  .mobile-indicator-strip{
+    margin:42px auto 12px !important;
+    position:relative;
+    z-index:20;
+  }
+  .mobile-indicator-strip .strip-dot{
+    width:11px !important;
+    height:11px !important;
+    min-width:11px;
+    min-height:11px;
+  }
+}
