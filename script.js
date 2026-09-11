@@ -346,7 +346,7 @@ function renderMoneyCircle(data) {
     const status = scoreStatus(worstScore);
     const tone = statusTone(status);
 
-    el.classList.remove("node-healthy","node-watch","node-warning","node-danger");
+    el.classList.remove("node-good","node-healthy","node-watch","node-warning","node-danger");
     el.classList.add(`node-${tone}`);
 
     const statusEl = el.querySelector(".money-node-status");

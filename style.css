@@ -659,4 +659,78 @@ body.detail-open{overflow:hidden}
   .source-registry-row span:nth-child(5)::before{content:"Use · ";color:#7897aa}
   .source-registry-row span:nth-child(6)::before{content:"Indicator · ";color:#7897aa}
 }
-\n\n/* ===== v4.1 risk strip positioning + visible status dots ===== */\n/* The gauge circles extend farther than their old container. Give the full dial\n   its own vertical space so the component strip sits clearly below it. */\n.score-gauge-semi{height:338px;margin-bottom:2px}\n.desktop-indicator-strip{margin-top:2px;margin-bottom:12px}\n\n.strip-dot{\n  width:10px;\n  height:10px;\n  background:currentColor;\n  border:1px solid rgba(255,255,255,.30);\n  box-shadow:0 0 9px currentColor,0 0 2px currentColor;\n}\n\n.score-panel .hedge-read{margin-top:8px}\n\n@media(max-width:720px){\n  .mobile-gauge{\n    height:326px;\n    margin-bottom:2px;\n  }\n  .mobile-indicator-strip{\n    margin:2px auto 10px;\n  }\n  .mobile-indicator-strip .strip-dot{\n    width:9px;\n    height:9px;\n  }\n  .mobile-score-meta{\n    margin-top:5px;\n    justify-content:center;\n  }\n}\n
+
+
+/* ===== v4.2 risk strip + Money Circle status colors ===== */
+/* Give the full circular dial its own space before the compact 8-signal strip. */
+.score-gauge-semi{
+  height:338px;
+  margin-bottom:0;
+}
+.desktop-indicator-strip{
+  margin:4px auto 14px;
+}
+
+/* Full filled risk dots, not only a colored outline/glow. */
+.strip-dot{
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:currentColor;
+  border:1px solid rgba(255,255,255,.36);
+  box-shadow:0 0 10px currentColor;
+}
+.strip-item.good .strip-dot{background:var(--green);color:var(--green)}
+.strip-item.watch .strip-dot{background:var(--yellow);color:var(--yellow)}
+.strip-item.warning .strip-dot{background:var(--orange);color:var(--orange)}
+.strip-item.danger .strip-dot{background:var(--red);color:var(--red)}
+
+/* Money Circle: same four risk colors as the underlying score/status. */
+.money-node.node-good{
+  border-color:rgba(74,209,138,.72);
+  background:linear-gradient(180deg,rgba(74,209,138,.10),rgba(8,28,43,.98));
+  box-shadow:0 0 24px rgba(74,209,138,.11);
+}
+.money-node.node-watch{
+  border-color:rgba(247,217,76,.72);
+  background:linear-gradient(180deg,rgba(247,217,76,.09),rgba(8,28,43,.98));
+  box-shadow:0 0 24px rgba(247,217,76,.10);
+}
+.money-node.node-warning{
+  border-color:rgba(255,157,67,.78);
+  background:linear-gradient(180deg,rgba(255,157,67,.10),rgba(8,28,43,.98));
+  box-shadow:0 0 26px rgba(255,157,67,.12);
+}
+.money-node.node-danger{
+  border-color:rgba(255,94,111,.82);
+  background:linear-gradient(180deg,rgba(255,94,111,.11),rgba(8,28,43,.98));
+  box-shadow:0 0 28px rgba(255,94,111,.14);
+}
+.money-node-status.good{color:var(--green);background:rgba(74,209,138,.12)}
+.money-node-status.watch{color:var(--yellow);background:rgba(247,217,76,.12)}
+.money-node-status.warning{color:var(--orange);background:rgba(255,157,67,.12)}
+.money-node-status.danger{color:var(--red);background:rgba(255,94,111,.12)}
+
+.score-panel .hedge-read{margin-top:7px}
+
+@media(max-width:720px){
+  .mobile-score-card{overflow:visible}
+  .mobile-gauge{
+    height:326px;
+    margin:4px auto 0;
+    overflow:visible;
+  }
+  .mobile-indicator-strip{
+    max-width:360px;
+    margin:7px auto 12px;
+    padding:0 3px;
+  }
+  .mobile-indicator-strip .strip-dot{
+    width:10px;
+    height:10px;
+  }
+  .mobile-score-meta{
+    margin-top:2px;
+    justify-content:center;
+  }
+}
