@@ -46,7 +46,7 @@ const INFO = {
     text:"The Silicon Data H100 Rental Price Index tracks rental pricing for Nvidia H100 compute. Falling prices can signal improving supply, weaker scarcity or softer compute demand; interpretation therefore depends on the broader AI cycle."
   }
   ,moneycircle: {title:"AI Money Circle",text:"Maps the AI economic loop from capital and financing through hyperscalers, semiconductors, compute and end-user monetization. Node status uses the highest risk category among existing mapped Canary indicators; it is not a separate invented score."}
-  ,indicators: {title:"Canary Indicators",text:"The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Commitment and Financing now use the live calculation models."}
+  ,indicators: {title:"Canary Indicators",text:"The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Token Economics, Semiconductor Market, Commitment, Financing and Macro now use dynamic calculation models; Demand, Compute and CAPEX remain locked fallbacks until upgraded."}
   ,commitment: {title:"Commitment Overhang",text:"Measures the scale, momentum and binding nature of future AI-related obligations across companies, normalized where useful against company revenue. Breadth matters because simultaneous elevated commitments across many firms can increase cycle vulnerability."}
   ,financing: {title:"Financing Conditions",text:"Combines broad financing conditions, AI-specific credit stress and company financing burden. It is designed to distinguish a broad credit tightening from stress that is still concentrated inside the AI investment ecosystem."}
   ,divergence: {title:"Canary Divergence",text:"Compares broad financing conditions with AI-specific credit stress. A large positive gap can be an early-warning signal when AI credit deteriorates before general corporate credit markets do."}
@@ -111,11 +111,12 @@ async function loadDashboard() {
 
 function renderOverview(data) {
   const latest = data.canary?.latest || {};
+  const headline = data.dynamicHeadline?.available ? data.dynamicHeadline : null;
   const market = data.latestMarket || {};
   const tg = data.latestTokenGpu || {};
   const history = data.marketHistory || [];
 
-  const score = Number(latest.canaryScore);
+  const score = Number(headline?.score ?? latest.canaryScore);
   if (Number.isFinite(score)) {
     setText("canaryScore", Math.round(score));
     const gauge = document.getElementById("scoreGauge");
@@ -132,8 +133,8 @@ function renderOverview(data) {
     if (needle) needle.style.setProperty("--needle-angle", `${-90 + Math.max(0,Math.min(100,score))*1.8}deg`);
   }
 
-  setText("canaryStatus", latest.status || "—");
-  setText("hedgeRead", `Hedge Read: ${latest.hedgeRead || "—"}`);
+  setText("canaryStatus", headline?.status || latest.status || "—");
+  setText("hedgeRead", `Hedge Read: ${headline?.hedgeRead || latest.hedgeRead || "—"}`);
   setText("snapshotDate", latest.week ? `Snapshot ${latest.week}` : "Weekly snapshot");
 
   marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
@@ -283,6 +284,8 @@ function renderMoneyCircle(data) {
 
   const token = tg.TOKEN_SD || {};
   const h100 = tg.H100_SD || {};
+  const dynToken = dynamicScore(data,"tokenEconomics",x.tokenScore);
+  const dynSemis = dynamicScore(data,"semiconductorMarket",x.semisScore);
   const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
 
@@ -306,25 +309,25 @@ function renderMoneyCircle(data) {
     },
     {
       id:"moneyNode3",
-      scores:[toNum(x.semisScore),toNum(x.computeScore)],
+      scores:[toNum(dynSemis.score),toNum(x.computeScore)],
       badges:[
-        `Semis ${fmtScore(x.semisScore)}`,
+        `Semis ${fmtScore(dynSemis.score)}`,
         `Compute ${fmtScore(x.computeScore)}`,
         market.sox ? `SOX ${formatNumber(market.sox.value,0)}` : null
       ]
     },
     {
       id:"moneyNode4",
-      scores:[toNum(x.computeScore),toNum(x.tokenScore)],
+      scores:[toNum(x.computeScore),toNum(dynToken.score)],
       badges:[
         `Compute ${fmtScore(x.computeScore)}`,
         Number.isFinite(toNum(h100.value)) ? `H100 $${formatNumber(h100.value,2)}` : null,
-        `Token score ${fmtScore(x.tokenScore)}`
+        `Token score ${fmtScore(dynToken.score)}`
       ]
     },
     {
       id:"moneyNode5",
-      scores:[toNum(x.demandScore),toNum(x.tokenScore)],
+      scores:[toNum(x.demandScore),toNum(dynToken.score)],
       badges:[
         `Demand ${fmtScore(x.demandScore)}`,
         Number.isFinite(toNum(token.value)) ? `Token ${formatNumber(token.value,2)}` : null
@@ -378,45 +381,78 @@ function toNum(value) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-function renderIndicators(data) {
+function componentItems(data) {
   const x = data.canary?.latest || {};
-  const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
-  const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
-  const dynMacro = dynamicScore(data,"macroRisk",x.macroScore);
-  const items = [
-    {name:"Token Economics",score:x.tokenScore,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Usage & monetization economics"},
-    {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Revenue, cloud growth & backlog"},
-    {name:"Compute Supply",score:x.computeScore,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"GPU pricing, supply & utilization"},
-    {name:"Semiconductor Market",score:x.semisScore,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Chip-cycle market confirmation"},
-    {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"AI infrastructure spending"},
-    {name:"Commitment Overhang",score:dynCommit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Future obligations & momentum"},
-    {name:"Financing Conditions",score:dynFin.score,icon:"🏦",detail:"financing",info:"financingConditionsIndicator",subtitle:"Credit, rates & financing burden"},
-    {name:"Macro & Risk",score:dynMacro.score,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Dynamic · VIX, USDJPY & US 10Y"}
+  const token = dynamicScore(data,"tokenEconomics",x.tokenScore);
+  const semis = dynamicScore(data,"semiconductorMarket",x.semisScore);
+  const commit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
+  const fin = dynamicScore(data,"financingConditions",x.financingScore);
+  const macro = dynamicScore(data,"macroRisk",x.macroScore);
+
+  return [
+    {name:"Token Economics",score:token.score,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Dynamic · volume × expenditure"},
+    {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Locked v3 · revenue, cloud growth & backlog"},
+    {name:"Compute Supply",score:x.computeScore,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"Locked v3 · GPU pricing, supply & utilization"},
+    {name:"Semiconductor Market",score:semis.score,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Dynamic · 30D SOX momentum"},
+    {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"Locked v3 · AI infrastructure spending"},
+    {name:"Commitment Overhang",score:commit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Dynamic · future obligations & momentum"},
+    {name:"Financing Conditions",score:fin.score,icon:"🏦",detail:"financing",info:"financingConditionsIndicator",subtitle:"Dynamic · credit, rates & financing burden"},
+    {name:"Macro & Risk",score:macro.score,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Dynamic · VIX, USDJPY & US 10Y"}
   ];
+}
+
+function renderIndicatorStrip(data) {
+  const html = componentItems(data).map(item => {
+    const n = toNum(item.score);
+    const status = scoreStatus(n);
+    const tone = statusTone(status);
+    return `<button class="strip-item ${tone}" data-detail="${item.detail}" title="${escapeHtml(item.name)} · ${Number.isFinite(n)?formatNumber(n,1):"—"} · ${escapeHtml(status)}" aria-label="${escapeHtml(item.name)} ${escapeHtml(status)}">
+      <span class="strip-icon">${item.icon}</span>
+      <span class="strip-dot"></span>
+    </button>`;
+  }).join("");
+
+  ["desktopIndicatorStrip","mobileIndicatorStrip"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+
+function renderIndicators(data) {
+  const items = componentItems(data);
 
   let html = `<div class="indicator-row header"><div>Indicator</div><div>Score</div><div>Trend</div><div>Status</div></div>`;
   html += items.map(item => {
     const n = Number(item.score);
     const status = scoreStatus(n);
     const tone = statusTone(status);
+    const dyn = data.dynamicScores?.[
+      item.detail === "token" ? "tokenEconomics" :
+      item.detail === "semis" ? "semiconductorMarket" :
+      item.detail === "commitment" ? "commitmentOverhang" :
+      item.detail === "financing" ? "financingConditions" :
+      item.detail === "macro" ? "macroRisk" : ""
+    ];
+    const trend = dyn?.trend || "—";
     return `<div class="indicator-row indicator-row-clickable" role="button" tabindex="0" data-detail="${item.detail}" aria-label="Open ${escapeHtml(item.name)} deep dive">
       <div class="indicator-name-wrap"><span class="indicator-icon icon-${tone}">${item.icon}</span><div><div class="indicator-name">${escapeHtml(item.name)} <button class="info-btn indicator-info" data-info="${item.info}" aria-label="About ${escapeHtml(item.name)}">i</button><span class="indicator-chevron">›</span></div><span class="indicator-subtitle">${escapeHtml(item.subtitle)}</span></div></div>
-      <div class="indicator-score ${tone}">${Number.isFinite(n)?Math.round(n):"—"}</div>
-      <div class="trend">—</div>
+      <div class="indicator-score ${tone}">${Number.isFinite(n)?formatNumber(n,1):"—"}</div>
+      <div class="trend">${escapeHtml(trend)}</div>
       <div class="${tone}">${status}</div>
     </div>`;
   }).join("");
 
   document.getElementById("indicatorTable").innerHTML = html;
+  renderIndicatorStrip(data);
 }
-
 
 function renderMobileDashboard(data) {
   const x=data.canary?.latest||{}, m=data.latestMarket||{}, tg=data.latestTokenGpu||{};
-  const score=toNum(x.canaryScore);
+  const headline=data.dynamicHeadline?.available?data.dynamicHeadline:null;
+  const score=toNum(headline?.score ?? x.canaryScore);
   setText("mobileCanaryScore",Number.isFinite(score)?Math.round(score):"—");
-  setText("mobileCanaryStatus",x.status||scoreStatus(score));
-  setText("mobileHedgeRead",`Hedge Read: ${x.hedgeRead||"—"}`);
+  setText("mobileCanaryStatus",headline?.status||x.status||scoreStatus(score));
+  setText("mobileHedgeRead",`Hedge Read: ${headline?.hedgeRead||x.hedgeRead||"—"}`);
   setText("mobileSnapshotDate",x.week||"Latest");
   const needle=document.getElementById("mobileGaugeNeedle");
   if(needle&&Number.isFinite(score)) needle.style.setProperty("--needle-angle",`${-90+Math.max(0,Math.min(100,score))*1.8}deg`);
@@ -432,10 +468,7 @@ function renderMobileDashboard(data) {
   ];
   const sg=document.getElementById("mobileSignalGrid");
   if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
-  const commit=dynamicScore(data,"commitmentOverhang",x.commitmentScore), fin=dynamicScore(data,"financingConditions",x.financingScore), macro=dynamicScore(data,"macroRisk",x.macroScore);
-  const items=[
-    ["🪙","Token Economics",x.tokenScore,"token"],["☁️","AI Demand",x.demandScore,"demand"],["🖥️","Compute Supply",x.computeScore,"compute"],["💾","Semiconductor Market",x.semisScore,"semis"],["🏗️","CAPEX Investment",x.capexScore,"capex"],["📜","Commitment Overhang",commit.score,"commitment"],["🏦","Financing Conditions",fin.score,"financing"],["🌐","Macro & Risk",macro.score,"macro"]
-  ];
+  const items=componentItems(data).map(i=>[i.icon,i.name,i.score,i.detail]);
   const list=document.getElementById("mobileIndicatorList");
   if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><small>${st}</small><b>›</b></button>`}).join("");
 }
@@ -1025,12 +1058,16 @@ function computeDetailHtml() {
 
 function tokenDetailHtml() {
   const tg=DATA.latestTokenGpu || {}, t=tg.TOKEN_SD || {}, h=tg.H100_SD || {};
-  return sectionHtml("WHY IT MATTERS","Token economics tests whether AI usage and effective expenditure are strengthening. Monetization must eventually support the infrastructure buildout.",metricCards([
+  const dyn=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore);
+  const tm=DATA.tokenMomentum || {};
+  return sectionHtml("WHY IT MATTERS","Token economics tests whether falling unit expenditure is being offset by stronger AI usage. The v1 dynamic model deliberately combines OpenRouter volume momentum with Silicon Data expenditure pressure.",metricCards([
+    {label:"Token Economics",value:fmtScore(dyn.score),note:`${dyn.status||scoreStatus(toNum(dyn.score))} · dynamic`,riskScore:toNum(dyn.score)},
     {label:"Token index",value:Number.isFinite(toNum(t.value))?formatNumber(t.value,2):"—",note:Number.isFinite(toNum(t["7dChange"]))?`7D ${formatSignedPercent(toNum(t["7dChange"]))}`:"Silicon Data"},
-    {label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Compute economics context"},
-    {label:"History",value:`${seriesRows(DATA.tokenGpu||[],"TOKEN_SD").length} obs`,note:"Available comparable series"}
-  ]))+sectionHtml("CANARY INTERPRETATION","Rising usage economics is supportive. Weakening token economics while CAPEX and commitments remain elevated would be a more important warning than either signal alone.")
-  +sectionHtml("DATA & EVIDENCE","Current Token Index values come from the Token_GPU dataset and preserve the selected comparable Silicon Data series.",sourceNote("Live API-connected"));
+    {label:"Composite row",value:tm.available?fmtScore(tm.score):"—",note:tm.metric||"Token_Momentum"}
+  ]))
+  + sectionHtml("CURRENT MODEL","Volume Momentum receives 60% base weight and Token Expenditure drawdown 40%. Strong volume growth can moderate up to half of the expenditure-drawdown risk; it cannot erase it completely.")
+  + sectionHtml("CANARY INTERPRETATION","Lower effective token expenditure is not automatically bearish. It becomes more concerning when lower expenditure is not accompanied by enough volume/adoption growth.")
+  + sectionHtml("DATA & EVIDENCE","OpenRouter provides token-volume history for the platform; Silicon Data provides the usage-weighted LLM Token Expenditure Index. OpenRouter is a platform sample, not the whole AI-token market.",sourceNote("Dynamic · Token_Momentum + Token_Volume + Token_GPU"));
 }
 
 function demandDetailHtml() {
@@ -1049,11 +1086,15 @@ function demandDetailHtml() {
 function semisDetailHtml() {
   const m=DATA.latestMarket || {}, x=DATA.canary?.latest||{};
   const sox=m.sox||{};
+  const dyn=dynamicScore(DATA,"semiconductorMarket",x.semisScore);
+  const sm=DATA.semiMomentum || {};
   return sectionHtml("WHY IT MATTERS","Semiconductors are a market-sensitive checkpoint on AI infrastructure expectations. Persistent chip weakness can challenge otherwise strong reported fundamentals.",metricCards([
     {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
-    {label:"Semis score",value:fmtScore(x.semisScore),note:"Current Canary component",riskScore:toNum(x.semisScore),locked:true},
-    {label:"Compute score",value:fmtScore(x.computeScore),note:"Connected cycle signal",riskScore:toNum(x.computeScore),locked:true}
-  ]))+sectionHtml("DATA & EVIDENCE","SOX history is supplied through MarketHistory. The current Semiconductor Market score remains the existing Canary component.",sourceNote("Market history connected"));
+    {label:"Semiconductor score",value:fmtScore(dyn.score),note:`${dyn.status||scoreStatus(toNum(dyn.score))} · dynamic`,riskScore:toNum(dyn.score)},
+    {label:"Compute score",value:fmtScore(x.computeScore),note:"Locked v3 connected cycle signal",riskScore:toNum(x.computeScore),locked:true}
+  ]))
+  + sectionHtml("CURRENT MODEL","Semiconductor Market v1 uses 30-calendar-day average SOX versus the preceding 30-calendar-day average. +10% maps toward 0 risk, 0% toward 50, and -10% toward 100.")
+  + sectionHtml("DATA & EVIDENCE","SOX history is supplied automatically through MarketHistory/FRED. The composite row is read from Semi_Momentum.",sourceNote(sm.available?"Dynamic · Semi_Momentum":"Market history connected"));
 }
 
 function capexDetailHtml() {
@@ -1111,6 +1152,28 @@ function macroWeightCards(rows){
 }
 
 function explainDetailHtml(){
+  const sourceRows = [
+    ["SOX","AUTO","Weekly refresh","FRED · NASDAQSOX","30D momentum / market confirmation","Semiconductor Market"],
+    ["VIX","AUTO","Weekly refresh","FRED · VIXCLS","Risk sentiment / hedge context","Macro & Risk"],
+    ["US 10Y","AUTO","Weekly refresh","FRED · DGS10","Funding level and rate pressure","Financing + Macro"],
+    ["Real 10Y","AUTO","Weekly refresh","FRED · DFII10","Real funding / discount-rate context","Financing Conditions"],
+    ["IG OAS","AUTO","Weekly refresh","FRED · BAMLC0A0CM","Broad investment-grade credit stress","Financing Conditions"],
+    ["HY OAS","AUTO","Weekly refresh","FRED · BAMLH0A0HYM2","Broad high-yield credit stress","Financing Conditions"],
+    ["USD/JPY","AUTO","Weekly refresh","FRED · DEXJPUS","Japan/carry/global-liquidity proxy","Macro & Risk"],
+    ["LLM Token Expenditure","AUTO","Weekly refresh","Silicon Data","Price/mix drawdown + short-term context","Token Economics"],
+    ["OpenRouter Token Volume","AUTO","Weekly refresh","OpenRouter rankings-daily API","30D avg vs previous 30D avg","Token Economics"],
+    ["H100 rental index","AUTO","Weekly refresh","Silicon Data","GPU rental-price signal","Compute Supply"],
+    ["H100 reference rates","AUTO","Weekly refresh","CCIR","Independent GPU-price cross-check","Compute Supply"],
+    ["AI demand / RPO / revenue","SEMI_AUTO","Quarterly / releases","Company IR + SEC filings","Growth, backlog and demand quality","AI Demand"],
+    ["AI CAPEX","SEMI_AUTO","Quarterly / guidance","Company IR + SEC filings","Actual spend + guidance momentum","CAPEX Investment"],
+    ["Commitments / leases / obligations","SEMI_AUTO","Quarterly / filings","Company IR + SEC filings","Scale, change and bindingness","Commitment Overhang"],
+    ["AI-linked credit / company burden","MANUAL / ASSISTED","As available","Verified market/company sources","CDS + financing burden","Financing Conditions"]
+  ];
+
+  const sourceTable = `<div class="source-registry"><div class="source-registry-head"><span>DATA</span><span>MODE</span><span>FREQUENCY</span><span>SOURCE</span><span>HOW USED</span><span>INDICATOR</span></div>${
+    sourceRows.map(r=>`<div class="source-registry-row">${r.map((v,i)=>`<span data-col="${i}">${escapeHtml(v)}</span>`).join("")}</div>`).join("")
+  }</div>`;
+
   return sectionHtml("PURPOSE","AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.")
   + sectionHtml("HOW THE LOOP WORKS","Monetization → Demand → Compute & Semis → CAPEX & Commitments → Financing & Macro. The model becomes more concerning when fundamental, financing and market signals deteriorate together.",metricCards([
     {label:"Monetization",value:"Can AI usage pay?",note:"Token economics + end-user adoption"},
@@ -1120,12 +1183,13 @@ function explainDetailHtml(){
     {label:"Financing",value:"Can the cycle fund itself?",note:"Rates, credit, CDS, burden"},
     {label:"Macro",value:"Amplifier or cushion?",note:"VIX, rates, global liquidity"}
   ]))
-  + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Level Score asks whether the current level is risky; Momentum Score asks whether the signal is moving in a concerning direction. Dynamic components are calculated in Google Sheets. Locked v3 components remain clearly labelled until their replacement models are ready.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div>`)
-  + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Its value is in showing when multiple parts of the AI circular economy start confirming the same risk story — and in making the evidence and methodology inspectable.",sourceNote("Research framework · source-first · no invented data"));
+  + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div>`)
+  + sectionHtml("DATA MAP · WHAT WE FETCH","The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.",sourceTable)
+  + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.",sourceNote("Research framework · source-first · no invented data"));
 }
 
 function moneyFinancingHtml(){ return sectionHtml("WHAT SITS HERE","This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.",metricCards([{label:"Financing",value:fmtScore(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score)},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"HY OAS",value:DATA.latestMarket?.hyOas?`${formatNumber(DATA.latestMarket.hyOas.value,2)}%`:"—",note:"Broad credit"}]))+sourceNote("Click the dedicated Commitment or Financing indicator for full scoring detail."); }
 function moneyHyperscalersHtml(){ return sectionHtml("WHAT SITS HERE","Hyperscalers and neocloud providers convert financing into AI infrastructure. Canary connects CAPEX, commitments and demand rather than assigning this node a new score.",metricCards([{label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.capexScore),locked:true},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.demandScore),locked:true}]))+sourceNote("Use CAPEX, Commitment Overhang and AI Demand deep dives for underlying rows."); }
-function moneySemisHtml(){ return sectionHtml("WHAT SITS HERE","Semis & Hardware links chip-market confirmation to compute supply.",metricCards([{label:"Semis score",value:fmtScore(DATA.canary?.latest?.semisScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.semisScore),locked:true},{label:"Compute",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"SOX",value:DATA.latestMarket?.sox?formatNumber(DATA.latestMarket.sox.value,0):"—",note:"Market signal"}]))+sourceNote("No separate Money Circle node score is created."); }
-function moneyComputeHtml(){ const h=DATA.latestTokenGpu?.H100_SD||{}; return sectionHtml("WHAT SITS HERE","Compute & AI Models links supply conditions, GPU pricing and token activity.",metricCards([{label:"Compute score",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Silicon Data"},{label:"Token score",value:fmtScore(DATA.canary?.latest?.tokenScore),note:"Monetization context",riskScore:toNum(DATA.canary?.latest?.tokenScore),locked:true}]))+sourceNote("GPU utilization remains a planned, not yet connected, input."); }
-function moneyMonetizationHtml(){ const t=DATA.latestTokenGpu?.TOKEN_SD||{}; return sectionHtml("WHAT SITS HERE","End Users & Monetization is where the AI cycle ultimately has to pay for itself.",metricCards([{label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Company demand"},{label:"Token score",value:fmtScore(DATA.canary?.latest?.tokenScore),note:"Usage economics"},{label:"Token index",value:Number.isFinite(toNum(t.value))?formatNumber(t.value,2):"—",note:"Silicon Data"}]))+sourceNote("Future enterprise-adoption data such as Ramp can strengthen this node once a stable series is integrated."); }
+function moneySemisHtml(){ const s=dynamicScore(DATA,"semiconductorMarket",DATA.canary?.latest?.semisScore); return sectionHtml("WHAT SITS HERE","Semis & Hardware links chip-market confirmation to compute supply.",metricCards([{label:"Semis score",value:fmtScore(s.score),note:"Dynamic",riskScore:toNum(s.score)},{label:"Compute",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"SOX",value:DATA.latestMarket?.sox?formatNumber(DATA.latestMarket.sox.value,0):"—",note:"Market signal"}]))+sourceNote("No separate Money Circle node score is created."); }
+function moneyComputeHtml(){ const h=DATA.latestTokenGpu?.H100_SD||{}; return sectionHtml("WHAT SITS HERE","Compute & AI Models links supply conditions, GPU pricing and token activity.",metricCards([{label:"Compute score",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Silicon Data"},{label:"Token score",value:fmtScore(dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore).score),note:"Dynamic monetization context",riskScore:toNum(dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore).score)}]))+sourceNote("GPU utilization remains a planned, not yet connected, input."); }
+function moneyMonetizationHtml(){ const t=DATA.latestTokenGpu?.TOKEN_SD||{}; const ts=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore); return sectionHtml("WHAT SITS HERE","End Users & Monetization is where the AI cycle ultimately has to pay for itself.",metricCards([{label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Company demand"},{label:"Token score",value:fmtScore(ts.score),note:"Dynamic usage economics"},{label:"Token index",value:Number.isFinite(toNum(t.value))?formatNumber(t.value,2):"—",note:"Silicon Data"}]))+sourceNote("Future enterprise-adoption data such as Ramp can strengthen this node once a stable series is integrated."); }
