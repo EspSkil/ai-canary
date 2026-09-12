@@ -7,8 +7,11 @@ const charts = {};
 const LIVE_CACHE_KEY = "aiCanaryLiveDataV1";
 const LIVE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 let hasRenderedCachedData = false;
+let initialTopResetPending = true;
 
 document.addEventListener("DOMContentLoaded", () => {
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  forceDashboardTop();
   loadDashboard();
   setupInfoButtons();
   setupIndicatorDetails();
@@ -109,13 +112,36 @@ function showLoadError(message) {
   if (retry) retry.hidden = false;
 }
 
+function forceDashboardTop() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+}
+
 function hideLoadOverlay() {
   clearTimeout(slowLoadTimer);
   const overlay = document.getElementById("liveLoadOverlay");
   if (!overlay) return;
   overlay.classList.remove("is-error");
   setLoadStage(3, "Ready");
-  setTimeout(()=>{ overlay.classList.add("is-ready"); setTimeout(()=>{ overlay.hidden=true; overlay.classList.remove("is-ready"); },280); },180);
+
+  // Mobile browsers can restore an old scroll position while the dashboard is
+  // rendering behind the loading overlay. On the first completed load, pin
+  // the viewport back to the actual top before and after the overlay fades.
+  if (initialTopResetPending) forceDashboardTop();
+
+  setTimeout(()=>{
+    overlay.classList.add("is-ready");
+    setTimeout(()=>{
+      overlay.hidden = true;
+      overlay.classList.remove("is-ready");
+      if (initialTopResetPending) {
+        requestAnimationFrame(()=>requestAnimationFrame(forceDashboardTop));
+        setTimeout(forceDashboardTop, 120);
+        initialTopResetPending = false;
+      }
+    },280);
+  },180);
 }
 
 function saveLiveCache(data) {
