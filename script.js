@@ -965,7 +965,10 @@ function metricCards(cards) {
     const scoreBadge=Number.isFinite(risk)?`<span class="metric-risk-badge ${tone}">${Math.round(risk)} · ${scoreStatus(risk)}</span>`:"";
     const trend=c.trend?`<span class="metric-trend ${c.trendTone||"neutral"}">${escapeHtml(c.trend)}</span>`:"";
     const locked=c.locked?`<span class="metric-lock">LOCKED BASELINE</span>`:"";
-    return `<div class="connected-card metric-tone-${tone}"><div class="metric-card-top"><span>${escapeHtml(c.label)}</span>${scoreBadge}</div><strong>${escapeHtml(c.value ?? "—")}</strong><div class="metric-card-foot"><small>${escapeHtml(c.note || "")}</small>${trend}${locked}</div></div>`;
+    const clickable=c.detail?` detail-trigger-card money-theme-indicator`:"";
+    const attrs=c.detail?` role="button" tabindex="0" data-detail="${escapeHtml(c.detail)}" aria-label="Open ${escapeHtml(c.label)} deep dive"`:"";
+    const action=c.detail?`<span class="money-card-action">Open deep dive <b>→</b></span>`:"";
+    return `<div class="connected-card metric-tone-${tone}${clickable}"${attrs}><div class="metric-card-top"><span>${escapeHtml(c.label)}</span>${scoreBadge}</div><strong>${escapeHtml(c.value ?? "—")}</strong><div class="metric-card-foot"><small>${escapeHtml(c.note || "")}</small>${trend}${locked}</div>${action}</div>`;
   }).join("")}</div>`;
 }
 
@@ -1484,8 +1487,97 @@ function explainDetailHtml(){
   + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.",sourceNote("Research framework · source-first · no invented data"));
 }
 
-function moneyFinancingHtml(){ return sectionHtml("WHAT SITS HERE","This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.",metricCards([{label:"Financing",value:fmtScore(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore).score)},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"HY OAS",value:DATA.latestMarket?.hyOas?`${formatNumber(DATA.latestMarket.hyOas.value,2)}%`:"—",note:"Broad credit"}]))+sourceNote("Click the dedicated Commitment or Financing indicator for full scoring detail."); }
-function moneyHyperscalersHtml(){ return sectionHtml("WHAT SITS HERE","Hyperscalers and neocloud providers convert financing into AI infrastructure. Canary connects CAPEX, commitments and demand rather than assigning this node a new score.",metricCards([{label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.capexScore),locked:true},{label:"Commitments",value:fmtScore(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score),note:"Dynamic",riskScore:toNum(dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore).score)},{label:"Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.demandScore),locked:true}]))+sourceNote("Use CAPEX, Commitment Overhang and AI Demand deep dives for underlying rows."); }
-function moneySemisHtml(){ const s=dynamicScore(DATA,"semiconductorMarket",DATA.canary?.latest?.semisScore); return sectionHtml("WHAT SITS HERE","Semis & Hardware links chip-market confirmation to compute supply.",metricCards([{label:"Semis score",value:fmtScore(s.score),note:"Dynamic",riskScore:toNum(s.score)},{label:"Compute",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"SOX",value:DATA.latestMarket?.sox?formatNumber(DATA.latestMarket.sox.value,0):"—",note:"Market signal"}]))+sourceNote("No separate Money Circle node score is created."); }
-function moneyComputeHtml(){ const h=DATA.latestTokenGpu?.H100_SD||{}; return sectionHtml("WHAT SITS HERE","Compute & AI Models links supply conditions, GPU pricing and token activity.",metricCards([{label:"Compute score",value:fmtScore(DATA.canary?.latest?.computeScore),note:"Existing component",riskScore:toNum(DATA.canary?.latest?.computeScore),locked:true},{label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:"Silicon Data"},{label:"Token score",value:fmtScore(dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore).score),note:"Dynamic monetization context",riskScore:toNum(dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore).score)}]))+sourceNote("GPU utilization remains a planned, not yet connected, input."); }
-function moneyMonetizationHtml(){ const t=DATA.latestTokenGpu?.TOKEN_SD||{}; const ts=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore); return sectionHtml("WHAT SITS HERE","End Users & Monetization is where the AI cycle ultimately has to pay for itself.",metricCards([{label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Company demand"},{label:"Token score",value:fmtScore(ts.score),note:"Dynamic usage economics"},{label:"Token index",value:Number.isFinite(toNum(t.value))?formatNumber(t.value,2):"—",note:"Silicon Data"}]))+sourceNote("Future enterprise-adoption data such as Ramp can strengthen this node once a stable series is integrated."); }
+function moneyThemePage(intro, watchItems, cards, footer=""){
+  const watchHtml=`<div class="money-watch-grid">${watchItems.map(x=>`<div class="money-watch-item"><span class="money-watch-dot"></span><div><strong>${escapeHtml(x.title)}</strong><small>${escapeHtml(x.text)}</small></div></div>`).join("")}</div>`;
+  return sectionHtml("ROLE IN THE AI MONEY CIRCLE",intro)
+    + sectionHtml("WHAT CANARY IS LOOKING FOR","The node becomes more concerning when several independent signals deteriorate together.",watchHtml)
+    + sectionHtml("CANARY INDICATORS","Each colored card is an existing 0–100 Canary indicator. Select a card to open its Deep Dive and see the underlying data, transformations, weights and score calculation.",metricCards(cards))
+    + sectionHtml("HOW TO READ THIS NODE","The Money Circle node does not create a separate score. Its color reflects the highest risk category among the mapped Canary indicators.",footer?sourceNote(footer):"");
+}
+
+function moneyFinancingHtml(){
+  const fin=dynamicScore(DATA,"financingConditions",DATA.canary?.latest?.financingScore);
+  const commit=dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore);
+  return moneyThemePage(
+    "Capital & Financing asks whether the AI buildout can still be funded on acceptable terms while future obligations continue to accumulate. This is where high rates, widening credit stress and binding commitments can turn an investment boom into financial pressure.",
+    [
+      {title:"Cost of capital",text:"Are nominal and real yields making long-duration AI projects harder to finance?"},
+      {title:"AI-specific credit",text:"Are CDS and company financing burdens deteriorating before broad credit markets?"},
+      {title:"Locked-in obligations",text:"Are leases, purchases and other commitments growing faster than the revenue base?"}
+    ],
+    [
+      {label:"Financing Conditions",value:fmtScore(fin.score),note:"Rates · credit · company burden",riskScore:toNum(fin.score),detail:"financing"},
+      {label:"Commitment Overhang",value:fmtScore(commit.score),note:"Scale · momentum · bindingness",riskScore:toNum(commit.score),detail:"commitment"}
+    ],
+    "Financing and Commitment are separate risk components; confirmation across both is more important than either signal alone."
+  );
+}
+
+function moneyHyperscalersHtml(){
+  const commit=dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore);
+  return moneyThemePage(
+    "Hyperscalers & Neocloud are the spending engine of the AI cycle. Canary tests whether infrastructure investment and contractual commitments are being matched by durable customer demand rather than simply by continued capacity expansion.",
+    [
+      {title:"Investment pace",text:"Is AI infrastructure CAPEX still accelerating, flattening or being revised?"},
+      {title:"Commitment growth",text:"Are future obligations expanding faster than the companies' financial capacity?"},
+      {title:"Demand absorption",text:"Are cloud growth, backlog and AI revenue strong enough to absorb the new capacity?"}
+    ],
+    [
+      {label:"CAPEX Investment",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Infrastructure spending & guidance",riskScore:toNum(DATA.canary?.latest?.capexScore),detail:"capex",locked:true},
+      {label:"Commitment Overhang",value:fmtScore(commit.score),note:"Future obligations & momentum",riskScore:toNum(commit.score),detail:"commitment"},
+      {label:"AI Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Cloud · RPO/backlog · demand quality",riskScore:toNum(DATA.canary?.latest?.demandScore),detail:"demand",locked:true}
+    ],
+    "The key question is whether demand and monetization keep pace with the enormous infrastructure buildout."
+  );
+}
+
+function moneySemisHtml(){
+  const semis=dynamicScore(DATA,"semiconductorMarket",DATA.canary?.latest?.semisScore);
+  return moneyThemePage(
+    "Semis & Hardware is the physical supply chain of the AI boom. Chip-market strength can confirm healthy infrastructure demand, while weakening semiconductor momentum alongside softer compute economics can be an early sign that supply is catching demand.",
+    [
+      {title:"Chip-market confirmation",text:"Does semiconductor performance still confirm the AI investment narrative?"},
+      {title:"Compute balance",text:"Are GPU supply and rental economics moving from scarcity toward abundance?"},
+      {title:"Cross-signal confirmation",text:"Does hardware weakness appear together with softer demand or token economics?"}
+    ],
+    [
+      {label:"Semiconductor Market",value:fmtScore(semis.score),note:"SOX · chip-market momentum",riskScore:toNum(semis.score),detail:"semis"},
+      {label:"Compute Supply",value:fmtScore(DATA.canary?.latest?.computeScore),note:"GPU pricing · supply conditions",riskScore:toNum(DATA.canary?.latest?.computeScore),detail:"compute",locked:true}
+    ],
+    "Semiconductor weakness matters most when it is confirmed by compute, demand and financing signals."
+  );
+}
+
+function moneyComputeHtml(){
+  const token=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore);
+  return moneyThemePage(
+    "Compute & AI Models connects the cost and availability of GPU capacity with actual model usage. Falling compute prices can be healthy when efficiency improves, but become a warning when they coincide with weaker utilization, token demand or monetization.",
+    [
+      {title:"GPU economics",text:"Are rental prices and availability signalling scarcity, balance or oversupply?"},
+      {title:"Utilization",text:"Is installed compute capacity being used intensively enough to justify further buildout?"},
+      {title:"Token activity",text:"Is model usage expanding strongly enough as the cost per token changes?"}
+    ],
+    [
+      {label:"Compute Supply",value:fmtScore(DATA.canary?.latest?.computeScore),note:"GPU pricing · supply balance",riskScore:toNum(DATA.canary?.latest?.computeScore),detail:"compute",locked:true},
+      {label:"Token Economics",value:fmtScore(token.score),note:"Usage volume · token expenditure",riskScore:toNum(token.score),detail:"token"}
+    ],
+    "GPU utilization remains a planned input; the page should distinguish connected evidence from planned signals."
+  );
+}
+
+function moneyMonetizationHtml(){
+  const token=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore);
+  return moneyThemePage(
+    "End Users & Monetization is where the AI Money Circle ultimately has to pay for itself. Infrastructure spending is sustainable only if enterprises and consumers keep increasing usage and if that activity converts into durable cloud, software and model-layer revenue.",
+    [
+      {title:"Usage growth",text:"Are token volumes and AI workloads continuing to expand?"},
+      {title:"Revenue conversion",text:"Are cloud growth, RPO/backlog and AI-related revenues keeping pace with capacity?"},
+      {title:"Unit economics",text:"Can falling model costs support more usage without destroying monetization?"}
+    ],
+    [
+      {label:"AI Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Cloud · backlog · company demand",riskScore:toNum(DATA.canary?.latest?.demandScore),detail:"demand",locked:true},
+      {label:"Token Economics",value:fmtScore(token.score),note:"Usage · effective token expenditure",riskScore:toNum(token.score),detail:"token"}
+    ],
+    "Enterprise-adoption data can strengthen this node later when a stable, repeatable series is connected."
+  );
+}

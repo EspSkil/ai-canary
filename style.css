@@ -901,3 +901,72 @@ body.detail-open{overflow:hidden}
   .finance-signal b{font-size:9px}.finance-signal small{font-size:7.5px}.finance-latest,.finance-change{font-size:8.3px}
   .finance-risk-explain{grid-template-columns:1fr 1fr}.finance-detail-meta{grid-template-columns:1fr}.financing-methodology{grid-template-columns:1fr}
 }
+
+
+/* ===== v4.11 AI Money Circle theme pages 2.0 ===== */
+.money-theme-indicator{
+  cursor:pointer;
+  min-height:126px;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,border-color .16s ease;
+}
+.money-theme-indicator:hover,.money-theme-indicator:focus-visible{
+  transform:translateY(-2px);
+  filter:brightness(1.02);
+  box-shadow:0 12px 28px rgba(10,45,65,.12);
+  outline:none;
+}
+.money-card-action{
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:12px;
+  padding-top:9px;
+  border-top:1px solid rgba(16,49,71,.10);
+  font-size:8.5px!important;
+  font-weight:900;
+  letter-spacing:.08em!important;
+  text-transform:uppercase;
+  color:#315e73!important;
+}
+.money-card-action b{font-size:15px;line-height:1;color:#17617d}
+.money-watch-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin-top:13px;
+}
+.money-watch-item{
+  display:flex;
+  gap:9px;
+  align-items:flex-start;
+  padding:12px;
+  border:1px solid rgba(16,49,71,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.55);
+}
+.money-watch-dot{
+  width:8px;
+  height:8px;
+  flex:0 0 8px;
+  border-radius:50%;
+  margin-top:4px;
+  background:#45d7ff;
+  box-shadow:0 0 0 4px rgba(69,215,255,.10);
+}
+.money-watch-item strong{
+  display:block;
+  color:#173747;
+  font-size:10.5px;
+  line-height:1.3;
+}
+.money-watch-item small{
+  display:block;
+  margin-top:4px;
+  color:#6f8795;
+  font-size:9.2px;
+  line-height:1.45;
+}
+@media(max-width:720px){
+  .money-watch-grid{grid-template-columns:1fr}
+  .money-theme-indicator{min-height:0}
+}
