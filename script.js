@@ -13,6 +13,44 @@ const UI_LANG_KEY = "aiCanaryLanguageV1";
 let UI_LANG = localStorage.getItem(UI_LANG_KEY) || "no";
 
 const NO_TEXT = new Map(Object.entries({
+
+  "Token Economics asks whether AI usage is expanding fast enough to offset falling effective expenditure per token. A decline in unit economics is less worrying when it triggers much stronger usage; it becomes more concerning when monetization weakens without enough volume response.":"Token Economics undersøker om AI-bruken vokser raskt nok til å veie opp for fallende effective expenditure per token. Lavere kostnad per token er mindre bekymringsfullt dersom det utløser klart høyere bruk. Risikoen øker dersom monetization svekkes uten at volume responderer nok.",
+  "The score is calculated in Google Sheets. Volume receives 60% base weight. Expenditure drawdown receives 40%, but strong volume growth can reduce up to half of that drawdown risk before the 40% weight is applied.":"Scoren beregnes i Google Sheets. Volume får 60% grunnvekt. Expenditure drawdown får 40%, men sterk volume growth kan redusere opptil halvparten av denne drawdown-risikoen før 40%-vekten brukes.",
+  "The two scored drivers and the latest expenditure observation are shown separately so usage growth is not confused with price/expenditure economics.":"De to driverne som scores og siste expenditure-observasjon vises separat. Dermed blander vi ikke vekst i AI-bruk sammen med utviklingen i price/expenditure economics.",
+  "WHY FALLING TOKEN COST IS NOT AUTOMATICALLY BEARISH":"HVORFOR LAVERE TOKEN COST IKKE AUTOMATISK ER NEGATIVT",
+  "AI inference gets cheaper as hardware, models and routing improve. That can expand usage dramatically. Canary therefore treats falling expenditure as a risk only in combination with the volume response: strong usage growth offsets part of the pressure, while weak or falling usage would make the same expenditure drawdown much more concerning.":"AI inference blir billigere når hardware, modeller og routing forbedres. Det kan samtidig gi kraftig vekst i bruken. Derfor vurderer Canary fallende expenditure sammen med volume-responsen: sterk usage growth demper deler av risikoen, mens svak eller fallende bruk ville gjort den samme expenditure drawdown langt mer bekymringsfull.",
+  "The exact transformation used by Token_Momentum is summarized below.":"Under viser vi nøyaktig hvordan Token_Momentum omsetter rådata til Canary risk.",
+  "30D average token volume is compared with the previous non-overlapping 30D average. Strong growth lowers risk; falling volume raises it.":"30D average token volume sammenlignes med foregående, ikke-overlappende 30D-periode. Sterk vekst reduserer risikoen; fallende volume øker den.",
+  "Current LLM Token Expenditure Index is compared with the May peak used by the model. A large drawdown raises risk because monetization/expenditure per unit of usage has weakened.":"Dagens LLM Token Expenditure Index sammenlignes med May peak som brukes i modellen. Stor drawdown øker risikoen fordi monetization/expenditure per bruksenhet har svekket seg.",
+  "Token Economics is healthy because strong usage growth currently offsets much of the expenditure drawdown. The warning would become materially stronger if token volume growth slowed while expenditure remained depressed.":"Token Economics er nå Healthy fordi sterk usage growth veier opp for mye av expenditure drawdown. Varselsignalet ville blitt klart sterkere dersom token volume growth bremset samtidig som expenditure forble lav.",
+  "Current 30D average vs previous non-overlapping 30D average":"Dagens 30D average mot foregående, ikke-overlappende 30D average",
+  "Strong volume growth reduces this risk before weighting":"Sterk volume growth reduserer denne risikoen før vekting",
+  "Current spend vs peak":"Dagens nivå mot peak",
+
+  "Compute Supply asks whether AI compute is becoming too abundant relative to demand. Falling broad rental prices can indicate easing scarcity or oversupply, while a high guaranteed premium still points to scarcity for dependable capacity.":"Compute Supply undersøker om AI compute blir for tilgjengelig i forhold til demand. Fallende brede rental prices kan tyde på mindre knapphet eller oversupply, mens høy guaranteed premium fortsatt kan vise knapphet på stabil og garantert kapasitet.",
+  "The current model combines broad H100 rental pricing, guaranteed pricing and the premium paid for guaranteed capacity. Direct GPU utilization is deliberately not included until a robust source is connected.":"Dagens modell kombinerer broad H100 rental pricing, guaranteed pricing og premien som betales for garantert kapasitet. Direct GPU utilization er bevisst ikke med før vi har koblet til en robust datakilde.",
+  "Current pricing does not show a clear oversupply warning.":"Dagens pricing gir ikke et tydelig varsel om oversupply.",
+  "The model is intentionally transparent: each input, weight and transformation is visible. A future version can add utilization and capacity data without changing the meaning of today's historical score.":"Modellen er bevisst transparent: hvert input, hver vekt og transformasjon kan inspiseres. En senere versjon kan legge til utilization og capacity-data uten å endre betydningen av dagens historiske score.",
+
+  "Semiconductor Market asks whether the chip market is confirming or challenging the AI infrastructure cycle. SOX is used as a fast market signal because semiconductor expectations often move before reported company fundamentals.":"Semiconductor Market undersøker om chip-markedet bekrefter eller utfordrer AI infrastructure cycle. SOX brukes som et raskt markedssignal fordi forventningene til semiconductors ofte beveger seg før endringene synes i rapporterte company fundamentals.",
+  "The current v1 score uses 30D SOX momentum only. It is deliberately simple and transparent while we build stable fundamental semiconductor inputs.":"Dagens v1-score bruker kun 30D SOX momentum. Den er bevisst enkel og transparent mens vi bygger stabile fundamentale semiconductor-inputs.",
+
+  "AI Demand is the demand-side counterweight to the investment boom. Strong revenue growth, backlog and cloud activity make high infrastructure spending easier to absorb; broad weakening would make the same CAPEX and commitments more dangerous.":"AI Demand er demand-sidens motvekt til investeringsboomen. Sterk revenue growth, backlog og cloud activity gjør høy infrastructure spending lettere å absorbere. Bred svekkelse ville gjort den samme CAPEX og commitments langt mer risikable.",
+  "Demand is supportive today, but this component is still using the locked baseline score until the dynamic Demand model is upgraded.":"Demand er støttende i dag, men komponenten bruker fortsatt låst baseline-score frem til den dynamiske Demand-modellen er oppgradert.",
+
+  "High CAPEX is not automatically a warning. It becomes risky when spending and commitments continue to accelerate while demand, utilization, monetization or financing capacity weaken.":"Høy CAPEX er ikke automatisk et faresignal. Risikoen øker når spending og commitments fortsetter å akselerere samtidig som demand, utilization, monetization eller financing capacity svekkes.",
+  "This component still uses the locked baseline score while the dynamic CAPEX model is being developed.":"Denne komponenten bruker fortsatt låst baseline-score mens den dynamiske CAPEX-modellen utvikles.",
+
+  "Canary Divergence compares broad financing conditions with AI-specific credit stress. A widening gap can matter because financing problems may first appear in the companies carrying the heaviest AI investment burden.":"Canary Divergence sammenligner brede financing conditions med AI-specific credit stress. Et økende gap kan være viktig fordi finansieringsproblemer først kan dukke opp hos selskapene som bærer den tyngste AI investment burden.",
+  "Shows company-level Composite Risk from commitment scale, recent change and how binding the obligation is. Current and previous values are pulled dynamically from the Commitments data table.":"Viser Company Composite Risk basert på commitment scale, siste endring og hvor bindende forpliktelsen er. Current og previous values hentes dynamisk fra Commitments-tabellen.",
+  "Shows five-year credit-default-swap spreads for selected AI-linked companies. CDS is the annualized spread paid for default protection, quoted in basis points. Higher and rapidly rising spreads indicate greater credit stress, but thin CDS liquidity means the signal should not be treated as a precise default probability.":"Viser 5Y CDS spreads for utvalgte AI-relaterte selskaper. CDS er den årlige spreaden for default protection, oppgitt i basis points. Høye og raskt stigende spreads betyr økt credit stress, men lav CDS-likviditet gjør at signalet ikke skal tolkes som en presis default probability.",
+
+  "This node combines existing Financing Conditions and Commitment Overhang signals. Its color is the worst mapped risk category; the node itself has no invented 0–100 score.":"Her samler vi eksisterende Financing Conditions og Commitment Overhang. Fargen viser den høyeste risikokategorien blant dem; vi lager ikke en ny 0–100 score for Money Circle-temaet.",
+  "Hyperscalers and neocloud providers convert financing into AI infrastructure. Canary connects CAPEX, commitments and demand rather than assigning this node a new score.":"Hyperscalers og neocloud providers omsetter financing til AI infrastructure. Her kobler Canary CAPEX, commitments og demand i stedet for å finne på en egen score.",
+  "Semis & Hardware links chip-market confirmation to compute supply.":"Semis & Hardware kobler markedets signaler fra chip-sektoren til utviklingen i compute supply.",
+  "Compute & AI Models links supply conditions, GPU pricing and token activity.":"Compute & AI Models kobler supply conditions, GPU pricing og token activity.",
+  "End Users & Monetization links AI demand to token usage and effective expenditure.":"End Users & Monetization kobler AI demand til token usage og effective expenditure.",
+
   "Tracking the AI cycle. Spotting risks early.":"Vi følger AI-syklusen og leter etter tidlige faresignaler.",
   "Early warning for the AI investment cycle":"Tidlig varsling for AI-investeringssyklusen",
   "Tracks demand, compute, CAPEX, commitments, credit and markets to spot stress before it becomes broad.":"Vi følger demand, compute, CAPEX, commitments, credit og markedssignaler for å oppdage stress før det blir bredt synlig.",
@@ -104,6 +142,19 @@ function setupLanguageToggle(){
     });
   });
 }
+
+function setupNorwegianObserver(){
+  if(UI_LANG!=="no") return;
+  const target=document.getElementById("detailDrawer") || document.body;
+  let busy=false;
+  new MutationObserver(()=>{
+    if(busy) return;
+    busy=true;
+    applyNorwegianCopy(target);
+    busy=false;
+  }).observe(target,{childList:true,subtree:true});
+}
+
 function applyNorwegianCopy(root=document.body){
   if(UI_LANG!=="no" || !root) return;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
@@ -129,6 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupInfoButtons();
   setupIndicatorDetails();
   setupLanguageToggle();
+  setupNorwegianObserver();
   applyNorwegianCopy();
   document.getElementById("liveLoadRetry")?.addEventListener("click", loadDashboard);
 
