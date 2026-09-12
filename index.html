@@ -6,10 +6,10 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
-<!-- frontend v4.2: risk strip + Money Circle status colors -->
-<link href="style.css?v=4.18" rel="stylesheet"/>
+<!-- frontend v4.19: Norwegian explanation layer + Fiasco Finance identity -->
+<link href="style.css?v=4.19" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.18"></script>
+<script defer="" src="script.js?v=4.19"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -22,7 +22,10 @@
 <div class="brand-sub">Tracking the AI cycle. Spotting risks early.</div>
 </div>
 </div>
-<div class="header-purpose"><strong>Early warning for the AI investment cycle</strong><span>Tracks demand, compute, CAPEX, commitments, credit and markets to spot stress before it becomes broad.</span></div><div class="status-block">
+<div class="header-purpose"><strong>Early warning for the AI investment cycle</strong><span>Tracks demand, compute, CAPEX, commitments, credit and markets to spot stress before it becomes broad.</span></div><div class="language-switch" aria-label="Language for explanations">
+<button type="button" data-lang="no" title="Norsk forklaring">🇳🇴 <span>NO</span></button>
+<button type="button" data-lang="en" title="English explanations">🇬🇧 <span>EN</span></button>
+</div><div class="status-block">
 <div class="status-live" id="dataStatus">Loading live data…</div>
 <div class="muted small" id="lastUpdated">—</div>
 </div>

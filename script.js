@@ -5,6 +5,119 @@ let currentRange = 52;
 const charts = {};
 
 const LIVE_CACHE_KEY = "aiCanaryLiveDataV1";
+
+// v4.19 — Fiasco Finance language layer.
+// Indicator names, scores, statuses and financial terminology intentionally remain English.
+// Only explanatory / help copy is localized.
+const UI_LANG_KEY = "aiCanaryLanguageV1";
+let UI_LANG = localStorage.getItem(UI_LANG_KEY) || "no";
+
+const NO_TEXT = new Map(Object.entries({
+  "Tracking the AI cycle. Spotting risks early.":"Vi følger AI-syklusen og leter etter tidlige faresignaler.",
+  "Early warning for the AI investment cycle":"Tidlig varsling for AI-investeringssyklusen",
+  "Tracks demand, compute, CAPEX, commitments, credit and markets to spot stress before it becomes broad.":"Vi følger demand, compute, CAPEX, commitments, credit og markedssignaler for å oppdage stress før det blir bredt synlig.",
+  "Where risk sits in the loop":"Hvor ligger risikoen i AI-syklusen?",
+  "Key signals":"Viktige signaler",
+  "Risk components":"Risikokomponenter",
+  "WHY IT MATTERS":"HVORFOR DETTE ER VIKTIG",
+  "HOW THE SCORE IS BUILT":"SLIK BYGGES SCOREN",
+  "HOW THE 76 IS BUILT":"SLIK BYGGES SCOREN",
+  "MODEL LOGIC":"SLIK TENKER MODELLEN",
+  "DATA & EVIDENCE":"DATA & DOKUMENTASJON",
+  "WHAT THIS MODEL DOES NOT YET CAPTURE":"DETTE ER IKKE MED I MODELLEN ENNÅ",
+  "LATEST COMPANY OBSERVATIONS":"SISTE SELSKAPSDATA",
+  "WHY THE WEIGHTS DIFFER":"HVORFOR VEKTENE ER ULIKE",
+  "PURPOSE":"HVA ER AI CANARY?",
+  "HOW THE LOOP WORKS":"SLIK HENGER AI-SYKLUSEN SAMMEN",
+  "HOW SCORES WORK":"SLIK FUNGERER SCORENE",
+  "DATA MAP · WHAT WE FETCH":"DATA MAP · DETTE HENTER VI",
+  "HOW TO USE IT":"SLIK BRUKER VI AI CANARY",
+  "ROLE IN THE AI MONEY CIRCLE":"ROLLE I AI MONEY CIRCLE",
+  "WHAT CANARY IS LOOKING FOR":"DETTE SER CANARY ETTER",
+  "HOW TO READ THIS NODE":"SLIK LESER DU DETTE TEMAET",
+  "WHAT SITS HERE":"HVA FØLGER VI HER?",
+  "COMPANY RISK MAP":"RISIKOBILDE PER SELSKAP",
+  "FINANCING RISK MAP":"FINANSIERINGSBILDET",
+
+  "Is AI usage and monetization keeping pace with the investment cycle?":"Holder AI-bruk og monetization tritt med investeringstakten?",
+  "Are customers and cloud workloads absorbing the expanding AI capacity?":"Er demand sterk nok til å absorbere den raskt voksende AI-kapasiteten?",
+  "Is AI compute capacity scarce, balanced or moving toward oversupply?":"Er AI compute fortsatt knapp, i balanse eller på vei mot overkapasitet?",
+  "Does the chip market confirm or challenge the AI investment narrative?":"Bekrefter chip-markedet AI-investeringshistorien, eller begynner det å sende varselsignaler?",
+  "How quickly is infrastructure spending expanding, and who is carrying it?":"Hvor raskt vokser investeringene i AI-infrastruktur, og hvem bærer kostnaden?",
+  "How large, fast-growing and binding are future AI-related obligations?":"Hvor store, raskt voksende og bindende er fremtidige AI-forpliktelser?",
+  "Is funding pressure emerging inside AI before the broad market?":"Oppstår financing stress i AI-sektoren før det synes i det brede markedet?",
+  "Is the external market environment amplifying or cushioning AI-cycle risk?":"Forsterker eller demper markedet rundt oss risikoen i AI-syklusen?",
+
+  "Large and binding obligations become more dangerous when they grow faster than the revenue base and appear across many companies.":"Store og bindende forpliktelser blir mer risikable når de vokser raskere enn inntektene og samtidig øker hos mange selskaper.",
+  "The headline Commitment Overhang score is calculated directly from the dynamic Google Sheet model — not entered manually.":"Commitment Overhang beregnes direkte fra vår dynamiske Google Sheet-modell. Scoren legges ikke inn manuelt.",
+  "The exact Google Sheet transformation is shown below. Company Composite Risk uses 40% Scale + 35% Momentum + 25% Binding; the headline then combines average company risk and breadth.":"Under viser vi nøyaktig hvordan vår Google Sheet-modell regner. Company Composite Risk bruker 40% Scale + 35% Momentum + 25% Binding. Deretter kombineres gjennomsnittlig selskapsrisiko med breadth.",
+  "High commitment pressure is broad, not just large in dollar terms.":"Commitment-presset er bredt – ikke bare stort målt i dollar.",
+  "The current danger signal comes from both elevated company-level risk and breadth across the group. The key confirmation question is whether demand, utilization and monetization remain strong enough to absorb these fixed obligations without creating financing stress.":"Dagens faresignal skyldes både høy risiko i flere enkeltselskaper og stor breadth. Det avgjørende er om demand, utilization og monetization er sterke nok til å bære de faste forpliktelsene uten financing stress.",
+
+  "Financing can break an investment cycle before end demand disappears. Canary separates broad funding conditions from AI-specific credit stress and company-level interest burden.":"Finansiering kan knekke en investeringssyklus før sluttetterspørselen forsvinner. Derfor skiller vår modell mellom brede funding conditions, AI-specific credit stress og selskapenes rentebelastning.",
+  "The headline Financing Conditions score is calculated directly from the dynamic Google Sheet model — not entered manually.":"Financing Conditions beregnes direkte fra vår dynamiske Google Sheet-modell. Scoren legges ikke inn manuelt.",
+  "The exact model has two layers: each underlying financing signal is scored first, then the three group scores are combined into the headline Financing Conditions score.":"Modellen har to nivåer: Først scores hvert underliggende finansieringssignal. Deretter kombineres de tre gruppescorene til Financing Conditions.",
+  "AI-specific credit stress is doing most of the damage.":"AI-specific credit stress står nå for mesteparten av risikoen.",
+  "Broad IG/HY credit remains relatively calm, while AI-linked CDS is much more stressed. That divergence is useful because localized financing pressure can appear before the broader corporate credit market deteriorates.":"IG/HY credit er fortsatt relativt rolig, mens AI-relatert CDS viser langt mer stress. Dette spriket er viktig fordi lokalt financing pressure kan oppstå før det brede corporate credit-markedet svekkes.",
+
+  "The 52-week view provides context around the short 30D scoring window. It is evidence, not an additional scored input.":"52-ukersgrafen setter det korte 30D-vinduet i perspektiv. Grafen gir trendkontekst og er ikke et ekstra input i scoren.",
+  "Semiconductor Market v1 is intentionally simple. A flat SOX trend maps near 50 risk. Strong positive 30D momentum pushes risk toward 0; strong negative momentum pushes risk toward 100. The mapping is linear and capped at both ends.":"Semiconductor Market v1 er bevisst enkel. Flat SOX-utvikling gir omtrent 50 i risiko. Sterk positiv 30D momentum trekker risiko mot 0, mens sterk negativ momentum trekker den mot 100. Skalaen er lineær og avgrenset i begge ender.",
+  "SOX is a market-price signal, not a complete semiconductor-cycle model. We will only add fundamental inputs after selecting stable, comparable data sources.":"SOX er et markedssignal, ikke en komplett modell for semiconductor-syklusen. Vi legger først til fundamentale inputs når vi har stabile og sammenlignbare datakilder.",
+  "SOX is currently broadly neutral rather than flashing a cycle warning.":"SOX er nå omtrent nøytral og gir foreløpig ikke et tydelig syklusvarsel.",
+
+  "CAPEX is the physical investment pulse of the AI cycle. The risk comes from the relationship between spending, demand, commitments and financing — not from a high CAPEX number alone.":"CAPEX er den fysiske investeringspulsen i AI-syklusen. Risikoen ligger i forholdet mellom spending, demand, commitments og financing – ikke i et høyt CAPEX-tall alene.",
+  "Latest available row per company from the connected CAPEX dataset.":"Siste tilgjengelige observasjon per selskap fra det tilkoblede CAPEX-datasettet.",
+  "Macro conditions can amplify or cushion AI-cycle stress through volatility, discount rates, global funding and risk appetite.":"Macro-forhold kan forsterke eller dempe stress i AI-syklusen gjennom volatility, discount rates, global funding og risk appetite.",
+
+  "AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.":"AI Canary er Fiasco Finance sin hjemmelagde early-warning modell for AI-investeringssyklusen. Vi samler signaler fra monetization, demand, compute, commitments, financing og markedene for å se om stress bygger seg opp før det blir tydelig i brede markedsindekser.",
+  "The cycle is easiest to read from funding through monetization. Capital enables builders, builders buy hardware, hardware becomes compute, and compute must ultimately create end-user value. Weakness can then feed back into financing and the next investment round.":"Vi leser syklusen fra capital til monetization: Capital finansierer utbygging, hyperscalers og neocloud kjøper hardware, hardware blir til compute, og compute må til slutt skape verdi hos sluttbrukerne. Hvis verdiskapingen svikter, kan svakheten slå tilbake på financing og neste investeringsrunde.",
+  "Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.":"Hver komponent har terskler som er tilpasset signalet vi måler. Dynamiske komponenter beregnes i Google Sheets. Der en dynamisk score finnes bruker dashboardet denne; komponenter som ikke er oppgradert ennå bruker fortsatt låst v3-score. Den blandede headline-scoren fylles ikke bakover i historikken.",
+  "The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.":"Tabellen viser hvordan vi håndterer kildene. AUTO betyr at Apps Script henter data automatisk. SEMI_AUTO betyr at kvartalsdata kontrolleres og vedlikeholdes rundt rapportering. MANUAL / ASSISTED brukes når vi ikke har en stabil offentlig API.",
+  "AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.":"AI Canary er ikke et automatisk kjøps- eller salgssignal. Vi bruker endringer som et varsel om å undersøke dataene nærmere. Det sterkeste signalet oppstår når uavhengige fundamental-, financing- og market-indikatorer peker i samme negative retning.",
+  "Research framework · source-first · no invented data":"Fiasco Finance-modell · source-first · ingen oppdiktede data",
+
+  "The node becomes more concerning when several independent signals deteriorate together.":"Temaet blir mer bekymringsfullt når flere uavhengige signaler svekkes samtidig.",
+  "Each colored card is an existing 0–100 Canary indicator. Select a card to open its Deep Dive and see the underlying data, transformations, weights and score calculation.":"Hvert fargede kort er en eksisterende 0–100 Canary Indicator. Trykk på et kort for Deep Dive med underliggende data, transformasjoner, vekter og scoreberegning.",
+  "The Money Circle node does not create a separate score. Its color reflects the highest risk category among the mapped Canary indicators.":"Money Circle-temaet lager ikke en egen score. Fargen viser høyeste risikokategori blant Canary Indicators som er koblet til temaet.",
+  "Click the dedicated Commitment or Financing indicator for full scoring detail.":"Trykk på Commitment eller Financing for full scoreberegning.",
+  "Use CAPEX, Commitment Overhang and AI Demand deep dives for underlying rows.":"Bruk Deep Dive for CAPEX, Commitment Overhang og AI Demand for å se underliggende data.",
+  "No separate Money Circle node score is created.":"Money Circle lager ingen egen ekstra score for dette temaet.",
+
+  "Maps the AI economic loop from capital and financing through hyperscalers, semiconductors, compute and end-user monetization. Node status uses the highest risk category among existing mapped Canary indicators; it is not a separate invented score.":"AI Money Circle viser hvordan kapital beveger seg gjennom AI-økonomien: fra financing via hyperscalers, semiconductors og compute til end-user monetization. Statusen bruker høyeste risikokategori blant eksisterende Canary Indicators – vi lager ikke en ekstra oppdiktet score.",
+  "The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Token Economics, Compute Supply, Semiconductor Market, Commitment, Financing and Macro now use dynamic calculation models; Demand and CAPEX remain locked fallbacks until upgraded.":"Dette er de åtte 0–100 risikokomponentene i vår modell. 0–25 er Healthy, 26–50 Watch, 51–75 Warning og 76–100 Danger. Token Economics, Compute Supply, Semiconductor Market, Commitment, Financing og Macro beregnes dynamisk; Demand og CAPEX bruker foreløpig låste fallback-scorer.",
+  "Tracks AI usage economics and effective token expenditure. It helps test whether end-user activity and monetization are keeping pace with infrastructure investment.":"Vi følger AI-bruk og effective token expenditure for å se om end-user activity og monetization holder tritt med investeringene i infrastrukturen.",
+  "Tracks company-level AI and cloud demand signals such as revenue growth, backlog/RPO and related operating metrics. Strong, broad demand offsets supply-side cycle risk.":"Vi følger AI- og cloud demand gjennom blant annet revenue growth, backlog/RPO og relevante driftsmål. Sterk og bred demand reduserer risikoen for at ny kapasitet blir stående ubrukt.",
+  "Tracks whether AI compute supply is tightening or becoming abundant. H100 rental pricing is live today; direct GPU utilization is a planned input and is not yet included in the current score.":"Vi følger om AI compute supply fortsatt er knapp eller blir stadig lettere tilgjengelig. H100 rental pricing er live; direkte GPU utilization er planlagt, men inngår ikke i dagens score.",
+  "Tracks market confirmation from semiconductors and chip-linked indicators. Weakness can signal falling expectations for the AI infrastructure cycle before reported fundamentals turn.":"Vi bruker semiconductors og chip-relaterte markedssignaler som en tidlig bekreftelse eller advarsel. Svakhet kan vise fallende forventninger til AI-infrastruktur før det synes i rapporterte fundamentals.",
+  "Tracks the scale and momentum of AI-related capital spending by major hyperscalers and infrastructure providers. High CAPEX is not automatically risky; the Canary cares when investment outruns monetization and financing capacity.":"Vi følger størrelse og momentum i AI-relatert CAPEX hos hyperscalers og infrastrukturleverandører. Høy CAPEX er ikke automatisk negativt; risikoen øker når investeringene løper foran monetization og financing capacity.",
+  "Tracks the external environment around the AI cycle: rates, volatility, credit spreads and other macro/liquidity signals that can amplify or cushion company-specific stress.":"Vi følger omgivelsene rundt AI-syklusen: rates, volatility, credit spreads og andre macro/liquidity-signaler som kan forsterke eller dempe selskapsspesifikt stress."
+}));
+
+function setupLanguageToggle(){
+  document.querySelectorAll("[data-lang]").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.lang===UI_LANG);
+    btn.addEventListener("click",()=>{
+      const next=btn.dataset.lang;
+      if(!next || next===UI_LANG) return;
+      localStorage.setItem(UI_LANG_KEY,next);
+      location.reload();
+    });
+  });
+}
+function applyNorwegianCopy(root=document.body){
+  if(UI_LANG!=="no" || !root) return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    const raw=n.nodeValue, trimmed=raw.trim();
+    if(!trimmed) return;
+    const translated=NO_TEXT.get(trimmed);
+    if(translated) n.nodeValue=raw.replace(trimmed,translated);
+  });
+  document.documentElement.lang="nb";
+}
+
 const LIVE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 let hasRenderedCachedData = false;
 let initialTopResetPending = true;
@@ -15,6 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
   setupInfoButtons();
   setupIndicatorDetails();
+  setupLanguageToggle();
+  applyNorwegianCopy();
   document.getElementById("liveLoadRetry")?.addEventListener("click", loadDashboard);
 
   document.querySelectorAll("#rangeControls button").forEach(btn => {
@@ -177,6 +292,7 @@ function renderAll(data) {
   renderEconomics(data);
   renderTokenGpuTable(data.tokenGpu || []);
   renderCompanies(data.aiDemand || []);
+  applyNorwegianCopy();
 }
 
 function renderCachedDashboard(cache) {
@@ -1021,6 +1137,7 @@ function openDetail(key) {
   const backdrop = document.getElementById("detailBackdrop");
   if (!drawer || !backdrop || !DETAIL_META[key]) return;
   populateDetail(key);
+  applyNorwegianCopy(drawer);
   backdrop.hidden = false;
   document.body.classList.add("detail-open");
   requestAnimationFrame(() => {
