@@ -796,3 +796,35 @@ body.detail-open{overflow:hidden}
     min-height:11px;
   }
 }
+
+/* ============================================================
+   COMMITMENT DEEP DIVE 2.0
+   ============================================================ */
+.score-build{margin-top:14px;border:1px solid rgba(16,49,71,.10);border-radius:14px;background:rgba(255,255,255,.58);overflow:hidden}
+.score-build-row{display:grid;grid-template-columns:minmax(0,1fr) 74px 58px 74px;gap:10px;align-items:center;padding:13px 14px;border-bottom:1px solid rgba(16,49,71,.08)}
+.score-build-row>div span{display:block;font-size:11px;font-weight:850;color:#16394c}.score-build-row>div small{display:block;margin-top:3px;font-size:8.5px;line-height:1.35;color:#78909d}
+.score-build-row>strong,.score-build-row>b{font-size:18px;color:#12384b;text-align:right}.score-build-row>em{font-size:10px;font-style:normal;font-weight:800;color:#6f8997;text-align:center}
+.score-build-total{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:3px 12px;align-items:center;padding:14px;background:linear-gradient(135deg,rgba(9,50,73,.95),rgba(13,66,91,.95));color:#eefaff}.score-build-total span{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.score-build-total strong{grid-row:1/3;grid-column:2;font-size:30px;text-align:right}.score-build-total small{font-size:9px;color:#a9cedf}
+
+.commitment-model-table{margin-top:14px;border:1px solid rgba(16,49,71,.10);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.56)}
+.commitment-table-head,.commitment-company-row>summary{display:grid;grid-template-columns:1.15fr .58fr .9fr .72fr .9fr .72fr 1.18fr 20px;gap:8px;align-items:center}
+.commitment-table-head{padding:9px 12px;background:#dceaf0;color:#587787;font-size:7.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.commitment-company-row{border-top:1px solid rgba(16,49,71,.08)}.commitment-company-row:first-of-type{border-top:0}.commitment-company-row>summary{cursor:pointer;list-style:none;padding:11px 12px;transition:background .15s ease}.commitment-company-row>summary::-webkit-details-marker{display:none}.commitment-company-row>summary:hover{background:rgba(208,232,242,.35)}
+.company-name{font-size:10px;font-weight:850;color:#173b4e}.company-risk{display:inline-flex;justify-content:center;justify-self:start;min-width:38px;padding:4px 6px;border-radius:999px;font-size:8px;font-weight:900}.company-risk.good{background:#dff5e8;color:#15734c}.company-risk.watch{background:#fff3be;color:#7b650d}.company-risk.warning{background:#ffe3c6;color:#984c0a}.company-risk.danger{background:#ffdbe0;color:#982936}
+.company-value,.company-change,.company-period,.company-revenue,.company-type{font-size:9px;color:#3e5f70}.company-value,.company-revenue{font-weight:800;color:#1b4357}.company-change.risk-up{color:#ac4a2a;font-weight:850}.company-change.risk-down{color:#19805a;font-weight:850}.company-change.flat{color:#69838f}.company-type{text-transform:capitalize}.row-chevron{font-size:14px;color:#6d8996;transition:transform .15s ease}.commitment-company-row[open] .row-chevron{transform:rotate(180deg)}
+.company-risk-detail{padding:12px 13px 14px;background:rgba(226,240,246,.38);border-top:1px solid rgba(16,49,71,.06)}
+.company-risk-explain{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.company-risk-explain>div{padding:10px;border-radius:10px;background:rgba(255,255,255,.72);border:1px solid rgba(16,49,71,.08)}.company-risk-explain span{display:block;font-size:8px;font-weight:850;letter-spacing:.04em;color:#567686;text-transform:uppercase}.company-risk-explain strong{display:block;margin-top:4px;font-size:20px;color:#183d51}.company-risk-explain small{display:block;margin-top:3px;font-size:8px;line-height:1.35;color:#78909d}.company-risk-explain .composite-box{background:#0b3148;border-color:#0b3148}.company-risk-explain .composite-box span,.company-risk-explain .composite-box small{color:#99c9dc}.company-risk-explain .composite-box strong{color:#f3fbff}
+.company-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:10px}.company-detail-meta span{font-size:8.7px;line-height:1.4;color:#577482}.company-detail-meta b{color:#234d61}.commitment-table-note{padding:9px 12px;border-top:1px solid rgba(16,49,71,.08);font-size:8.5px;color:#718a96;background:rgba(245,250,252,.68)}
+
+.methodology-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.methodology-grid>div{padding:12px;border-radius:12px;border:1px solid rgba(16,49,71,.09);background:rgba(255,255,255,.58)}.methodology-grid strong{display:block;font-size:10px;color:#173c4f}.methodology-grid span{display:block;margin-top:5px;font-size:9px;line-height:1.5;color:#607d8b}
+
+@media(max-width:720px){
+  .score-build-row{grid-template-columns:minmax(0,1fr) 48px 42px 52px;gap:6px;padding:11px 10px}.score-build-row>strong,.score-build-row>b{font-size:15px}.score-build-row>div small{font-size:7.8px}
+  .commitment-table-head{grid-template-columns:1.15fr .55fr .86fr .7fr 20px}.commitment-table-head span:nth-child(5),.commitment-table-head span:nth-child(6),.commitment-table-head span:nth-child(7){display:none}
+  .commitment-company-row>summary{grid-template-columns:1.15fr .55fr .86fr .7fr 20px}.commitment-company-row>summary .company-period,.commitment-company-row>summary .company-revenue,.commitment-company-row>summary .company-type{display:none}
+  .company-risk-explain{grid-template-columns:1fr 1fr}.company-detail-meta{grid-template-columns:1fr}.methodology-grid{grid-template-columns:1fr}.company-value,.company-change{font-size:8.5px}
+}
+@media(max-width:480px){
+  .score-build-row{grid-template-columns:minmax(0,1fr) 45px 38px 48px}.score-build-row>div span{font-size:9.5px}.score-build-row>em{font-size:8.5px}.score-build-total strong{font-size:26px}
+  .commitment-model-table{margin-left:-3px;margin-right:-3px}.commitment-table-head,.commitment-company-row>summary{padding-left:9px;padding-right:9px;gap:5px}.company-name{font-size:9px}.company-risk{font-size:7.5px;min-width:34px}.company-risk-explain strong{font-size:18px}
+}

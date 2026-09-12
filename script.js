@@ -1000,21 +1000,156 @@ function sourceNote(text) {
   return `<div class="source-note"><strong>DATA STATUS</strong><span>${escapeHtml(text)}</span></div>`;
 }
 
+function commitmentUnitForRow(row) {
+  const company=String(row?.company||"").trim().toLowerCase();
+  const metric=String(row?.metric||"").trim().toLowerCase();
+  const current=toNum(row?.currentValue);
+  const sourceRows=(DATA?.commitments||[]).filter(x=>String(x.company||"").trim().toLowerCase()===company);
+  if (!sourceRows.length) return "$bn";
+
+  const exact=sourceRows.find(x=>{
+    const v=toNum(x.value);
+    const cat=String(x.category||"").trim().toLowerCase();
+    return Number.isFinite(v) && Number.isFinite(current) && Math.abs(v-current)<0.02 && (!metric || !cat || metric.includes(cat) || cat.includes(metric));
+  }) || sourceRows.find(x=>{
+    const v=toNum(x.value);
+    return Number.isFinite(v) && Number.isFinite(current) && Math.abs(v-current)<0.02;
+  });
+  return exact?.unit || "$bn";
+}
+
+function commitmentSourceMeta(row) {
+  const company=String(row?.company||"").trim().toLowerCase();
+  const current=toNum(row?.currentValue);
+  const sourceRows=(DATA?.commitments||[]).filter(x=>String(x.company||"").trim().toLowerCase()===company);
+  const exact=sourceRows.find(x=>{
+    const v=toNum(x.value);
+    return Number.isFinite(v) && Number.isFinite(current) && Math.abs(v-current)<0.02;
+  });
+  return exact || null;
+}
+
+function commitmentValueText(row) {
+  const v=toNum(row?.currentValue);
+  if (!Number.isFinite(v)) return "—";
+  const unit=commitmentUnitForRow(row);
+  if (String(unit).toLowerCase().includes("$bn")) return `$${formatNumber(v,1)}bn`;
+  return `${formatNumber(v,1)} ${unit}`.trim();
+}
+
+function commitmentPeriodText(row) {
+  const curr=String(row?.currentDate||"").slice(0,10);
+  const prev=String(row?.previousDate||"").slice(0,10);
+  if (!curr && !prev) return "—";
+  const f=s=>{
+    if (!s) return "—";
+    const d=new Date(`${s}T00:00:00`);
+    return Number.isNaN(d.getTime())?s:d.toLocaleDateString("en-GB",{month:"short",year:"2-digit"});
+  };
+  return `${f(prev)} → ${f(curr)}`;
+}
+
+function commitmentScoreBuildHtml(avg,breadthScore,finalScore,elevated,total) {
+  const avgContribution=Number.isFinite(avg)?avg*0.70:NaN;
+  const breadthContribution=Number.isFinite(breadthScore)?breadthScore*0.30:NaN;
+  return `<div class="score-build">
+    <div class="score-build-row">
+      <div><span>Average company risk</span><small>Average Composite Risk across modeled companies</small></div>
+      <strong>${Number.isFinite(avg)?formatNumber(avg,1):"—"}</strong>
+      <em>× 70%</em>
+      <b>${Number.isFinite(avgContribution)?formatNumber(avgContribution,1):"—"}</b>
+    </div>
+    <div class="score-build-row">
+      <div><span>Breadth score</span><small>${Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated} of ${total} companies above 50`:"Share of companies with elevated risk"}</small></div>
+      <strong>${Number.isFinite(breadthScore)?formatNumber(breadthScore,0):"—"}</strong>
+      <em>× 30%</em>
+      <b>${Number.isFinite(breadthContribution)?formatNumber(breadthContribution,1):"—"}</b>
+    </div>
+    <div class="score-build-total">
+      <span>Commitment Overhang</span>
+      <strong>${Number.isFinite(finalScore)?formatNumber(finalScore,1):"—"}</strong>
+      <small>${Number.isFinite(avgContribution)&&Number.isFinite(breadthContribution)?`${formatNumber(avgContribution,1)} + ${formatNumber(breadthContribution,1)}`:"Dynamic model"}</small>
+    </div>
+  </div>`;
+}
+
+function commitmentCompanyTable(rows) {
+  if (!rows.length) return `<div class="detail-empty">No connected company rows yet.</div>`;
+  const body=rows.map(r=>{
+    const risk=toNum(r.compositeRisk);
+    const change=toNum(r.change);
+    const revPct=toNum(r.commitmentRevenue);
+    const scale=toNum(r.scaleScore), momentum=toNum(r.momentumScore), binding=toNum(r.bindingScore);
+    const source=commitmentSourceMeta(r);
+    const type=String(r.commitmentType||source?.category||"—").replaceAll("_"," ");
+    const status=r.status || scoreStatus(risk);
+    const tone=statusTone(status);
+    return `<details class="commitment-company-row">
+      <summary>
+        <span class="company-name">${escapeHtml(r.company||"—")}</span>
+        <span class="company-risk ${tone}">${Number.isFinite(risk)?formatNumber(risk,1):"—"}</span>
+        <span class="company-value">${escapeHtml(commitmentValueText(r))}</span>
+        <span class="company-change ${Number.isFinite(change)?(change>0?"risk-up":change<0?"risk-down":"flat"):"flat"}">${Number.isFinite(change)?formatSignedPercent(change):"—"}</span>
+        <span class="company-period">${escapeHtml(commitmentPeriodText(r))}</span>
+        <span class="company-revenue">${Number.isFinite(revPct)?formatPercent(revPct):"—"}</span>
+        <span class="company-type">${escapeHtml(type)}</span>
+        <span class="row-chevron">⌄</span>
+      </summary>
+      <div class="company-risk-detail">
+        <div class="company-risk-explain">
+          <div><span>Scale score</span><strong>${Number.isFinite(scale)?formatNumber(scale,0):"—"}</strong><small>Commitment relative to company size</small></div>
+          <div><span>Momentum score</span><strong>${Number.isFinite(momentum)?formatNumber(momentum,0):"—"}</strong><small>Change in comparable commitment series</small></div>
+          <div><span>Binding score</span><strong>${Number.isFinite(binding)?formatNumber(binding,0):"—"}</strong><small>Rigidity of the obligation type</small></div>
+          <div class="composite-box"><span>Composite risk</span><strong>${Number.isFinite(risk)?formatNumber(risk,1):"—"}</strong><small>${escapeHtml(status)}</small></div>
+        </div>
+        <div class="company-detail-meta">
+          <span><b>Metric:</b> ${escapeHtml(r.metric||source?.category||"—")}</span>
+          <span><b>TTM revenue:</b> ${Number.isFinite(toNum(r.ttmRevenue))?`$${formatNumber(toNum(r.ttmRevenue),1)}bn`:"—"}</span>
+          <span><b>Current / previous:</b> ${escapeHtml(commitmentValueText(r))} / ${Number.isFinite(toNum(r.previousValue))?`$${formatNumber(toNum(r.previousValue),1)}bn`:"—"}</span>
+          <span><b>Comparison:</b> ${escapeHtml(commitmentPeriodText(r))}</span>
+        </div>
+      </div>
+    </details>`;
+  }).join("");
+
+  return `<div class="commitment-model-table">
+    <div class="commitment-table-head">
+      <span>Company</span><span>Risk</span><span>Commitment</span><span>Change</span><span>Period</span><span>% Revenue</span><span>Type</span><span></span>
+    </div>
+    ${body}
+    <div class="commitment-table-note">Select a company row to see Scale, Momentum and Binding scores behind its Composite Risk.</div>
+  </div>`;
+}
+
+function commitmentMethodologyHtml() {
+  return `<div class="methodology-grid">
+    <div><strong>Scale Score</strong><span>Measures commitment size relative to the company's TTM revenue. This prevents a $100bn obligation from being treated equally for companies of very different financial size.</span></div>
+    <div><strong>Momentum Score</strong><span>Measures change in a comparable commitment series. The period is shown explicitly for each company because quarterly and annual disclosures differ.</span></div>
+    <div><strong>Binding Score</strong><span>Reflects how rigid or difficult the obligation is to unwind. Lease, purchase and supply commitments can therefore carry different risk even at the same dollar value.</span></div>
+    <div><strong>Breadth</strong><span>Captures whether elevated commitment risk is isolated or widespread. The headline score gives Breadth Score a 30% weight and Average Company Risk a 70% weight.</span></div>
+  </div>`;
+}
+
 function commitmentDetailHtml() {
   const s=DATA.commitmentMomentum?.summary || {};
   const rows=(DATA.commitmentMomentum?.rows || []).filter(r=>r.company && Number.isFinite(toNum(r.compositeRisk)));
   const avg=summaryValue(s,"averageCompanyRisk"), breadth=summaryValue(s,"breadth"), elevated=summaryValue(s,"companiesAbove50"), total=summaryValue(s,"totalCompanies");
+  const breadthScore=summaryValue(s,"breadthScore");
+  const dynamic=dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore);
+  const finalScore=toNum(dynamic.score);
+  const trend=riskTrendForRows(rows);
   const cards=metricCards([
-    {label:"Average company risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"Across modeled companies",riskScore:avg,trend:riskTrendForRows(rows).text,trendTone:riskTrendForRows(rows).tone},
-    {label:"Breadth",value:Number.isFinite(breadth)?formatPercent(breadth):"—",note:"Share with elevated risk"},
-    {label:"Elevated",value:Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated}/${total}`:"—",note:"Composite risk above 50"}
+    {label:"Average company risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"70% of headline score",riskScore:avg,trend:trend.text,trendTone:trend.tone},
+    {label:"Breadth",value:Number.isFinite(breadth)?formatPercent(breadth):"—",note:Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated}/${total} above 50`:"Share with elevated risk"},
+    {label:"Breadth score",value:Number.isFinite(breadthScore)?formatNumber(breadthScore,0):"—",note:"30% of headline score",riskScore:breadthScore}
   ]);
-  const table=evidenceTable(rows.map(r=>({label:r.company,value:`${formatNumber(toNum(r.compositeRisk),1)} · ${r.status || scoreStatus(toNum(r.compositeRisk))}`,context:`Commitment ${formatNumber(toNum(r.currentValue),2)} ${r.unit||""} · ${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"}`})));
+
   return sectionHtml("WHY IT MATTERS","Large and binding obligations become more dangerous when they grow faster than the revenue base and appear across many companies.",cards)
-    + sectionHtml("COMPANY RISK MAP","The score uses the existing Commitment_Momentum model; company rows below are read from the live API.",table)
-    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">High commitment pressure is already visible.</div><p>The important question is whether demand and monetization keep strengthening fast enough to absorb these obligations without creating financing stress.</p></section>`
-    + sectionHtml("HOW WE SCORE IT","Scale, momentum and binding character feed company Composite Risk; breadth then contributes to the overall Commitment Overhang score.")
-    + sectionHtml("DATA & EVIDENCE","Commitments and Commitment_Momentum are sourced from the Google Sheet/API. Raw obligations remain separate from RPO/backlog so cost commitments are not confused with demand indicators.",sourceNote("Live API-connected · dynamic score"));
+    + sectionHtml("HOW THE 76 IS BUILT","The headline Commitment Overhang score is calculated directly from the dynamic Google Sheet model — not entered manually.",commitmentScoreBuildHtml(avg,breadthScore,finalScore,elevated,total))
+    + sectionHtml("COMPANY RISK MAP","Dollar values are shown with units, change is tied to the actual comparison period, and commitment size is normalized against TTM revenue. Open any company row to see the three sub-scores behind Composite Risk.",commitmentCompanyTable(rows))
+    + sectionHtml("MODEL LOGIC","Each company Composite Risk is built from Scale, Momentum and Binding inputs. The dashboard shows these inputs directly rather than hiding the transformation behind the final score.",commitmentMethodologyHtml())
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">High commitment pressure is broad, not just large in dollar terms.</div><p>The current danger signal comes from both elevated company-level risk and breadth across the group. The key confirmation question is whether demand, utilization and monetization remain strong enough to absorb these fixed obligations without creating financing stress.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","Commitment_Momentum provides the live risk transformation; Commitments provides the underlying accounting series and units. RPO/backlog stays in Demand and is not mixed into commitment obligations.",sourceNote("Live API-connected · dynamic score · accounting/company data is semi-automatic"));
 }
 
 function financingDetailHtml() {
