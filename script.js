@@ -46,7 +46,7 @@ const INFO = {
     text:"The Silicon Data H100 Rental Price Index tracks rental pricing for Nvidia H100 compute. Falling prices can signal improving supply, weaker scarcity or softer compute demand; interpretation therefore depends on the broader AI cycle."
   }
   ,moneycircle: {title:"AI Money Circle",text:"Maps the AI economic loop from capital and financing through hyperscalers, semiconductors, compute and end-user monetization. Node status uses the highest risk category among existing mapped Canary indicators; it is not a separate invented score."}
-  ,indicators: {title:"Canary Indicators",text:"The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Token Economics, Semiconductor Market, Commitment, Financing and Macro now use dynamic calculation models; Demand, Compute and CAPEX remain locked fallbacks until upgraded."}
+  ,indicators: {title:"Canary Indicators",text:"The eight core 0–100 risk components behind the dashboard. 0–25 is Healthy, 26–50 Watch, 51–75 Warning and 76–100 Danger. Token Economics, Compute Supply, Semiconductor Market, Commitment, Financing and Macro now use dynamic calculation models; Demand and CAPEX remain locked fallbacks until upgraded."}
   ,commitment: {title:"Commitment Overhang",text:"Measures the scale, momentum and binding nature of future AI-related obligations across companies, normalized where useful against company revenue. Breadth matters because simultaneous elevated commitments across many firms can increase cycle vulnerability."}
   ,financing: {title:"Financing Conditions",text:"Combines broad financing conditions, AI-specific credit stress and company financing burden. It is designed to distinguish a broad credit tightening from stress that is still concentrated inside the AI investment ecosystem."}
   ,divergence: {title:"Canary Divergence",text:"Compares broad financing conditions with AI-specific credit stress. A large positive gap can be an early-warning signal when AI credit deteriorates before general corporate credit markets do."}
@@ -926,7 +926,7 @@ function detailScoreInfo(key) {
     token:{score:toNum(dynamicScore(DATA,"tokenEconomics",x.tokenScore).score),status:dynamicScore(DATA,"tokenEconomics",x.tokenScore).status,label:"TOKEN ECONOMICS SCORE",meta:"Dynamic Google Sheet model"},
     demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     compute:{score:toNum(compute.score),status:compute.status,label:"COMPUTE SUPPLY SCORE",meta:"Dynamic Google Sheet model · GPU utilization planned"},
-    semis:{score:toNum(x.semisScore),label:"SEMICONDUCTOR MARKET SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    semis:{score:toNum(dynamicScore(DATA,"semiconductorMarket",x.semisScore).score),status:dynamicScore(DATA,"semiconductorMarket",x.semisScore).status,label:"SEMICONDUCTOR MARKET SCORE",meta:"Dynamic Google Sheet model · SOX momentum"},
     capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     commitment:{score:toNum(commit.score),status:commit.status,label:"COMMITMENT OVERHANG SCORE",meta:"Dynamic Google Sheet model"},
     financing:{score:toNum(fin.score),status:fin.status,label:"FINANCING CONDITIONS SCORE",meta:"Dynamic Google Sheet model"},
@@ -1514,18 +1514,52 @@ function demandDetailHtml() {
   ]))+sectionHtml("RECENT COMPANY SIGNALS","Selected live rows from AI_Demand.",evidenceTable(recent))+sectionHtml("DATA & EVIDENCE","Company demand rows come from the AI_Demand Google Sheet tab with source, observation date and verification fields retained in the API.",sourceNote("Live API-connected"));
 }
 
+function semiRow(metricName) {
+  const rows=DATA.semiMomentumDetail?.rows || [];
+  return rows.find(r=>String(r.metric||"").trim().toLowerCase()===String(metricName||"").trim().toLowerCase()) || {};
+}
+
+function semisTrendSvg() {
+  const rows=(DATA?.marketHistory||[]).filter(r=>Number.isFinite(toNum(r.sox))).slice(-52);
+  if (rows.length < 2) return `<div class="detail-empty">SOX history is not available.</div>`;
+  const values=rows.map(r=>toNum(r.sox));
+  const min=Math.min(...values), max=Math.max(...values), span=(max-min)||1;
+  const w=560,h=142,pad=10;
+  const pts=values.map((v,i)=>{
+    const x=pad+(i/(values.length-1))*(w-pad*2);
+    const y=h-pad-((v-min)/span)*(h-pad*2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const first=rows[0]?.weekEnding||"";
+  const last=rows[rows.length-1]?.weekEnding||"";
+  return `<div class="semi-trend-card"><div class="semi-trend-head"><div><strong>SOX · LAST 52 WEEKS</strong><small>${escapeHtml(String(first))} → ${escapeHtml(String(last))}</small></div><b>${formatNumber(values[values.length-1],0)}</b></div><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="SOX 52 week trend"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg><div class="semi-trend-range"><span>Low ${formatNumber(min,0)}</span><span>High ${formatNumber(max,0)}</span></div></div>`;
+}
+
 function semisDetailHtml() {
   const m=DATA.latestMarket || {}, x=DATA.canary?.latest||{};
   const sox=m.sox||{};
   const dyn=dynamicScore(DATA,"semiconductorMarket",x.semisScore);
-  const sm=DATA.semiMomentum || {};
-  return sectionHtml("WHY IT MATTERS","Semiconductors are a market-sensitive checkpoint on AI infrastructure expectations. Persistent chip weakness can challenge otherwise strong reported fundamentals.",metricCards([
-    {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
-    {label:"Semiconductor score",value:fmtScore(dyn.score),note:`${dyn.status||scoreStatus(toNum(dyn.score))} · dynamic`,riskScore:toNum(dyn.score)},
-    {label:"Compute score",value:fmtScore(dynamicScore(DATA,"computeSupply",x.computeScore).score),note:"Dynamic connected cycle signal",riskScore:toNum(dynamicScore(DATA,"computeSupply",x.computeScore).score)}
-  ]))
-  + sectionHtml("CURRENT MODEL","Semiconductor Market v1 uses 30-calendar-day average SOX versus the preceding 30-calendar-day average. +10% maps toward 0 risk, 0% toward 50, and -10% toward 100.")
-  + sectionHtml("DATA & EVIDENCE","SOX history is supplied automatically through MarketHistory/FRED. The composite row is read from Semi_Momentum.",sourceNote(sm.available?"Dynamic · Semi_Momentum":"Market history connected"));
+  const row=semiRow("30D Avg SOX");
+  const current=toNum(row.currentValue);
+  const previous=toNum(row.previousValue);
+  const change=toNum(row.change);
+  const risk=toNum(row.score);
+  const finalScore=toNum(dyn.score);
+  const trend=String(row.trend||DATA.semiMomentum?.trend||"→");
+  const status=dyn.status||scoreStatus(finalScore);
+  const contributionText=Number.isFinite(change)?`50 − (${formatPercent(change)} × 500)`:`50 − (30D momentum × 500)`;
+
+  return sectionHtml("WHY IT MATTERS","Semiconductors are a fast market checkpoint on AI infrastructure expectations. Persistent SOX weakness can signal falling expectations for the AI investment cycle before company fundamentals fully reflect the slowdown.",metricCards([
+      {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
+      {label:"30D average",value:Number.isFinite(current)?formatNumber(current,0):"—",note:Number.isFinite(previous)?`Previous 30D ${formatNumber(previous,0)}`:"Current 30D window",trend:Number.isFinite(change)?formatSignedPercent(change):trend,trendTone:Number.isFinite(change)?(change>0?"good":change<0?"danger":"neutral"):"neutral"},
+      {label:"Semiconductor score",value:fmtScore(finalScore),note:`${status} · dynamic`,riskScore:finalScore}
+    ]))
+    + sectionHtml("HOW THE 48 IS BUILT","The score is calculated in Semi_Momentum from two non-overlapping 30-calendar-day SOX averages. The website displays the spreadsheet result and does not recreate or override the model.",`<div class="score-build semi-score-build"><div class="score-build-row"><div><span>SOX 30D momentum</span><small>${Number.isFinite(current)&&Number.isFinite(previous)?`${formatNumber(current,2)} vs ${formatNumber(previous,2)}`:"Current 30D vs previous 30D"}</small></div><strong>${Number.isFinite(change)?formatSignedPercent(change):"—"}</strong><em>× 500</em><b>${Number.isFinite(risk)?formatNumber(risk,2):"—"}</b></div><div class="score-build-total"><span>Semiconductor Market</span><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,2):"—"}</strong><small>${escapeHtml(contributionText)} · bounded 0–100</small></div></div>`)
+    + sectionHtml("SOX TREND","The 52-week view provides context around the short 30D scoring window. It is evidence, not an additional scored input.",semisTrendSvg())
+    + sectionHtml("MODEL LOGIC","Semiconductor Market v1 is intentionally simple. A flat SOX trend maps near 50 risk. Strong positive 30D momentum pushes risk toward 0; strong negative momentum pushes risk toward 100. The mapping is linear and capped at both ends.",`<div class="methodology-grid semis-methodology"><div><strong>+10% 30D momentum</strong><span>≈ 0 risk · strong market confirmation</span></div><div><strong>0% momentum</strong><span>50 risk · neutral / no confirmation</span></div><div><strong>−10% 30D momentum</strong><span>≈ 100 risk · strong market warning</span></div><div><strong>Current reading</strong><span>${Number.isFinite(change)?`${formatSignedPercent(change)} → ${formatNumber(finalScore,1)} / ${status}`:"Dynamic Semi_Momentum model"}</span></div></div>`)
+    + sectionHtml("WHAT THIS MODEL DOES NOT YET CAPTURE","SOX is a market-price signal, not a complete semiconductor-cycle model. We will only add fundamental inputs after selecting stable, comparable data sources.",`<div class="semis-planned-grid"><div><strong>DRAM / NAND pricing</strong><small>PLANNED · memory-cycle confirmation</small></div><div><strong>Foundry / wafer utilization</strong><small>PLANNED · physical capacity signal</small></div><div><strong>Gross margins</strong><small>PLANNED · semiconductor economics</small></div><div><strong>Inventory / lead times</strong><small>PLANNED · supply-demand balance</small></div></div>`)
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">SOX is currently broadly neutral rather than flashing a cycle warning.</div><p>The latest 30D average is ${Number.isFinite(change)?`${formatSignedPercent(change)} versus the previous 30D window`:"close to the previous comparison window"}, producing ${Number.isFinite(finalScore)?`${formatNumber(finalScore,1)} · ${escapeHtml(status)}`:"a dynamic spreadsheet score"}. This should be read as market confirmation only; fundamental semiconductor-cycle inputs are not yet included.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","SOX history is fetched automatically into MarketHistory from the FRED/Nasdaq series. Semi_Momentum calculates the 30D-versus-prior-30D signal and dynamic risk score.",sourceNote("AUTO · FRED NASDAQSOX · dynamic Semi_Momentum model"));
 }
 
 function capexDetailHtml() {

@@ -1034,3 +1034,23 @@ body.detail-open{overflow:hidden}
   .token-data-grid,.token-source-status,.token-methodology{grid-template-columns:1fr}
   .token-data-card>strong{font-size:21px}
 }
+
+/* ===== v4.15 Semiconductor Deep Dive 2.0 + Explain contrast fix ===== */
+.semi-trend-card{margin-top:13px;padding:13px 14px 10px;border-radius:13px;background:#0b3047;color:#62dfff;border:1px solid rgba(12,76,105,.22);box-shadow:0 10px 25px rgba(8,45,66,.10)}
+.semi-trend-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.semi-trend-head strong{display:block;font-size:9px;letter-spacing:.10em;color:#bcecff}.semi-trend-head small{display:block;margin-top:3px;font-size:8px;color:#7fa8ba}.semi-trend-head b{font-size:18px;color:#f2fbff}.semi-trend-card svg{display:block;width:100%;height:142px;margin-top:8px}.semi-trend-range{display:flex;justify-content:space-between;font-size:8px;color:#83aabc}.semis-methodology{grid-template-columns:1fr 1fr}.semis-planned-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}.semis-planned-grid>div{padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.62);border:1px solid rgba(16,49,71,.09)}.semis-planned-grid strong{display:block;font-size:10px;color:#173c4f}.semis-planned-grid small{display:block;margin-top:4px;font-size:8.5px;line-height:1.4;color:#6b8492}
+
+/* Explain lives in the light detail drawer; use light-theme contrast here. */
+.indicator-drawer .source-registry{border-color:rgba(16,49,71,.13);background:rgba(255,255,255,.28)}
+.indicator-drawer .source-registry-head{background:#dceef5;color:#28586e;border-bottom:1px solid rgba(16,49,71,.12)}
+.indicator-drawer .source-registry-row{border-top:1px solid rgba(16,49,71,.10);color:#365a6d;background:rgba(255,255,255,.34)}
+.indicator-drawer .source-registry-row:nth-child(even){background:rgba(235,244,248,.62)}
+.indicator-drawer .source-registry-row span:nth-child(1){font-weight:780;color:#173e53}
+.indicator-drawer .source-registry-row span:nth-child(2){font-weight:900;color:#087d9f}
+.indicator-drawer .source-registry-row span:nth-child(3),.indicator-drawer .source-registry-row span:nth-child(4),.indicator-drawer .source-registry-row span:nth-child(5),.indicator-drawer .source-registry-row span:nth-child(6){color:#4d6f80}
+
+@media(max-width:720px){
+  .semis-methodology,.semis-planned-grid{grid-template-columns:1fr}
+  .indicator-drawer .source-registry-row{background:#f3f7f9;border-color:rgba(16,49,71,.12)}
+  .indicator-drawer .source-registry-row span:nth-child(1){color:#173e53}
+  .indicator-drawer .source-registry-row span:nth-child(2)::before,.indicator-drawer .source-registry-row span:nth-child(3)::before,.indicator-drawer .source-registry-row span:nth-child(4)::before,.indicator-drawer .source-registry-row span:nth-child(5)::before,.indicator-drawer .source-registry-row span:nth-child(6)::before{color:#668292}
+}
