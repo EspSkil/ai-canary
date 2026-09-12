@@ -4,6 +4,10 @@ let DATA = null;
 let currentRange = 52;
 const charts = {};
 
+const LIVE_CACHE_KEY = "aiCanaryLiveDataV1";
+const LIVE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+let hasRenderedCachedData = false;
+
 document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
   setupInfoButtons();
@@ -97,8 +101,10 @@ function showLoadError(message) {
   if (!overlay) return;
   overlay.hidden = false;
   overlay.classList.add("is-error");
-  setText("liveLoadTitle", "Live data could not be loaded");
-  setText("liveLoadText", message || "The Canary database did not respond. You can retry without reloading the page.");
+  setText("liveLoadTitle", hasRenderedCachedData ? "Showing saved data" : "Live data could not be loaded");
+  setText("liveLoadText", message || (hasRenderedCachedData
+    ? "The live database did not respond. The dashboard is still showing the latest saved data on this device."
+    : "The Canary database did not respond. You can retry without reloading the page."));
   const retry = document.getElementById("liveLoadRetry");
   if (retry) retry.hidden = false;
 }
@@ -112,11 +118,62 @@ function hideLoadOverlay() {
   setTimeout(()=>{ overlay.classList.add("is-ready"); setTimeout(()=>{ overlay.hidden=true; overlay.classList.remove("is-ready"); },280); },180);
 }
 
-async function fetchLiveData(timeoutMs=18000) {
+function saveLiveCache(data) {
+  try {
+    localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify({savedAt:Date.now(), data}));
+  } catch (err) {
+    console.warn("AI Canary cache could not be saved", err);
+  }
+}
+
+function readLiveCache() {
+  try {
+    const raw = localStorage.getItem(LIVE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.data || !parsed?.savedAt) return null;
+    return { data: parsed.data, savedAt: Number(parsed.savedAt), ageMs: Date.now() - Number(parsed.savedAt) };
+  } catch (err) {
+    console.warn("AI Canary cache could not be read", err);
+    return null;
+  }
+}
+
+function renderAll(data) {
+  DATA = data;
+  renderOverview(data);
+  renderTakeaways(data);
+  renderIndicators(data);
+  renderMobileDashboard(data);
+  renderMoneyCircle(data);
+  renderFinancialRisk(data);
+  renderMarketCharts(data.marketHistory || []);
+  renderEconomics(data);
+  renderTokenGpuTable(data.tokenGpu || []);
+  renderCompanies(data.aiDemand || []);
+}
+
+function renderCachedDashboard(cache) {
+  if (!cache?.data) return false;
+  try {
+    renderAll(cache.data);
+    hasRenderedCachedData = true;
+    const saved = new Date(cache.savedAt);
+    const stale = cache.ageMs > LIVE_CACHE_MAX_AGE_MS;
+    setStatus(stale ? "Saved data · updating…" : "Saved data · updating live…", false);
+    setText("lastUpdated", `Saved on this device: ${saved.toLocaleString("nb-NO")}`);
+    return true;
+  } catch (err) {
+    console.warn("Cached dashboard could not be rendered", err);
+    return false;
+  }
+}
+
+async function fetchLiveData(timeoutMs=35000) {
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
   try {
-    const response = await fetch(API_URL, { cache:"no-store", signal:controller.signal });
+    const response = await fetch(API_URL, { cache:"no-store", signal:controller.signal, redirect:"follow" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!data.ok) throw new Error(data.error || "API returned ok=false");
@@ -132,43 +189,43 @@ async function loadDashboard() {
   if (retry) retry.hidden = true;
   const overlay = document.getElementById("liveLoadOverlay");
   if (overlay) overlay.classList.remove("is-error");
-  setText("liveLoadTitle", "Loading live market data…");
-  setLoadStage(0, loadAttempt > 1 ? `Reconnecting to Canary database · attempt ${loadAttempt}` : "Connecting to Canary database");
-  setStatus("Loading live data…", false);
+
+  const cache = readLiveCache();
+  if (!hasRenderedCachedData && cache) renderCachedDashboard(cache);
+
+  setText("liveLoadTitle", hasRenderedCachedData ? "Updating live market data…" : "Loading live market data…");
+  setLoadStage(0, hasRenderedCachedData
+    ? "Showing saved dashboard while connecting to Canary database"
+    : (loadAttempt > 1 ? `Reconnecting to Canary database · attempt ${loadAttempt}` : "Connecting to Canary database"));
   clearTimeout(slowLoadTimer);
   slowLoadTimer = setTimeout(()=>{
-    setText("liveLoadTitle", "Still loading live data…");
-    setText("liveLoadText", "The live database can take a little longer on mobile or after an idle period.");
-  },8000);
+    setText("liveLoadTitle", hasRenderedCachedData ? "Still updating live data…" : "Still loading live data…");
+    setText("liveLoadText", hasRenderedCachedData
+      ? "The saved dashboard remains available while the live database responds."
+      : "The live database can take longer on mobile, especially after an idle period.");
+  },10000);
 
   try {
-    setLoadStage(1, "Loading live data from Google Sheets");
+    setLoadStage(1, hasRenderedCachedData ? "Refreshing from Google Sheets" : "Loading live data from Google Sheets");
     let data;
     try {
-      data = await fetchLiveData(18000);
+      data = await fetchLiveData(35000);
     } catch (firstErr) {
-      if (loadAttempt === 1) {
-        setText("liveLoadText", "First connection was slow · retrying automatically…");
-        await new Promise(r=>setTimeout(r,900));
-        data = await fetchLiveData(20000);
+      if (loadAttempt === 1 && navigator.onLine !== false) {
+        setText("liveLoadText", hasRenderedCachedData
+          ? "Live connection was slow · one automatic retry…"
+          : "First connection was slow · one automatic retry…");
+        await new Promise(r=>setTimeout(r,1500));
+        data = await fetchLiveData(35000);
       } else {
         throw firstErr;
       }
     }
 
-    DATA = data;
     setLoadStage(2, "Building dashboard");
-
-    renderOverview(data);
-    renderTakeaways(data);
-    renderIndicators(data);
-    renderMobileDashboard(data);
-    renderMoneyCircle(data);
-    renderFinancialRisk(data);
-    renderMarketCharts(data.marketHistory || []);
-    renderEconomics(data);
-    renderTokenGpuTable(data.tokenGpu || []);
-    renderCompanies(data.aiDemand || []);
+    renderAll(data);
+    saveLiveCache(data);
+    hasRenderedCachedData = false;
 
     setStatus("Live data", true);
     const generated = new Date(data.generatedAt);
@@ -176,8 +233,14 @@ async function loadDashboard() {
     hideLoadOverlay();
   } catch (err) {
     console.error(err);
-    const msg = err?.name === "AbortError" ? "The live API timed out. Check the connection and retry." : `Data error: ${err.message}`;
-    setStatus(msg, false);
+    const msg = err?.name === "AbortError"
+      ? (hasRenderedCachedData
+          ? "Live refresh timed out. The latest saved dashboard is still shown; retry when the connection improves."
+          : "The live API timed out. Retry when the connection improves.")
+      : (hasRenderedCachedData
+          ? `Live refresh failed (${err.message}). The latest saved dashboard is still shown.`
+          : `Data error: ${err.message}`);
+    setStatus(hasRenderedCachedData ? "Saved data · live refresh failed" : msg, false);
     showLoadError(msg);
   }
 }
