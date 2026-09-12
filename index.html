@@ -7,9 +7,9 @@
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
 <!-- frontend v4.2: risk strip + Money Circle status colors -->
-<link href="style.css?v=4.15" rel="stylesheet"/>
+<link href="style.css?v=4.16" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.15"></script>
+<script defer="" src="script.js?v=4.16"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -60,6 +60,12 @@
   </article>
   <article class="panel mobile-cycle-card">
     <div class="eyebrow">EXPLORE THE AI CYCLE</div>
+    <div class="mobile-cycle-mini" aria-label="AI investment cycle: capital to monetization and back">
+      <div class="mobile-cycle-ring"></div>
+      <div class="mobile-cycle-center"><strong>AI</strong><span>CYCLE</span></div>
+      <span class="mini-node mini-n1">1</span><span class="mini-node mini-n2">2</span><span class="mini-node mini-n3">3</span><span class="mini-node mini-n4">4</span><span class="mini-node mini-n5">5</span>
+      <div class="mobile-cycle-caption">Capital → Builders → Hardware → Compute → Monetization</div>
+    </div>
     <div class="mobile-cycle-links">
       <button data-detail="money-financing">Capital &amp; Financing <span>›</span></button>
       <button data-detail="money-hyperscalers">Hyperscalers &amp; Neocloud <span>›</span></button>
@@ -396,5 +402,17 @@
 <span>Research use only — not investment advice.</span>
 </footer>
 </div>
+
+<div class="live-load-overlay" id="liveLoadOverlay" aria-live="polite" aria-busy="true">
+  <div class="live-load-card">
+    <div class="live-load-brand"><span class="live-load-bird">🐤</span><div><b>AI CANARY</b><small>LIVE DATA</small></div></div>
+    <h2 id="liveLoadTitle">Loading live market data…</h2>
+    <p id="liveLoadText">Connecting to Canary database</p>
+    <div class="live-load-progress" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="live-load-steps" id="liveLoadSteps"><span class="active">Connecting</span><span>Loading data</span><span>Building dashboard</span><span>Ready</span></div>
+    <button type="button" id="liveLoadRetry" class="live-load-retry" hidden>Retry</button>
+  </div>
+</div>
+
 </body>
 </html>

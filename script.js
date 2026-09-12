@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
   setupInfoButtons();
   setupIndicatorDetails();
+  document.getElementById("liveLoadRetry")?.addEventListener("click", loadDashboard);
 
   document.querySelectorAll("#rangeControls button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -77,17 +78,86 @@ function setupInfoButtons() {
   });
 }
 
-async function loadDashboard() {
-  setStatus("Loading live data…", false);
+let loadAttempt = 0;
+let slowLoadTimer = null;
 
+function setLoadStage(stage, message) {
+  const overlay = document.getElementById("liveLoadOverlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  overlay.setAttribute("aria-busy", stage === 3 ? "false" : "true");
+  const steps = [...overlay.querySelectorAll(".live-load-steps span")];
+  steps.forEach((el,i)=>{ el.classList.toggle("active", i===stage); el.classList.toggle("done", i<stage); });
+  if (message) setText("liveLoadText", message);
+}
+
+function showLoadError(message) {
+  clearTimeout(slowLoadTimer);
+  const overlay = document.getElementById("liveLoadOverlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  overlay.classList.add("is-error");
+  setText("liveLoadTitle", "Live data could not be loaded");
+  setText("liveLoadText", message || "The Canary database did not respond. You can retry without reloading the page.");
+  const retry = document.getElementById("liveLoadRetry");
+  if (retry) retry.hidden = false;
+}
+
+function hideLoadOverlay() {
+  clearTimeout(slowLoadTimer);
+  const overlay = document.getElementById("liveLoadOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("is-error");
+  setLoadStage(3, "Ready");
+  setTimeout(()=>{ overlay.classList.add("is-ready"); setTimeout(()=>{ overlay.hidden=true; overlay.classList.remove("is-ready"); },280); },180);
+}
+
+async function fetchLiveData(timeoutMs=18000) {
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), timeoutMs);
   try {
-    const response = await fetch(API_URL, { cache:"no-store" });
+    const response = await fetch(API_URL, { cache:"no-store", signal:controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
     const data = await response.json();
     if (!data.ok) throw new Error(data.error || "API returned ok=false");
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function loadDashboard() {
+  loadAttempt += 1;
+  const retry = document.getElementById("liveLoadRetry");
+  if (retry) retry.hidden = true;
+  const overlay = document.getElementById("liveLoadOverlay");
+  if (overlay) overlay.classList.remove("is-error");
+  setText("liveLoadTitle", "Loading live market data…");
+  setLoadStage(0, loadAttempt > 1 ? `Reconnecting to Canary database · attempt ${loadAttempt}` : "Connecting to Canary database");
+  setStatus("Loading live data…", false);
+  clearTimeout(slowLoadTimer);
+  slowLoadTimer = setTimeout(()=>{
+    setText("liveLoadTitle", "Still loading live data…");
+    setText("liveLoadText", "The live database can take a little longer on mobile or after an idle period.");
+  },8000);
+
+  try {
+    setLoadStage(1, "Loading live data from Google Sheets");
+    let data;
+    try {
+      data = await fetchLiveData(18000);
+    } catch (firstErr) {
+      if (loadAttempt === 1) {
+        setText("liveLoadText", "First connection was slow · retrying automatically…");
+        await new Promise(r=>setTimeout(r,900));
+        data = await fetchLiveData(20000);
+      } else {
+        throw firstErr;
+      }
+    }
 
     DATA = data;
+    setLoadStage(2, "Building dashboard");
 
     renderOverview(data);
     renderTakeaways(data);
@@ -103,9 +173,12 @@ async function loadDashboard() {
     setStatus("Live data", true);
     const generated = new Date(data.generatedAt);
     setText("lastUpdated", `API generated: ${generated.toLocaleString("nb-NO")}`);
+    hideLoadOverlay();
   } catch (err) {
     console.error(err);
-    setStatus(`Data error: ${err.message}`, false);
+    const msg = err?.name === "AbortError" ? "The live API timed out. Check the connection and retry." : `Data error: ${err.message}`;
+    setStatus(msg, false);
+    showLoadError(msg);
   }
 }
 
@@ -1640,13 +1713,12 @@ function explainDetailHtml(){
   }</div>`;
 
   return sectionHtml("PURPOSE","AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.")
-  + sectionHtml("HOW THE LOOP WORKS","Monetization → Demand → Compute & Semis → CAPEX & Commitments → Financing & Macro. The model becomes more concerning when fundamental, financing and market signals deteriorate together.",metricCards([
-    {label:"Monetization",value:"Can AI usage pay?",note:"Token economics + end-user adoption"},
-    {label:"Demand",value:"Is capacity absorbed?",note:"Cloud growth, RPO/backlog, usage"},
-    {label:"Compute",value:"Scarcity or oversupply?",note:"GPU pricing, utilization, semis"},
-    {label:"Commitments",value:"How much is locked in?",note:"Leases, purchases, take-or-pay"},
-    {label:"Financing",value:"Can the cycle fund itself?",note:"Rates, credit, CDS, burden"},
-    {label:"Macro",value:"Amplifier or cushion?",note:"VIX, rates, global liquidity"}
+  + sectionHtml("HOW THE LOOP WORKS","The cycle is easiest to read from funding through monetization. Capital enables builders, builders buy hardware, hardware becomes compute, and compute must ultimately create end-user value. Weakness can then feed back into financing and the next investment round.",metricCards([
+    {label:"1 · Capital & Financing",value:"Can the cycle fund itself?",note:"Rates · credit · commitments"},
+    {label:"2 · Hyperscalers & Neocloud",value:"Who is building?",note:"CAPEX · capacity · obligations"},
+    {label:"3 · Semis & Hardware",value:"Is hardware confirming?",note:"SOX · chips · physical supply"},
+    {label:"4 · Compute & AI Models",value:"Scarcity or oversupply?",note:"GPU pricing · utilization · tokens"},
+    {label:"5 · End Users & Monetization",value:"Is value reaching users?",note:"Demand · adoption · monetization"}
   ]))
   + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div>`)
   + sectionHtml("DATA MAP · WHAT WE FETCH","The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.",sourceTable)
