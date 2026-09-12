@@ -1162,7 +1162,10 @@ function financingValueText(row) {
   const v=toNum(row?.currentValue);
   if (!Number.isFinite(v)) return "—";
   const unit=String(row?.unit||"").trim();
-  if (unit==="%") return formatPercent(v);
+  const group=String(row?.signalGroup||"");
+  // Market yields/OAS are stored as percentage points (4.95 means 4.95%).
+  // Company ratios are stored as decimals (0.4238 means 42.38%).
+  if (unit==="%") return group==="GENERAL_FINANCING" ? `${formatNumber(v,2)} %` : formatPercent(v);
   if (unit.toLowerCase()==="bp") return `${formatNumber(v,0)} bp`;
   return `${formatNumber(v,2)} ${unit}`.trim();
 }
@@ -1171,9 +1174,24 @@ function financingPreviousText(row) {
   const v=toNum(row?.previousValue);
   if (!Number.isFinite(v)) return "—";
   const unit=String(row?.unit||"").trim();
-  if (unit==="%") return formatPercent(v);
+  const group=String(row?.signalGroup||"");
+  if (unit==="%") return group==="GENERAL_FINANCING" ? `${formatNumber(v,2)} %` : formatPercent(v);
   if (unit.toLowerCase()==="bp") return `${formatNumber(v,0)} bp`;
   return `${formatNumber(v,2)} ${unit}`.trim();
+}
+
+function financingChangeText(row) {
+  const change=toNum(row?.change);
+  if (!Number.isFinite(change)) return "—";
+  const group=String(row?.signalGroup||"");
+  const unit=String(row?.unit||"").trim();
+  const cur=toNum(row?.currentValue), prev=toNum(row?.previousValue);
+  if (group==="GENERAL_FINANCING" && unit==="%" && Number.isFinite(cur) && Number.isFinite(prev)) {
+    const bps=(cur-prev)*100;
+    const bpText=`${bps>0?"+":bps<0?"−":""}${formatNumber(Math.abs(bps),0)} bp`;
+    return `${bpText} · ${formatSignedPercent(change)}`;
+  }
+  return formatSignedPercent(change);
 }
 
 function shortDateText(value) {
@@ -1209,7 +1227,7 @@ function financingComparisonText(row) {
 
 function financingScoreBuildHtml(general,ai,burden,finalScore) {
   const parts=[
-    {label:"General financing",score:general,weight:.30,note:"Real yield + IG/HY credit"},
+    {label:"General financing",score:general,weight:.30,note:"Nominal + real 10Y, IG/HY credit"},
     {label:"AI credit stress",score:ai,weight:.45,note:"AI-linked 5Y CDS"},
     {label:"Company burden",score:burden,weight:.25,note:"Interest expense / Adj. EBITDA"}
   ];
@@ -1234,7 +1252,7 @@ function financingSignalTable(rows) {
           <span class="finance-group">${escapeHtml(financingGroupLabel(r.signalGroup))}</span>
           <span class="finance-signal"><b>${escapeHtml(r.entityMarket||"")}</b><small>${escapeHtml(r.metric||"")}</small></span>
           <span class="finance-latest">${escapeHtml(financingValueText(r))}</span>
-          <span class="finance-change ${Number.isFinite(change)?(change>0?"risk-up":change<0?"risk-down":"flat"):"flat"}">${Number.isFinite(change)?formatSignedPercent(change):"—"}</span>
+          <span class="finance-change ${Number.isFinite(change)?(change>0?"risk-up":change<0?"risk-down":"flat"):"flat"}">${escapeHtml(financingChangeText(r))}</span>
           <span class="finance-period">${escapeHtml(financingComparisonText(r))}</span>
           <span class="company-risk ${tone}">${Number.isFinite(risk)?formatNumber(risk,1):"—"}</span>
           <span class="row-action">Details <span class="row-chevron">⌄</span></span>
@@ -1250,6 +1268,7 @@ function financingSignalTable(rows) {
           <div class="company-detail-meta finance-detail-meta">
             <span><b>Current / previous:</b> ${escapeHtml(financingValueText(r))} / ${escapeHtml(financingPreviousText(r))}</span>
             <span><b>Comparison:</b> ${escapeHtml(financingComparisonText(r))}</span>
+            <span><b>Change:</b> ${escapeHtml(financingChangeText(r))}</span>
             <span><b>Metric:</b> ${escapeHtml(r.metric||"—")}</span>
             <span><b>Group:</b> ${escapeHtml(financingGroupLabel(r.signalGroup))}</span>
           </div>
@@ -1262,11 +1281,11 @@ function financingSignalTable(rows) {
 
 function financingMethodologyHtml() {
   return `<div class="methodology-grid financing-methodology">
-    <div><span>GENERAL FINANCING</span><strong>Average of 3 broad signals</strong><small>10Y real yield, IG OAS and HY OAS. Each row combines level, momentum and breadth.</small></div>
+    <div><span>GENERAL FINANCING</span><strong>Weighted blend of 4 broad signals</strong><small>25% nominal US 10Y + 25% real US 10Y + 20% IG OAS + 30% HY OAS. Each row first combines level, momentum and shared breadth.</small></div>
     <div><span>AI CREDIT STRESS</span><strong>Average of AI-linked CDS</strong><small>5Y CDS is treated as a credit-stress market signal, not as a precise default probability.</small></div>
     <div><span>COMPANY BURDEN</span><strong>Company-specific pressure</strong><small>Current model uses CoreWeave net interest expense relative to Adjusted EBITDA.</small></div>
     <div><span>HEADLINE WEIGHTS</span><strong>30% · 45% · 25%</strong><small>General Financing · AI Credit Stress · Company Financing Burden.</small></div>
-    <div><span>ROW MODEL WITH BREADTH</span><strong>50% · 30% · 20%</strong><small>Level · Momentum · Breadth/Burden score.</small></div>
+    <div><span>ROW MODEL WITH BREADTH</span><strong>50% · 30% · 20%</strong><small>Level · Momentum · Breadth/Burden score. General-financing breadth currently measures how many of the 4 broad signals have Level Score ≥50.</small></div>
     <div><span>ROW MODEL WITHOUT BREADTH</span><strong>80% · 20%</strong><small>Level · Momentum. Used when no third score is populated.</small></div>
   </div>`;
 }
@@ -1286,7 +1305,7 @@ function financingDetailHtml() {
   ]);
   return sectionHtml("WHY IT MATTERS","Financing can break an investment cycle before end demand disappears. Canary separates broad funding conditions from AI-specific credit stress and company-level interest burden.",cards)
     + sectionHtml("HOW THE SCORE IS BUILT","The headline Financing Conditions score is calculated directly from the dynamic Google Sheet model — not entered manually.",financingScoreBuildHtml(general,ai,burden,finalScore))
-    + sectionHtml("FINANCING RISK MAP","The underlying signals below show current value, actual comparison context and Composite Risk. Open any row to see its scoring transformation.",financingSignalTable(rows))
+    + sectionHtml("FINANCING RISK MAP","The underlying signals below show current value, comparison context and Composite Risk. For yields and OAS, change is shown in basis points plus the relative % change used by Momentum Score. General-financing comparisons use the latest observation versus the latest available observation at least ~365 days earlier.",financingSignalTable(rows))
     + sectionHtml("MODEL LOGIC","The exact model has two layers: each underlying financing signal is scored first, then the three group scores are combined into the headline Financing Conditions score.",financingMethodologyHtml())
     + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">AI-specific credit stress is doing most of the damage.</div><p>Broad IG/HY credit remains relatively calm, while AI-linked CDS is much more stressed. That divergence is useful because localized financing pressure can appear before the broader corporate credit market deteriorates.</p></section>`
     + sectionHtml("DATA & EVIDENCE","Market rates and broad spreads come from MarketHistory; AI credit observations come from Financing; company burden comes from Company_Financials. CDS is a market stress indicator and is not presented as a direct default probability.",sourceNote("Live API-connected · dynamic score · company/credit observations can be semi-automatic"));
