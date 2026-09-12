@@ -1292,7 +1292,24 @@ function financingMethodologyHtml() {
 
 function financingDetailHtml() {
   const s=DATA.financingMomentum?.summary || {};
-  const rows=(DATA.financingMomentum?.rows || []).filter(r=>r.signalGroup && Number.isFinite(toNum(r.compositeRisk)));
+  const financingSortRank=(r)=>{
+    const group=String(r?.signalGroup||"");
+    const metric=String(r?.metric||"").toLowerCase();
+    if(group==="GENERAL_FINANCING") {
+      if(metric.includes("nominal")) return 10;
+      if(metric.includes("real yield")) return 20;
+      if(metric.includes("ig oas")) return 30;
+      if(metric.includes("hy oas")) return 40;
+      return 49;
+    }
+    if(group==="AI_CREDIT_STRESS") return 60;
+    if(group==="COMPANY_FINANCING") return 80;
+    return 99;
+  };
+  const rows=(DATA.financingMomentum?.rows || [])
+    .filter(r=>r.signalGroup && Number.isFinite(toNum(r.compositeRisk)))
+    .map((r,i)=>({...r,__sourceOrder:i}))
+    .sort((a,b)=>financingSortRank(a)-financingSortRank(b) || a.__sourceOrder-b.__sourceOrder);
   const general=summaryValue(s,"generalFinancingScore"), ai=summaryValue(s,"aiCreditStressScore"), burden=summaryValue(s,"companyFinancingBurden");
   const headline=summaryValue(s,"financingConditions");
   const finalScore=Number.isFinite(headline)?headline:((Number.isFinite(general)&&Number.isFinite(ai)&&Number.isFinite(burden))?general*.30+ai*.45+burden*.25:NaN);
