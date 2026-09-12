@@ -1153,27 +1153,143 @@ function commitmentDetailHtml() {
     + sectionHtml("DATA & EVIDENCE","Commitment_Momentum provides the live risk transformation; Commitments provides the underlying accounting series and units. RPO/backlog stays in Demand and is not mixed into commitment obligations.",sourceNote("Live API-connected · dynamic score · accounting/company data is semi-automatic"));
 }
 
+function financingGroupLabel(group) {
+  const map={GENERAL_FINANCING:"General financing",AI_CREDIT_STRESS:"AI credit stress",COMPANY_FINANCING:"Company burden"};
+  return map[group] || String(group||"Financing").replaceAll("_"," ");
+}
+
+function financingValueText(row) {
+  const v=toNum(row?.currentValue);
+  if (!Number.isFinite(v)) return "—";
+  const unit=String(row?.unit||"").trim();
+  if (unit==="%") return formatPercent(v);
+  if (unit.toLowerCase()==="bp") return `${formatNumber(v,0)} bp`;
+  return `${formatNumber(v,2)} ${unit}`.trim();
+}
+
+function financingPreviousText(row) {
+  const v=toNum(row?.previousValue);
+  if (!Number.isFinite(v)) return "—";
+  const unit=String(row?.unit||"").trim();
+  if (unit==="%") return formatPercent(v);
+  if (unit.toLowerCase()==="bp") return `${formatNumber(v,0)} bp`;
+  return `${formatNumber(v,2)} ${unit}`.trim();
+}
+
+function shortDateText(value) {
+  const s=String(value||"").slice(0,10);
+  if (!s) return "—";
+  const d=new Date(`${s}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"});
+}
+
+function financingComparisonText(row) {
+  const group=String(row?.signalGroup||"");
+  const metric=String(row?.metric||"");
+  const entity=String(row?.entityMarket||"");
+
+  if (group==="GENERAL_FINANCING") return "~1Y comparison";
+
+  if (group==="AI_CREDIT_STRESS") {
+    const source=(DATA?.financing||[])
+      .filter(x=>String(x.entityMarket||"")===entity && String(x.signalGroup||"")==="AI_CREDIT_STRESS" && String(x.unit||"").toLowerCase()==="bp")
+      .filter(x=>Number.isFinite(toNum(x.value)) && x.date)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    if (source.length>=2) return `${shortDateText(source[1].date)} → ${shortDateText(source[0].date)}`;
+  }
+
+  if (group==="COMPANY_FINANCING") {
+    const dates=[...new Set((DATA?.companyFinancials||[])
+      .filter(x=>String(x.company||"")===entity && ["Net interest expense","Adjusted EBITDA"].includes(String(x.metric||"")) && x.date)
+      .map(x=>String(x.date).slice(0,10)))].sort().reverse();
+    if (dates.length>=2) return `${shortDateText(dates[1])} → ${shortDateText(dates[0])}`;
+  }
+  return Number.isFinite(toNum(row?.change)) ? "Previous comparable observation" : "—";
+}
+
+function financingScoreBuildHtml(general,ai,burden,finalScore) {
+  const parts=[
+    {label:"General financing",score:general,weight:.30,note:"Real yield + IG/HY credit"},
+    {label:"AI credit stress",score:ai,weight:.45,note:"AI-linked 5Y CDS"},
+    {label:"Company burden",score:burden,weight:.25,note:"Interest expense / Adj. EBITDA"}
+  ];
+  return `<div class="score-build finance-score-build">${parts.map(x=>{
+    const c=Number.isFinite(x.score)?x.score*x.weight:NaN;
+    return `<div class="score-build-row"><div><span>${escapeHtml(x.label)}</span><small>${escapeHtml(x.note)}</small></div><strong>${Number.isFinite(x.score)?formatNumber(x.score,1):"—"}</strong><em>× ${Math.round(x.weight*100)}%</em><b>${Number.isFinite(c)?formatNumber(c,1):"—"}</b></div>`;
+  }).join("")}<div class="score-build-total"><span>Financing Conditions</span><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,1):"—"}</strong><small>${parts.every(x=>Number.isFinite(x.score))?parts.map(x=>formatNumber(x.score*x.weight,1)).join(" + "):"Dynamic model"}</small></div></div>`;
+}
+
+function financingSignalTable(rows) {
+  if (!rows.length) return `<div class="detail-empty">No connected financing signals yet.</div>`;
+  return `<div class="financing-model-table">
+    <div class="financing-table-head"><span>Group</span><span>Signal</span><span>Latest</span><span>Change</span><span>Comparison</span><span>Risk</span><span></span></div>
+    ${rows.map((r,i)=>{
+      const risk=toNum(r.compositeRisk), change=toNum(r.change), level=toNum(r.levelScore), momentum=toNum(r.momentumScore), breadth=toNum(r.breadthBurdenScore);
+      const status=r.status || scoreStatus(risk), tone=statusTone(status);
+      const hasThird=Number.isFinite(breadth);
+      const levelWeight=hasThird?.50:.80, momentumWeight=hasThird?.30:.20, thirdWeight=hasThird?.20:0;
+      const thirdLabel=String(r.signalGroup||"")==="COMPANY_FINANCING"?"Burden / breadth":"Breadth score";
+      return `<details class="financing-signal-row" ${i===0?"":""}>
+        <summary>
+          <span class="finance-group">${escapeHtml(financingGroupLabel(r.signalGroup))}</span>
+          <span class="finance-signal"><b>${escapeHtml(r.entityMarket||"")}</b><small>${escapeHtml(r.metric||"")}</small></span>
+          <span class="finance-latest">${escapeHtml(financingValueText(r))}</span>
+          <span class="finance-change ${Number.isFinite(change)?(change>0?"risk-up":change<0?"risk-down":"flat"):"flat"}">${Number.isFinite(change)?formatSignedPercent(change):"—"}</span>
+          <span class="finance-period">${escapeHtml(financingComparisonText(r))}</span>
+          <span class="company-risk ${tone}">${Number.isFinite(risk)?formatNumber(risk,1):"—"}</span>
+          <span class="row-action">Details <span class="row-chevron">⌄</span></span>
+        </summary>
+        <div class="company-risk-detail finance-risk-detail">
+          <div class="company-detail-title">Why ${escapeHtml(r.entityMarket||r.metric||"this signal")} scores ${Number.isFinite(risk)?formatNumber(risk,1):"—"}</div>
+          <div class="company-risk-explain finance-risk-explain">
+            <div><span>Level score · ${Math.round(levelWeight*100)}%</span><strong>${Number.isFinite(level)?formatNumber(level,0):"—"}</strong><small>${Number.isFinite(level)?`${formatNumber(level,0)} × ${Math.round(levelWeight*100)}% = ${formatNumber(level*levelWeight,1)}`:"Current level"}</small></div>
+            <div><span>Momentum score · ${Math.round(momentumWeight*100)}%</span><strong>${Number.isFinite(momentum)?formatNumber(momentum,0):"—"}</strong><small>${Number.isFinite(momentum)?`${formatNumber(momentum,0)} × ${Math.round(momentumWeight*100)}% = ${formatNumber(momentum*momentumWeight,1)}`:"Change vs prior"}</small></div>
+            ${hasThird?`<div><span>${escapeHtml(thirdLabel)} · ${Math.round(thirdWeight*100)}%</span><strong>${formatNumber(breadth,0)}</strong><small>${formatNumber(breadth,0)} × ${Math.round(thirdWeight*100)}% = ${formatNumber(breadth*thirdWeight,1)}</small></div>`:""}
+            <div class="composite-box"><span>Composite risk</span><strong>${Number.isFinite(risk)?formatNumber(risk,1):"—"}</strong><small>${Number.isFinite(risk)?`${[Number.isFinite(level)?level*levelWeight:0,Number.isFinite(momentum)?momentum*momentumWeight:0,hasThird?breadth*thirdWeight:0].filter((_,idx)=>idx<2||hasThird).map(v=>formatNumber(v,1)).join(" + ")} · ${status}`:status}</small></div>
+          </div>
+          <div class="company-detail-meta finance-detail-meta">
+            <span><b>Current / previous:</b> ${escapeHtml(financingValueText(r))} / ${escapeHtml(financingPreviousText(r))}</span>
+            <span><b>Comparison:</b> ${escapeHtml(financingComparisonText(r))}</span>
+            <span><b>Metric:</b> ${escapeHtml(r.metric||"—")}</span>
+            <span><b>Group:</b> ${escapeHtml(financingGroupLabel(r.signalGroup))}</span>
+          </div>
+        </div>
+      </details>`;
+    }).join("")}
+    <div class="commitment-table-note">Open a signal to see the exact level, momentum and breadth/burden transformation behind Composite Risk.</div>
+  </div>`;
+}
+
+function financingMethodologyHtml() {
+  return `<div class="methodology-grid financing-methodology">
+    <div><span>GENERAL FINANCING</span><strong>Average of 3 broad signals</strong><small>10Y real yield, IG OAS and HY OAS. Each row combines level, momentum and breadth.</small></div>
+    <div><span>AI CREDIT STRESS</span><strong>Average of AI-linked CDS</strong><small>5Y CDS is treated as a credit-stress market signal, not as a precise default probability.</small></div>
+    <div><span>COMPANY BURDEN</span><strong>Company-specific pressure</strong><small>Current model uses CoreWeave net interest expense relative to Adjusted EBITDA.</small></div>
+    <div><span>HEADLINE WEIGHTS</span><strong>30% · 45% · 25%</strong><small>General Financing · AI Credit Stress · Company Financing Burden.</small></div>
+    <div><span>ROW MODEL WITH BREADTH</span><strong>50% · 30% · 20%</strong><small>Level · Momentum · Breadth/Burden score.</small></div>
+    <div><span>ROW MODEL WITHOUT BREADTH</span><strong>80% · 20%</strong><small>Level · Momentum. Used when no third score is populated.</small></div>
+  </div>`;
+}
+
 function financingDetailHtml() {
   const s=DATA.financingMomentum?.summary || {};
-  const rows=DATA.financingMomentum?.rows || [];
+  const rows=(DATA.financingMomentum?.rows || []).filter(r=>r.signalGroup && Number.isFinite(toNum(r.compositeRisk)));
   const general=summaryValue(s,"generalFinancingScore"), ai=summaryValue(s,"aiCreditStressScore"), burden=summaryValue(s,"companyFinancingBurden");
-  const generalRows=rows.filter(r=>r.signalGroup==="GENERAL_FINANCING");
-  const aiRows=rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS");
-  const burdenRows=rows.filter(r=>r.signalGroup==="COMPANY_FINANCING");
+  const headline=summaryValue(s,"financingConditions");
+  const finalScore=Number.isFinite(headline)?headline:((Number.isFinite(general)&&Number.isFinite(ai)&&Number.isFinite(burden))?general*.30+ai*.45+burden*.25:NaN);
+  const generalRows=rows.filter(r=>r.signalGroup==="GENERAL_FINANCING"), aiRows=rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS"), burdenRows=rows.filter(r=>r.signalGroup==="COMPANY_FINANCING");
   const gt=riskTrendForRows(generalRows), at=riskTrendForRows(aiRows), bt=riskTrendForRows(burdenRows);
   const cards=metricCards([
-    {label:"General financing",value:fmtScore(general),note:"Rates + broad credit",riskScore:general,trend:gt.text,trendTone:gt.tone},
-    {label:"AI credit stress",value:fmtScore(ai),note:"AI-linked CDS",riskScore:ai,trend:at.text,trendTone:at.tone},
-    {label:"Company burden",value:fmtScore(burden),note:"Interest burden",riskScore:burden,trend:bt.text,trendTone:bt.tone}
+    {label:"General financing",value:fmtScore(general),note:"30% of headline score",riskScore:general,trend:gt.text,trendTone:gt.tone},
+    {label:"AI credit stress",value:fmtScore(ai),note:"45% of headline score",riskScore:ai,trend:at.text,trendTone:at.tone},
+    {label:"Company burden",value:fmtScore(burden),note:"25% of headline score",riskScore:burden,trend:bt.text,trendTone:bt.tone}
   ]);
-  const breakdown=evidenceTable(generalRows.map(r=>({label:r.metric||r.entityMarket||"General financing",value:`risk ${formatNumber(toNum(r.compositeRisk),0)}`,context:`Level ${formatNumber(toNum(r.levelScore),0)} · Momentum ${formatNumber(toNum(r.momentumScore),0)} · ${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"}`})));
-  const credit=aiRows.map(r=>({label:`${r.entityMarket||"AI credit"} · 5Y CDS`,value:`${formatNumber(toNum(r.currentValue),0)} ${r.unit||"bp"}`,context:`${Number.isFinite(toNum(r.change))?formatSignedPercent(toNum(r.change)):"—"} · risk ${formatNumber(toNum(r.compositeRisk),0)}`}));
-  return sectionHtml("WHY IT MATTERS","Financing can break an investment cycle before end demand disappears. Canary separates broad-market funding conditions from AI-specific stress.",cards)
-    + sectionHtml("GENERAL FINANCING · SCORE BREAKDOWN","The 33 score is generated from the live General Financing rows — not entered manually. Level, momentum and breadth/burden logic feed the Financing_Momentum model.",breakdown)
-    + sectionHtml("AI CREDIT STRESS","5Y CDS spreads are shown as market stress indicators, not precise default probabilities.",evidenceTable(credit))
-    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">The divergence matters more than the broad market alone.</div><p>AI-linked credit can deteriorate while IG/HY spreads remain calm. That is exactly the kind of localized stress the Canary is designed to surface early.</p></section>`
-    + sectionHtml("HOW WE SCORE IT","General financing, AI credit stress and company financing burden are combined in the dynamic Financing_Momentum model. The arrows above show current risk direction in the underlying rows, not a fabricated weekly score history.")
-    + sectionHtml("DATA & EVIDENCE","Market rates/spreads come from MarketHistory; AI credit and company financing inputs come from Financing and Company_Financials.",sourceNote("Live API-connected · dynamic score"));
+  return sectionHtml("WHY IT MATTERS","Financing can break an investment cycle before end demand disappears. Canary separates broad funding conditions from AI-specific credit stress and company-level interest burden.",cards)
+    + sectionHtml("HOW THE SCORE IS BUILT","The headline Financing Conditions score is calculated directly from the dynamic Google Sheet model — not entered manually.",financingScoreBuildHtml(general,ai,burden,finalScore))
+    + sectionHtml("FINANCING RISK MAP","The underlying signals below show current value, actual comparison context and Composite Risk. Open any row to see its scoring transformation.",financingSignalTable(rows))
+    + sectionHtml("MODEL LOGIC","The exact model has two layers: each underlying financing signal is scored first, then the three group scores are combined into the headline Financing Conditions score.",financingMethodologyHtml())
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">AI-specific credit stress is doing most of the damage.</div><p>Broad IG/HY credit remains relatively calm, while AI-linked CDS is much more stressed. That divergence is useful because localized financing pressure can appear before the broader corporate credit market deteriorates.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","Market rates and broad spreads come from MarketHistory; AI credit observations come from Financing; company burden comes from Company_Financials. CDS is a market stress indicator and is not presented as a direct default probability.",sourceNote("Live API-connected · dynamic score · company/credit observations can be semi-automatic"));
 }
 
 function divergenceDetailHtml() {
