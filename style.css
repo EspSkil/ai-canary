@@ -970,3 +970,67 @@ body.detail-open{overflow:hidden}
   .money-watch-grid{grid-template-columns:1fr}
   .money-theme-indicator{min-height:0}
 }
+
+
+/* ===== v4.12 Token Economics Deep Dive 2.0 ===== */
+.token-score-build .token-adjust-row>em{font-size:8.6px;line-height:1.2}
+.token-data-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:13px;
+}
+.token-data-card{
+  padding:14px;
+  border:1px solid rgba(16,49,71,.10);
+  border-radius:13px;
+  background:rgba(255,255,255,.58);
+}
+.token-data-card>span{
+  display:block;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.09em;
+  color:#5e8193;
+}
+.token-data-card>strong{
+  display:block;
+  margin-top:7px;
+  font-size:23px;
+  color:#12384b;
+}
+.token-data-card>b{
+  display:block;
+  margin-top:3px;
+  font-size:12px;
+  color:#13835d;
+}
+.token-data-card>b.warning-text{color:#b66a22}
+.token-data-card>small{
+  display:block;
+  margin-top:8px;
+  font-size:8.5px;
+  line-height:1.45;
+  color:#718b98;
+}
+.token-methodology{grid-template-columns:repeat(2,1fr)}
+.token-source-status{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.token-source-status>div{
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(16,49,71,.10);
+  background:rgba(220,237,245,.46);
+}
+.token-source-status span,.token-source-status strong,.token-source-status small{display:block}
+.token-source-status span{font-size:9px;font-weight:850;color:#234b60}
+.token-source-status strong{margin-top:4px;font-size:12px;color:#0c6f57}
+.token-source-status small{margin-top:4px;font-size:8.5px;line-height:1.4;color:#718b98}
+@media(max-width:720px){
+  .token-data-grid,.token-source-status,.token-methodology{grid-template-columns:1fr}
+  .token-data-card>strong{font-size:21px}
+}
