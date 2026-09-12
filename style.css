@@ -844,3 +844,38 @@ body.detail-open{overflow:hidden}
   .commitment-table-head,.commitment-company-row>summary{grid-template-columns:1.05fr .52fr .82fr .66fr 50px}
   .row-action{font-size:0;gap:0;min-width:28px}.row-action .row-chevron{font-size:14px}
 }
+
+
+/* ============================================================
+   v4.6 MOBILE PURPOSE + COMMITMENT TABLE SPACING
+   ============================================================ */
+.mobile-canary-purpose{display:none}
+@media(max-width:720px){
+  .mobile-canary-purpose{
+    display:block;
+    max-width:390px;
+    margin:0 auto 9px;
+    padding:0 13px;
+    text-align:center;
+    font-size:10.5px;
+    line-height:1.45;
+    font-weight:600;
+    color:#91adbd;
+  }
+}
+
+/* Keep long commitment types clear of the Details control on desktop/tablet. */
+@media(min-width:721px){
+  .commitment-table-head,
+  .commitment-company-row>summary{
+    grid-template-columns:1.10fr .58fr .88fr .70fr .88fr .70fr minmax(96px,1.25fr) 62px;
+    gap:7px;
+  }
+  .company-type{
+    min-width:0;
+    padding-right:4px;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+  }
+  .row-action{min-width:52px}
+}
