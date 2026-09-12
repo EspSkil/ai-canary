@@ -1044,7 +1044,7 @@ function commitmentPeriodText(row) {
   const f=s=>{
     if (!s) return "—";
     const d=new Date(`${s}T00:00:00`);
-    return Number.isNaN(d.getTime())?s:d.toLocaleDateString("en-GB",{month:"short",year:"2-digit"});
+    return Number.isNaN(d.getTime())?s:d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"});
   };
   return `${f(prev)} → ${f(curr)}`;
 }
@@ -1060,7 +1060,7 @@ function commitmentScoreBuildHtml(avg,breadthScore,finalScore,elevated,total) {
       <b>${Number.isFinite(avgContribution)?formatNumber(avgContribution,1):"—"}</b>
     </div>
     <div class="score-build-row">
-      <div><span>Breadth score</span><small>${Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated} of ${total} companies above 50`:"Share of companies with elevated risk"}</small></div>
+      <div><span>Breadth score</span><small>${Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated} of ${total} companies above 50 · >75% breadth = score 100`:"Fixed buckets: ≤25%=20 · ≤50%=40 · ≤75%=70 · >75%=100"}</small></div>
       <strong>${Number.isFinite(breadthScore)?formatNumber(breadthScore,0):"—"}</strong>
       <em>× 30%</em>
       <b>${Number.isFinite(breadthContribution)?formatNumber(breadthContribution,1):"—"}</b>
@@ -1093,18 +1093,19 @@ function commitmentCompanyTable(rows) {
         <span class="company-period">${escapeHtml(commitmentPeriodText(r))}</span>
         <span class="company-revenue">${Number.isFinite(revPct)?formatPercent(revPct):"—"}</span>
         <span class="company-type">${escapeHtml(type)}</span>
-        <span class="row-chevron">⌄</span>
+        <span class="row-action">Details <span class="row-chevron">⌄</span></span>
       </summary>
       <div class="company-risk-detail">
+        <div class="company-detail-title">Why ${escapeHtml(r.company||"this company")} scores ${Number.isFinite(risk)?formatNumber(risk,1):"—"}</div>
         <div class="company-risk-explain">
-          <div><span>Scale score</span><strong>${Number.isFinite(scale)?formatNumber(scale,0):"—"}</strong><small>Commitment relative to company size</small></div>
-          <div><span>Momentum score</span><strong>${Number.isFinite(momentum)?formatNumber(momentum,0):"—"}</strong><small>Change in comparable commitment series</small></div>
-          <div><span>Binding score</span><strong>${Number.isFinite(binding)?formatNumber(binding,0):"—"}</strong><small>Rigidity of the obligation type</small></div>
-          <div class="composite-box"><span>Composite risk</span><strong>${Number.isFinite(risk)?formatNumber(risk,1):"—"}</strong><small>${escapeHtml(status)}</small></div>
+          <div><span>Scale score · 40%</span><strong>${Number.isFinite(scale)?formatNumber(scale,0):"—"}</strong><small>${Number.isFinite(scale)?`${formatNumber(scale,0)} × 40% = ${formatNumber(scale*.40,1)}`:"Commitment / TTM revenue"}</small></div>
+          <div><span>Momentum score · 35%</span><strong>${Number.isFinite(momentum)?formatNumber(momentum,0):"—"}</strong><small>${Number.isFinite(momentum)?`${formatNumber(momentum,0)} × 35% = ${formatNumber(momentum*.35,1)}`:"Comparable-period change"}</small></div>
+          <div><span>Binding score · 25%</span><strong>${Number.isFinite(binding)?formatNumber(binding,0):"—"}</strong><small>${Number.isFinite(binding)?`${formatNumber(binding,0)} × 25% = ${formatNumber(binding*.25,1)}`:"Obligation rigidity"}</small></div>
+          <div class="composite-box"><span>Composite risk</span><strong>${Number.isFinite(risk)?formatNumber(risk,1):"—"}</strong><small>${Number.isFinite(scale)&&Number.isFinite(momentum)&&Number.isFinite(binding)?`${formatNumber(scale*.40,1)} + ${formatNumber(momentum*.35,1)} + ${formatNumber(binding*.25,1)} · ${escapeHtml(status)}`:escapeHtml(status)}</small></div>
         </div>
         <div class="company-detail-meta">
           <span><b>Metric:</b> ${escapeHtml(r.metric||source?.category||"—")}</span>
-          <span><b>TTM revenue:</b> ${Number.isFinite(toNum(r.ttmRevenue))?`$${formatNumber(toNum(r.ttmRevenue),1)}bn`:"—"}</span>
+          <span><b>TTM revenue:</b> ${Number.isFinite(toNum(r.ttmRevenue))?`$${formatNumber(toNum(r.ttmRevenue),1)}bn`:"—"} · denominator used for Scale Score</span>
           <span><b>Current / previous:</b> ${escapeHtml(commitmentValueText(r))} / ${Number.isFinite(toNum(r.previousValue))?`$${formatNumber(toNum(r.previousValue),1)}bn`:"—"}</span>
           <span><b>Comparison:</b> ${escapeHtml(commitmentPeriodText(r))}</span>
         </div>
@@ -1123,10 +1124,10 @@ function commitmentCompanyTable(rows) {
 
 function commitmentMethodologyHtml() {
   return `<div class="methodology-grid">
-    <div><strong>Scale Score</strong><span>Measures commitment size relative to the company's TTM revenue. This prevents a $100bn obligation from being treated equally for companies of very different financial size.</span></div>
-    <div><strong>Momentum Score</strong><span>Measures change in a comparable commitment series. The period is shown explicitly for each company because quarterly and annual disclosures differ.</span></div>
-    <div><strong>Binding Score</strong><span>Reflects how rigid or difficult the obligation is to unwind. Lease, purchase and supply commitments can therefore carry different risk even at the same dollar value.</span></div>
-    <div><strong>Breadth</strong><span>Captures whether elevated commitment risk is isolated or widespread. The headline score gives Breadth Score a 30% weight and Average Company Risk a 70% weight.</span></div>
+    <div><strong>Scale Score · 40%</strong><span>Commitment / TTM revenue is bucketed: &lt;10%=10, &lt;25%=25, &lt;50%=40, &lt;100%=60, &lt;200%=80, ≥200%=100.</span></div>
+    <div><strong>Momentum Score · 35%</strong><span>Comparable-period change is bucketed: ≤−20%=0, ≤0%=10, ≤10%=20, ≤25%=40, ≤50%=60, ≤100%=80, &gt;100%=100.</span></div>
+    <div><strong>Binding Score · 25%</strong><span>Model input for how rigid/binding the disclosed obligation type is. It is combined with Scale and Momentum rather than treated as a dollar measure.</span></div>
+    <div><strong>Composite + Breadth</strong><span>Company risk = 40% Scale + 35% Momentum + 25% Binding. Headline Commitment Overhang = 70% average company risk + 30% Breadth Score. Breadth buckets are ≤25%=20, ≤50%=40, ≤75%=70, &gt;75%=100.</span></div>
   </div>`;
 }
 
@@ -1141,13 +1142,13 @@ function commitmentDetailHtml() {
   const cards=metricCards([
     {label:"Average company risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"70% of headline score",riskScore:avg,trend:trend.text,trendTone:trend.tone},
     {label:"Breadth",value:Number.isFinite(breadth)?formatPercent(breadth):"—",note:Number.isFinite(elevated)&&Number.isFinite(total)?`${elevated}/${total} above 50`:"Share with elevated risk"},
-    {label:"Breadth score",value:Number.isFinite(breadthScore)?formatNumber(breadthScore,0):"—",note:"30% of headline score",riskScore:breadthScore}
+    {label:"Breadth score",value:Number.isFinite(breadthScore)?formatNumber(breadthScore,0):"—",note:Number.isFinite(breadth)&&breadth>.75?">75% breadth → score 100":"30% of headline score",riskScore:breadthScore}
   ]);
 
   return sectionHtml("WHY IT MATTERS","Large and binding obligations become more dangerous when they grow faster than the revenue base and appear across many companies.",cards)
     + sectionHtml("HOW THE 76 IS BUILT","The headline Commitment Overhang score is calculated directly from the dynamic Google Sheet model — not entered manually.",commitmentScoreBuildHtml(avg,breadthScore,finalScore,elevated,total))
     + sectionHtml("COMPANY RISK MAP","Dollar values are shown with units, change is tied to the actual comparison period, and commitment size is normalized against TTM revenue. Open any company row to see the three sub-scores behind Composite Risk.",commitmentCompanyTable(rows))
-    + sectionHtml("MODEL LOGIC","Each company Composite Risk is built from Scale, Momentum and Binding inputs. The dashboard shows these inputs directly rather than hiding the transformation behind the final score.",commitmentMethodologyHtml())
+    + sectionHtml("MODEL LOGIC","The exact Google Sheet transformation is shown below. Company Composite Risk uses 40% Scale + 35% Momentum + 25% Binding; the headline then combines average company risk and breadth.",commitmentMethodologyHtml())
     + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">High commitment pressure is broad, not just large in dollar terms.</div><p>The current danger signal comes from both elevated company-level risk and breadth across the group. The key confirmation question is whether demand, utilization and monetization remain strong enough to absorb these fixed obligations without creating financing stress.</p></section>`
     + sectionHtml("DATA & EVIDENCE","Commitment_Momentum provides the live risk transformation; Commitments provides the underlying accounting series and units. RPO/backlog stays in Demand and is not mixed into commitment obligations.",sourceNote("Live API-connected · dynamic score · accounting/company data is semi-automatic"));
 }

@@ -828,3 +828,19 @@ body.detail-open{overflow:hidden}
   .score-build-row{grid-template-columns:minmax(0,1fr) 45px 38px 48px}.score-build-row>div span{font-size:9.5px}.score-build-row>em{font-size:8.5px}.score-build-total strong{font-size:26px}
   .commitment-model-table{margin-left:-3px;margin-right:-3px}.commitment-table-head,.commitment-company-row>summary{padding-left:9px;padding-right:9px;gap:5px}.company-name{font-size:9px}.company-risk{font-size:7.5px;min-width:34px}.company-risk-explain strong{font-size:18px}
 }
+
+/* ============================================================
+   COMMITMENT DEEP DIVE 2.1
+   ============================================================ */
+.row-action{display:inline-flex;align-items:center;justify-content:center;gap:4px;justify-self:end;padding:4px 6px;border-radius:999px;background:rgba(18,76,104,.07);border:1px solid rgba(18,76,104,.10);font-size:7.5px;font-weight:850;color:#4c7184;white-space:nowrap}
+.commitment-company-row>summary:hover .row-action{background:rgba(18,76,104,.13);color:#204f66}
+.company-detail-title{margin:0 0 9px;font-size:11px;font-weight:900;color:#153c50}
+.company-risk-explain small{min-height:22px}
+@media(max-width:720px){
+  .commitment-table-head,.commitment-company-row>summary{grid-template-columns:1.12fr .55fr .84fr .68fr 54px}
+  .row-action{font-size:7px;padding:4px 5px}
+}
+@media(max-width:480px){
+  .commitment-table-head,.commitment-company-row>summary{grid-template-columns:1.05fr .52fr .82fr .66fr 50px}
+  .row-action{font-size:0;gap:0;min-width:28px}.row-action .row-chevron{font-size:14px}
+}
