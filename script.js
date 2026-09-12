@@ -920,7 +920,7 @@ function detailScoreInfo(key) {
   const fin=dynamicScore(DATA,"financingConditions",x.financingScore);
   const macro=dynamicScore(DATA,"macroRisk",x.macroScore);
   const map={
-    token:{score:toNum(x.tokenScore),label:"TOKEN ECONOMICS SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    token:{score:toNum(dynamicScore(DATA,"tokenEconomics",x.tokenScore).score),status:dynamicScore(DATA,"tokenEconomics",x.tokenScore).status,label:"TOKEN ECONOMICS SCORE",meta:"Dynamic Google Sheet model"},
     demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     compute:{score:toNum(x.computeScore),label:"COMPUTE SUPPLY SCORE",meta:"Locked v3 baseline · GPU utilization not yet included"},
     semis:{score:toNum(x.semisScore),label:"SEMICONDUCTOR MARKET SCORE",meta:"Locked v3 baseline · dynamic model pending"},
