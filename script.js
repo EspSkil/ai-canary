@@ -1293,11 +1293,11 @@ function financingMethodologyHtml() {
 function financingDetailHtml() {
   const s=DATA.financingMomentum?.summary || {};
   const financingSortRank=(r)=>{
-    const group=String(r?.signalGroup||"");
-    const metric=String(r?.metric||"").toLowerCase();
+    const group=String(r?.signalGroup||"").trim().toUpperCase();
+    const metric=String(r?.metric||"").trim().toLowerCase();
     if(group==="GENERAL_FINANCING") {
-      if(metric.includes("nominal")) return 10;
-      if(metric.includes("real yield")) return 20;
+      if(metric.includes("nominal") || metric.includes("10y nominal")) return 10;
+      if(metric.includes("real yield") || metric.includes("10y real")) return 20;
       if(metric.includes("ig oas")) return 30;
       if(metric.includes("hy oas")) return 40;
       return 49;
