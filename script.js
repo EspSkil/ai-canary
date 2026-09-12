@@ -286,6 +286,7 @@ function renderMoneyCircle(data) {
   const h100 = tg.H100_SD || {};
   const dynToken = dynamicScore(data,"tokenEconomics",x.tokenScore);
   const dynSemis = dynamicScore(data,"semiconductorMarket",x.semisScore);
+  const dynCompute = dynamicScore(data,"computeSupply",x.computeScore);
   const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
 
@@ -309,18 +310,18 @@ function renderMoneyCircle(data) {
     },
     {
       id:"moneyNode3",
-      scores:[toNum(dynSemis.score),toNum(x.computeScore)],
+      scores:[toNum(dynSemis.score),toNum(dynCompute.score)],
       badges:[
         `Semis ${fmtScore(dynSemis.score)}`,
-        `Compute ${fmtScore(x.computeScore)}`,
+        `Compute ${fmtScore(dynCompute.score)}`,
         market.sox ? `SOX ${formatNumber(market.sox.value,0)}` : null
       ]
     },
     {
       id:"moneyNode4",
-      scores:[toNum(x.computeScore),toNum(dynToken.score)],
+      scores:[toNum(dynCompute.score),toNum(dynToken.score)],
       badges:[
-        `Compute ${fmtScore(x.computeScore)}`,
+        `Compute ${fmtScore(dynCompute.score)}`,
         Number.isFinite(toNum(h100.value)) ? `H100 $${formatNumber(h100.value,2)}` : null,
         `Token score ${fmtScore(dynToken.score)}`
       ]
@@ -392,6 +393,7 @@ function componentItems(data) {
   const x = data.canary?.latest || {};
   const token = dynamicScore(data,"tokenEconomics",x.tokenScore);
   const semis = dynamicScore(data,"semiconductorMarket",x.semisScore);
+  const compute = dynamicScore(data,"computeSupply",x.computeScore);
   const commit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const fin = dynamicScore(data,"financingConditions",x.financingScore);
   const macro = dynamicScore(data,"macroRisk",x.macroScore);
@@ -399,7 +401,7 @@ function componentItems(data) {
   return [
     {name:"Token Economics",score:token.score,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Dynamic · volume × expenditure"},
     {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Locked v3 · revenue, cloud growth & backlog"},
-    {name:"Compute Supply",score:x.computeScore,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"Locked v3 · GPU pricing, supply & utilization"},
+    {name:"Compute Supply",score:compute.score,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"Dynamic · H100 pricing & scarcity premium"},
     {name:"Semiconductor Market",score:semis.score,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Dynamic · 30D SOX momentum"},
     {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"Locked v3 · AI infrastructure spending"},
     {name:"Commitment Overhang",score:commit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Dynamic · future obligations & momentum"},
@@ -919,10 +921,11 @@ function detailScoreInfo(key) {
   const commit=dynamicScore(DATA,"commitmentOverhang",x.commitmentScore);
   const fin=dynamicScore(DATA,"financingConditions",x.financingScore);
   const macro=dynamicScore(DATA,"macroRisk",x.macroScore);
+  const compute=dynamicScore(DATA,"computeSupply",x.computeScore);
   const map={
     token:{score:toNum(dynamicScore(DATA,"tokenEconomics",x.tokenScore).score),status:dynamicScore(DATA,"tokenEconomics",x.tokenScore).status,label:"TOKEN ECONOMICS SCORE",meta:"Dynamic Google Sheet model"},
     demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
-    compute:{score:toNum(x.computeScore),label:"COMPUTE SUPPLY SCORE",meta:"Locked v3 baseline · GPU utilization not yet included"},
+    compute:{score:toNum(compute.score),status:compute.status,label:"COMPUTE SUPPLY SCORE",meta:"Dynamic Google Sheet model · GPU utilization planned"},
     semis:{score:toNum(x.semisScore),label:"SEMICONDUCTOR MARKET SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     commitment:{score:toNum(commit.score),status:commit.status,label:"COMMITMENT OVERHANG SCORE",meta:"Dynamic Google Sheet model"},
@@ -1342,17 +1345,58 @@ function divergenceDetailHtml() {
   ]))+`<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Localized stress can lead the broader market.</div><p>A positive gap is not a crisis signal by itself. It tells us that financing pressure is appearing inside the AI ecosystem before broad corporate credit confirms it.</p></section>`;
 }
 
+function computeRow(metricName) {
+  const rows=DATA.computeMomentum?.rows || [];
+  return rows.find(r=>String(r.metric||"").trim().toLowerCase()===String(metricName||"").trim().toLowerCase()) || {};
+}
+
+function computeScoreBuildHtml(broad, guaranteed, premium, finalScore) {
+  const parts=[
+    {label:"H100 Broad Rental 30D Trend",score:toNum(broad.riskScore),weight:toNum(broad.weight),weighted:toNum(broad.weightedScore),note:"Silicon Data · broad H100 rental market"},
+    {label:"H100 Guaranteed 30D Trend",score:toNum(guaranteed.riskScore),weight:toNum(guaranteed.weight),weighted:toNum(guaranteed.weightedScore),note:"CCIR · guaranteed neocloud H100"},
+    {label:"Guaranteed Premium",score:toNum(premium.riskScore),weight:toNum(premium.weight),weighted:toNum(premium.weightedScore),note:"Guaranteed rate versus broad rental market"}
+  ];
+  return `<div class="score-build compute-score-build">
+    ${parts.map(p=>`<div class="score-build-row"><div><span>${escapeHtml(p.label)}</span><small>${escapeHtml(p.note)}</small></div><strong>${Number.isFinite(p.score)?formatNumber(p.score,1):"—"}</strong><em>${Number.isFinite(p.weight)?`× ${formatPercent(p.weight)}`:"—"}</em><b>${Number.isFinite(p.weighted)?formatNumber(p.weighted,2):"—"}</b></div>`).join("")}
+    <div class="score-build-total"><span>Compute Supply</span><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,2):"—"}</strong><small>${parts.every(p=>Number.isFinite(p.weighted))?parts.map(p=>formatNumber(p.weighted,2)).join(" + "):"Dynamic model"}</small></div>
+  </div>`;
+}
+
+function computeMethodologyHtml() {
+  return `<div class="methodology-grid compute-methodology">
+    <div><strong>Broad H100 rental trend · 45%</strong><span>Tracks the broad Silicon Data H100 rental price index. Falling prices raise oversupply risk; stable or rising prices lower it. The target comparison is 30 days, with the oldest available observation used temporarily until the series has sufficient history.</span></div>
+    <div><strong>Guaranteed H100 trend · 30%</strong><span>Tracks CCIR guaranteed neocloud H100 pricing over roughly 30 days. Rising guaranteed pricing is interpreted as evidence that dependable capacity still carries value.</span></div>
+    <div><strong>Guaranteed premium · 25%</strong><span>Measures the premium of guaranteed H100 capacity over the broad rental market. A high premium points to continuing scarcity/value of secured capacity; a collapsing premium raises oversupply risk.</span></div>
+    <div><strong>Planned utilization upgrade</strong><span>GPU utilization, capacity availability and forward supply growth are explicitly excluded from the current score until robust comparable data is connected.</span></div>
+  </div>`;
+}
+
 function computeDetailHtml() {
-  const x=DATA.canary?.latest || {}, tg=DATA.latestTokenGpu || {};
-  const h=tg.H100_SD || {}, c=tg.H100_CCIR || {};
-  return sectionHtml("WHY IT MATTERS","Compute Supply asks whether expanding AI accelerator capacity is still being absorbed. Oversupply risk rises when capacity expands while utilization/pricing weaken.",metricCards([
-    {label:"H100 rental",value:Number.isFinite(toNum(h.value))?`$${formatNumber(h.value,2)}`:"—",note:Number.isFinite(toNum(h["7dChange"]))?`7D ${formatSignedPercent(toNum(h["7dChange"]))}`:"Silicon Data"},
-    {label:"Neocloud reference",value:Number.isFinite(toNum(c.value))?`$${formatNumber(c.value,2)}`:"—",note:"CCIR · separate methodology"},
-    {label:"Semis score",value:fmtScore(x.semisScore),note:"Connected confirmation signal",riskScore:toNum(x.semisScore),locked:true}
-  ]))
-  + sectionHtml("NEXT DATA UPGRADE · GPU UTILIZATION","Direct GPU utilization is not connected to the score yet. It should be added as an underlying input only after a stable source and comparable history are selected.",`<div class="utilization-empty compact-empty"><div class="empty-grid"></div><div class="empty-content"><strong>GPU utilization series not connected</strong><span>Target: 12–24 months, weekly / best available. Until then, do not interpret Compute Supply 35 as a GPU-utilization score.</span></div></div>`)
-  + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Current score is Compute Supply — not GPU Utilization.</div><p>The deep dive deliberately separates connected market data from planned utilization data so the methodology stays transparent.</p></section>`
-  + sectionHtml("DATA & EVIDENCE","Current connected evidence comes from Token_GPU and the existing Compute Supply component. GPU utilization remains marked as not included.",sourceNote("Partly connected · utilization source still to be selected"));
+  const dyn=dynamicScore(DATA,"computeSupply",DATA.canary?.latest?.computeScore);
+  const broad=computeRow("H100 Broad Rental 30D Trend");
+  const guaranteed=computeRow("H100 Guaranteed 30D Trend");
+  const premium=computeRow("Guaranteed Premium");
+
+  const broadCurrent=toNum(broad.currentValue), broadPrevious=toNum(broad.previousValue), broadChange=toNum(broad.change), broadRisk=toNum(broad.riskScore);
+  const guaranteedCurrent=toNum(guaranteed.currentValue), guaranteedPrevious=toNum(guaranteed.previousValue), guaranteedChange=toNum(guaranteed.change), guaranteedRisk=toNum(guaranteed.riskScore);
+  const premiumCurrent=toNum(premium.currentValue), premiumPrevious=toNum(premium.previousValue), premiumChange=toNum(premium.change), premiumRisk=toNum(premium.riskScore);
+  const finalScore=toNum(dyn.score);
+
+  return sectionHtml("WHY IT MATTERS","Compute Supply asks whether the rapid buildout of AI accelerator capacity is still being absorbed. Risk rises when rental pricing weakens, guaranteed-capacity pricing softens and the scarcity premium disappears.",metricCards([
+      {label:"Broad H100 Rental",value:Number.isFinite(broadCurrent)?`$${formatNumber(broadCurrent,2)} / GPU-h`:"—",note:Number.isFinite(broadChange)?`${formatSignedPercent(broadChange)} vs comparison`:"Silicon Data",riskScore:broadRisk,trend:String(broad.trend||"")},
+      {label:"Guaranteed H100",value:Number.isFinite(guaranteedCurrent)?`$${formatNumber(guaranteedCurrent,2)} / GPU-h`:"—",note:Number.isFinite(guaranteedChange)?`${formatSignedPercent(guaranteedChange)} vs ~30D`:"CCIR",riskScore:guaranteedRisk,trend:String(guaranteed.trend||"")},
+      {label:"Guaranteed Premium",value:Number.isFinite(premiumCurrent)?formatPercent(premiumCurrent):"—",note:Number.isFinite(premiumPrevious)?`Previously ${formatPercent(premiumPrevious)}`:"Guaranteed vs broad",riskScore:premiumRisk,trend:String(premium.trend||"")}
+    ]))
+    + sectionHtml("HOW THE SCORE IS BUILT","The dynamic score is calculated in Compute_Momentum. The website only displays the spreadsheet model; it does not recreate or override the score.",computeScoreBuildHtml(broad,guaranteed,premium,finalScore))
+    + sectionHtml("UNDERLYING DATA","The current model separates market price direction from market structure.",metricCards([
+      {label:"Broad previous",value:Number.isFinite(broadPrevious)?`$${formatNumber(broadPrevious,2)}`:"—",note:"Comparison observation"},
+      {label:"Guaranteed previous",value:Number.isFinite(guaranteedPrevious)?`$${formatNumber(guaranteedPrevious,2)}`:"—",note:"~30D comparison"},
+      {label:"Premium change",value:Number.isFinite(premiumChange)?formatSignedPercent(premiumChange):"—",note:Number.isFinite(toNum(premium.levelStructure))?`Current spread $${formatNumber(toNum(premium.levelStructure),2)}`:"Change in scarcity premium"}
+    ]))
+    + sectionHtml("MODEL LOGIC","A falling broad rental price is not automatically bearish. It becomes more concerning when guaranteed pricing also weakens and the premium for secured capacity collapses. Conversely, rising guaranteed pricing and a healthy premium can indicate continuing scarcity even if broad rental pricing is flat or slightly lower.",computeMethodologyHtml())
+    + sectionHtml("PLANNED INPUTS","These inputs are documented in Compute_Momentum but currently carry zero weight.",`<div class="utilization-empty compact-empty"><div class="empty-grid"></div><div class="empty-content"><strong>GPU Utilization · Capacity / Availability · Forward Supply Growth</strong><span>Planned for a later model version after stable, comparable data sources are selected. No utilization value is inferred or fabricated today.</span></div></div>`)
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Current compute pricing does not show a clear oversupply warning.</div><p>Broad H100 rental pricing is roughly flat/slightly lower, while guaranteed pricing is higher and the guaranteed premium has widened materially. The current model therefore reads ${Number.isFinite(finalScore)?`${formatNumber(finalScore,2)} · ${escapeHtml(scoreStatus(finalScore))}`:"as a dynamic spreadsheet score"}. This is a pricing-and-scarcity signal, not yet a utilization signal.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","Broad H100 rental data comes from Silicon Data; guaranteed H100 pricing comes from CCIR. Both are read from Token_GPU into Compute_Momentum, where the score is calculated.",sourceNote("Connected · pricing model live · utilization inputs planned"));
 }
 
 function tokenRow(metricName) {
@@ -1478,7 +1522,7 @@ function semisDetailHtml() {
   return sectionHtml("WHY IT MATTERS","Semiconductors are a market-sensitive checkpoint on AI infrastructure expectations. Persistent chip weakness can challenge otherwise strong reported fundamentals.",metricCards([
     {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
     {label:"Semiconductor score",value:fmtScore(dyn.score),note:`${dyn.status||scoreStatus(toNum(dyn.score))} · dynamic`,riskScore:toNum(dyn.score)},
-    {label:"Compute score",value:fmtScore(x.computeScore),note:"Locked v3 connected cycle signal",riskScore:toNum(x.computeScore),locked:true}
+    {label:"Compute score",value:fmtScore(dynamicScore(DATA,"computeSupply",x.computeScore).score),note:"Dynamic connected cycle signal",riskScore:toNum(dynamicScore(DATA,"computeSupply",x.computeScore).score)}
   ]))
   + sectionHtml("CURRENT MODEL","Semiconductor Market v1 uses 30-calendar-day average SOX versus the preceding 30-calendar-day average. +10% maps toward 0 risk, 0% toward 50, and -10% toward 100.")
   + sectionHtml("DATA & EVIDENCE","SOX history is supplied automatically through MarketHistory/FRED. The composite row is read from Semi_Momentum.",sourceNote(sm.available?"Dynamic · Semi_Momentum":"Market history connected"));
@@ -1621,6 +1665,7 @@ function moneyHyperscalersHtml(){
 
 function moneySemisHtml(){
   const semis=dynamicScore(DATA,"semiconductorMarket",DATA.canary?.latest?.semisScore);
+  const compute=dynamicScore(DATA,"computeSupply",DATA.canary?.latest?.computeScore);
   return moneyThemePage(
     "Semis & Hardware is the physical supply chain of the AI boom. Chip-market strength can confirm healthy infrastructure demand, while weakening semiconductor momentum alongside softer compute economics can be an early sign that supply is catching demand.",
     [
@@ -1630,7 +1675,7 @@ function moneySemisHtml(){
     ],
     [
       {label:"Semiconductor Market",value:fmtScore(semis.score),note:"SOX · chip-market momentum",riskScore:toNum(semis.score),detail:"semis"},
-      {label:"Compute Supply",value:fmtScore(DATA.canary?.latest?.computeScore),note:"GPU pricing · supply conditions",riskScore:toNum(DATA.canary?.latest?.computeScore),detail:"compute",locked:true}
+      {label:"Compute Supply",value:fmtScore(compute.score),note:"Dynamic · H100 pricing & scarcity",riskScore:toNum(compute.score),detail:"compute"}
     ],
     "Semiconductor weakness matters most when it is confirmed by compute, demand and financing signals."
   );
@@ -1638,6 +1683,7 @@ function moneySemisHtml(){
 
 function moneyComputeHtml(){
   const token=dynamicScore(DATA,"tokenEconomics",DATA.canary?.latest?.tokenScore);
+  const compute=dynamicScore(DATA,"computeSupply",DATA.canary?.latest?.computeScore);
   return moneyThemePage(
     "Compute & AI Models connects the cost and availability of GPU capacity with actual model usage. Falling compute prices can be healthy when efficiency improves, but become a warning when they coincide with weaker utilization, token demand or monetization.",
     [
@@ -1646,7 +1692,7 @@ function moneyComputeHtml(){
       {title:"Token activity",text:"Is model usage expanding strongly enough as the cost per token changes?"}
     ],
     [
-      {label:"Compute Supply",value:fmtScore(DATA.canary?.latest?.computeScore),note:"GPU pricing · supply balance",riskScore:toNum(DATA.canary?.latest?.computeScore),detail:"compute",locked:true},
+      {label:"Compute Supply",value:fmtScore(compute.score),note:"Dynamic · H100 pricing & scarcity",riskScore:toNum(compute.score),detail:"compute"},
       {label:"Token Economics",value:fmtScore(token.score),note:"Usage volume · token expenditure",riskScore:toNum(token.score),detail:"token"}
     ],
     "GPU utilization remains a planned input; the page should distinguish connected evidence from planned signals."
