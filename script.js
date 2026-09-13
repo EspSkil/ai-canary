@@ -363,7 +363,7 @@ function renderCachedDashboard(cache) {
   }
 }
 
-async function fetchLiveData(timeoutMs=35000) {
+async function fetchLiveData(timeoutMs=20000) {
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
   try {
@@ -387,54 +387,57 @@ async function loadDashboard() {
   const cache = readLiveCache();
   if (!hasRenderedCachedData && cache) renderCachedDashboard(cache);
 
-  setText("liveLoadTitle", hasRenderedCachedData ? "Updating live market data…" : "Loading live market data…");
-  setLoadStage(0, hasRenderedCachedData
-    ? "Showing saved dashboard while connecting to Canary database"
-    : (loadAttempt > 1 ? `Reconnecting to Canary database · attempt ${loadAttempt}` : "Connecting to Canary database"));
+  // Cached data is usable immediately. Do not keep a blocking overlay on top of it.
+  if (hasRenderedCachedData) {
+    setText("liveLoadTitle","Updating live market data…");
+    setLoadStage(0,"Showing saved dashboard while refreshing in the background");
+    hideLoadOverlay();
+  } else {
+    setText("liveLoadTitle","Loading live market data…");
+    setLoadStage(0, loadAttempt > 1
+      ? `Reconnecting to Canary database · attempt ${loadAttempt}`
+      : "Connecting to Canary database");
+  }
+
   clearTimeout(slowLoadTimer);
   slowLoadTimer = setTimeout(()=>{
-    setText("liveLoadTitle", hasRenderedCachedData ? "Still updating live data…" : "Still loading live data…");
-    setText("liveLoadText", hasRenderedCachedData
-      ? "The saved dashboard remains available while the live database responds."
-      : "The live database can take longer on mobile, especially after an idle period.");
-  },10000);
+    if (!hasRenderedCachedData) {
+      setText("liveLoadTitle","Still connecting…");
+      setText("liveLoadText","The live database is responding slowly. We will stop waiting soon rather than leave the page stuck loading.");
+    }
+  },8000);
 
   try {
     setLoadStage(1, hasRenderedCachedData ? "Refreshing from Google Sheets" : "Loading live data from Google Sheets");
-    let data;
-    try {
-      data = await fetchLiveData(35000);
-    } catch (firstErr) {
-      if (loadAttempt === 1 && navigator.onLine !== false) {
-        setText("liveLoadText", hasRenderedCachedData
-          ? "Live connection was slow · one automatic retry…"
-          : "First connection was slow · one automatic retry…");
-        await new Promise(r=>setTimeout(r,1500));
-        data = await fetchLiveData(35000);
-      } else {
-        throw firstErr;
-      }
-    }
+    const data = await fetchLiveData(20000);
 
-    setLoadStage(2, "Building dashboard");
+    setLoadStage(2,"Building dashboard");
     renderAll(data);
     saveLiveCache(data);
     hasRenderedCachedData = false;
 
-    setStatus("Live data", true);
+    setStatus("Live data",true);
     const generated = new Date(data.generatedAt);
-    setText("lastUpdated", `API generated: ${generated.toLocaleString("nb-NO")}`);
+    setText("lastUpdated",`API generated: ${generated.toLocaleString("nb-NO")}`);
     hideLoadOverlay();
   } catch (err) {
     console.error(err);
-    const msg = err?.name === "AbortError"
-      ? (hasRenderedCachedData
-          ? "Live refresh timed out. The latest saved dashboard is still shown; retry when the connection improves."
-          : "The live API timed out. Retry when the connection improves.")
-      : (hasRenderedCachedData
-          ? `Live refresh failed (${err.message}). The latest saved dashboard is still shown.`
-          : `Data error: ${err.message}`);
-    setStatus(hasRenderedCachedData ? "Saved data · live refresh failed" : msg, false);
+    const timedOut = err?.name === "AbortError";
+    if (hasRenderedCachedData) {
+      const msg = timedOut
+        ? "Live refresh timed out. Showing the latest saved dashboard."
+        : `Live refresh failed (${err.message}). Showing the latest saved dashboard.`;
+      setStatus("Saved data · live refresh failed",false);
+      setText("lastUpdated", document.getElementById("lastUpdated")?.textContent || "Saved dashboard");
+      // Keep the cached dashboard usable; only expose retry through status/next visit.
+      hideLoadOverlay();
+      return;
+    }
+
+    const msg = timedOut
+      ? "The live API did not respond within 20 seconds. The page will not keep you waiting indefinitely. Try again."
+      : `Data error: ${err.message}`;
+    setStatus(msg,false);
     showLoadError(msg);
   }
 }
@@ -1241,6 +1244,8 @@ function populateDetail(key) {
   const denomEl = document.getElementById("detailScoreDenom");
   const statusEl = document.getElementById("detailStatus");
   const hero = document.getElementById("detailHero");
+  const detailCanaryWrap=document.getElementById("detailCanaryWrap");
+  const detailCanaryBird=document.getElementById("detailCanaryBird");
   if (Number.isFinite(scoreInfo.score)) {
     setText("detailScoreLabel",scoreInfo.label || "CANARY SCORE");
     setText("detailScore",Math.round(scoreInfo.score));
@@ -1250,6 +1255,8 @@ function populateDetail(key) {
     if (denomEl) denomEl.hidden=false;
     if (statusEl) statusEl.className=`drawer-status ${statusTone(scoreInfo.status)}`;
     if (hero) hero.classList.remove("theme-hero");
+    if (detailCanaryWrap) detailCanaryWrap.hidden=false;
+    if (detailCanaryBird) detailCanaryBird.src=canaryImageForScore(scoreInfo.score);
   } else {
     setText("detailScoreLabel","THEME VIEW");
     setText("detailScore","LIVE");
@@ -1259,6 +1266,7 @@ function populateDetail(key) {
     if (denomEl) denomEl.hidden=true;
     if (statusEl) statusEl.className="drawer-status watch";
     if (hero) hero.classList.add("theme-hero");
+    if (detailCanaryWrap) detailCanaryWrap.hidden=true;
   }
 
   const body=document.getElementById("detailBody");

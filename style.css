@@ -1187,3 +1187,83 @@ body.detail-open{overflow:hidden}
     line-height:1.45;
   }
 }
+
+
+/* ===== v4.22 Canary emphasis + component Deep Dive bird ===== */
+
+/* Let the Canary illustration occupy most of the dark gauge interior.
+   Text/needle remain above it. */
+.desktop-canary-bird{
+  top:24px!important;
+  width:270px!important;
+  height:270px!important;
+  opacity:.31!important;
+  filter:saturate(.88) brightness(.72)!important;
+}
+.mobile-canary-bird{
+  top:13px!important;
+  width:276px!important;
+  height:276px!important;
+  opacity:.30!important;
+  filter:saturate(.88) brightness(.70)!important;
+}
+
+/* Component Deep Dive: score | visual state | status */
+.drawer-hero{
+  display:grid!important;
+  grid-template-columns:minmax(115px,1fr) 104px minmax(145px,1fr);
+  align-items:center!important;
+}
+.drawer-canary-wrap{
+  width:92px;
+  height:92px;
+  justify-self:center;
+  border-radius:50%;
+  overflow:hidden;
+  filter:drop-shadow(0 7px 14px rgba(6,34,50,.13));
+}
+.drawer-canary-wrap[hidden]{display:none!important}
+.drawer-canary-bird{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.drawer-status-wrap{justify-self:end}
+
+/* Theme views have no component score, so keep the original two-column feel. */
+.drawer-hero.theme-hero{
+  grid-template-columns:1fr auto!important;
+}
+.drawer-hero.theme-hero .drawer-status-wrap{grid-column:2}
+
+@media(max-width:720px){
+  .desktop-canary-bird{
+    top:15px!important;
+    width:262px!important;
+    height:262px!important;
+  }
+  .mobile-canary-bird{
+    top:11px!important;
+    width:282px!important;
+    height:282px!important;
+  }
+  .drawer-hero{
+    grid-template-columns:minmax(90px,1fr) 76px minmax(115px,1fr)!important;
+    gap:10px!important;
+  }
+  .drawer-canary-wrap{
+    width:70px;
+    height:70px;
+  }
+  .drawer-status-wrap{max-width:none!important}
+}
+@media(max-width:430px){
+  .drawer-hero{
+    grid-template-columns:minmax(76px,1fr) 62px minmax(102px,1fr)!important;
+    gap:7px!important;
+  }
+  .drawer-canary-wrap{width:58px;height:58px}
+  .drawer-status{padding:6px 8px;font-size:9px}
+  .drawer-meta{font-size:8px}
+}

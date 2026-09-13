@@ -6,10 +6,10 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
-<!-- frontend v4.21: Norwegian explanation layer + Fiasco Finance identity -->
-<link href="style.css?v=4.21" rel="stylesheet"/>
+<!-- frontend v4.22: Norwegian explanation layer + Fiasco Finance identity -->
+<link href="style.css?v=4.22" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.21"></script>
+<script defer="" src="script.js?v=4.22"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -394,6 +394,9 @@
       <div>
         <div class="drawer-label" id="detailScoreLabel">CANARY SCORE</div>
         <div class="drawer-score-line"><span id="detailScore">—</span><small id="detailScoreDenom">/100</small></div>
+      </div>
+      <div class="drawer-canary-wrap" id="detailCanaryWrap" aria-hidden="true">
+        <img class="drawer-canary-bird" id="detailCanaryBird" src="assets/canary-watch.png" alt=""/>
       </div>
       <div class="drawer-status-wrap">
         <div class="drawer-status" id="detailStatus">—</div>
