@@ -14,6 +14,9 @@ let UI_LANG = localStorage.getItem(UI_LANG_KEY) || "no";
 
 const NO_TEXT = new Map(Object.entries({
 
+  "Daily OpenRouter Token Volume is shown together with a 30D rolling average. The daily series shows real usage volatility; the rolling average makes the underlying demand trend easier to read.":"Daglig OpenRouter Token Volume vises sammen med et 30D glidende gjennomsnitt. Dagstallene viser den faktiske variasjonen i bruken, mens 30D-linjen gjør den underliggende demand-trenden lettere å lese.",
+
+
   "Token Economics asks whether AI usage is expanding fast enough to offset falling effective expenditure per token. A decline in unit economics is less worrying when it triggers much stronger usage; it becomes more concerning when monetization weakens without enough volume response.":"Token Economics undersøker om AI-bruken vokser raskt nok til å veie opp for fallende effective expenditure per token. Lavere kostnad per token er mindre bekymringsfullt dersom det utløser klart høyere bruk. Risikoen øker dersom monetization svekkes uten at volume responderer nok.",
   "The score is calculated in Google Sheets. Volume receives 60% base weight. Expenditure drawdown receives 40%, but strong volume growth can reduce up to half of that drawdown risk before the 40% weight is applied.":"Scoren beregnes i Google Sheets. Volume får 60% grunnvekt. Expenditure drawdown får 40%, men sterk volume growth kan redusere opptil halvparten av denne drawdown-risikoen før 40%-vekten brukes.",
   "The two scored drivers and the latest expenditure observation are shown separately so usage growth is not confused with price/expenditure economics.":"De to driverne som scores og siste expenditure-observasjon vises separat. Dermed blander vi ikke vekst i AI-bruk sammen med utviklingen i price/expenditure economics.",
@@ -480,9 +483,7 @@ function renderOverview(data) {
   marketSignal("US10Y", market.us10y, "us10yValue","us10yMove","us10yRisk",
     Number(latest.us10yChangeBps), latest.us10yPeriod || "1W", "bps", "direct", "%");
 
-  const hyChange = weeklyDelta(history, "hyOas");
-  marketSignal("HY OAS", market.hyOas, "hyOasValue","hyOasMove","hyOasRisk",
-    hyChange, "1W", "bpsFromPct", "direct", "%");
+  renderTokenDemandOverview(data);
 
   const token = tg.TOKEN_SD;
   const h100sd = tg.H100_SD;
@@ -552,7 +553,7 @@ function renderOverviewSparklines(data) {
   spark("soxSpark", history.slice(-52).map(r=>r.sox));
   spark("vixSpark", history.slice(-52).map(r=>r.vix));
   spark("us10ySpark", history.slice(-52).map(r=>r.us10y));
-  spark("hyOasSpark", history.slice(-52).map(r=>r.hyOas));
+  renderTokenDemandSpark(data);
 
   const tokenSeries = seriesRows(data.tokenGpu || [], "TOKEN_SD");
   const h100Series = seriesRows(data.tokenGpu || [], "H100_SD");
@@ -560,6 +561,201 @@ function renderOverviewSparklines(data) {
   setText("h100Period", `${h100Series.length} OBS · AVAILABLE HISTORY`);
   spark("tokenSpark", tokenSeries.map(r=>r.value));
   spark("h100Spark", h100Series.map(r=>r.value));
+}
+
+
+function tokenDemandRows(data=DATA) {
+  return (data?.tokenVolumeHistory || [])
+    .map(r=>({
+      date:String(r.date || ""),
+      totalTokens:toNum(r.totalTokens),
+      avg30:toNum(r.avg30)
+    }))
+    .filter(r=>r.date && Number.isFinite(r.totalTokens));
+}
+
+function tokenDemandTrillions(value) {
+  return Number.isFinite(toNum(value))
+    ? `${formatNumber(toNum(value)/1e12,2)}T`
+    : "—";
+}
+
+function renderTokenDemandOverview(data) {
+  const rows=tokenDemandRows(data);
+  const vol=tokenRow("30D Avg Token Volume");
+  const avg=toNum(vol.currentValue);
+  const change=toNum(vol.change);
+  const risk=toNum(vol.score);
+
+  setText("tokenDemandValue",tokenDemandTrillions(avg));
+
+  const move=document.getElementById("tokenDemandMove");
+  if (move) {
+    move.textContent=Number.isFinite(change)
+      ? `${change>0?"↑":change<0?"↓":"→"} ${formatPercent(Math.abs(change))} · vs previous 30D`
+      : `${rows.length} daily observations`;
+    move.className=`move-line ${Number.isFinite(change)?(change>0?"move-up":change<0?"move-down":"move-flat"):"move-flat"}`;
+  }
+
+  const chip=document.getElementById("tokenDemandRisk");
+  if (chip && Number.isFinite(risk)) {
+    const status=scoreStatus(risk);
+    const tone=statusTone(status);
+    chip.textContent=`${formatNumber(risk,0)} · ${status}`;
+    chip.className=`risk-chip token-demand-risk ${tone}`;
+  }
+}
+
+function renderTokenDemandSpark(data) {
+  if (typeof Chart==="undefined") return;
+  const rows=tokenDemandRows(data);
+  const canvas=document.getElementById("tokenDemandSpark");
+  if (!canvas || rows.length<2) return;
+
+  const key="spark-tokenDemandSpark";
+  if (charts[key]) charts[key].destroy();
+
+  charts[key]=new Chart(canvas,{
+    type:"line",
+    data:{
+      labels:rows.map(r=>r.date),
+      datasets:[
+        {
+          label:"Daily Token Volume",
+          data:rows.map(r=>r.totalTokens/1e12),
+          borderWidth:1,
+          pointRadius:0,
+          tension:.08,
+          spanGaps:true,
+          borderColor:"rgba(142,167,186,.46)"
+        },
+        {
+          label:"30D Average",
+          data:rows.map(r=>Number.isFinite(r.avg30)?r.avg30/1e12:null),
+          borderWidth:2.4,
+          pointRadius:0,
+          tension:.16,
+          spanGaps:true,
+          borderColor:"#45d7ff"
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled:true,
+          backgroundColor:"#071826",
+          borderColor:"rgba(137,181,214,.22)",
+          borderWidth:1,
+          titleColor:"#F5F8FC",
+          bodyColor:"#DDE9F2",
+          callbacks:{
+            label:(ctx)=>`${ctx.dataset.label}: ${formatNumber(ctx.parsed.y,2)}T`
+          }
+        }
+      },
+      scales:{x:{display:false},y:{display:false}}
+    }
+  });
+}
+
+function tokenDemandDetailChartHtml() {
+  const rows=tokenDemandRows();
+  const vol=tokenRow("30D Avg Token Volume");
+  const current=toNum(vol.currentValue);
+  const previous=toNum(vol.previousValue);
+  const change=toNum(vol.change);
+  const first=rows[0]?.date || "—";
+  const last=rows[rows.length-1]?.date || "—";
+
+  if (rows.length<2) {
+    return `<div class="detail-empty">Token Volume history is not available from the API yet.</div>`;
+  }
+
+  return `<div class="token-demand-detail-card">
+    <div class="token-demand-detail-head">
+      <div>
+        <strong>TOKEN DEMAND TREND · 12 MONTHS</strong>
+        <small>${escapeHtml(first)} → ${escapeHtml(last)} · OpenRouter daily observations</small>
+      </div>
+      <div class="token-demand-detail-stat">
+        <b>${tokenDemandTrillions(current)}</b>
+        <span>30D AVG</span>
+        <em>${Number.isFinite(change)?formatSignedPercent(change):"—"} vs previous 30D</em>
+      </div>
+    </div>
+    <div class="token-demand-detail-legend"><span class="daily">Daily Token Volume</span><span class="avg">30D Rolling Average</span></div>
+    <div class="token-demand-detail-chart"><canvas id="tokenDemandDetailChart"></canvas></div>
+    <div class="token-demand-detail-foot"><span>Previous 30D avg ${tokenDemandTrillions(previous)}</span><span>Daily series is factual OpenRouter data · no interpolation</span></div>
+  </div>`;
+}
+
+function renderTokenDemandDetailChart() {
+  if (typeof Chart==="undefined") return;
+  const rows=tokenDemandRows();
+  const canvas=document.getElementById("tokenDemandDetailChart");
+  if (!canvas || rows.length<2) return;
+
+  const key="token-demand-detail";
+  if (charts[key]) charts[key].destroy();
+
+  charts[key]=new Chart(canvas,{
+    type:"line",
+    data:{
+      labels:rows.map(r=>r.date),
+      datasets:[
+        {
+          label:"Daily Token Volume",
+          data:rows.map(r=>r.totalTokens/1e12),
+          borderWidth:1.2,
+          pointRadius:0,
+          pointHoverRadius:2,
+          tension:.08,
+          spanGaps:true,
+          borderColor:"rgba(87,116,132,.48)"
+        },
+        {
+          label:"30D Rolling Average",
+          data:rows.map(r=>Number.isFinite(r.avg30)?r.avg30/1e12:null),
+          borderWidth:3,
+          pointRadius:0,
+          pointHoverRadius:3,
+          tension:.16,
+          spanGaps:true,
+          borderColor:"#087fa6"
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:"#0a2638",
+          borderColor:"rgba(8,127,166,.28)",
+          borderWidth:1,
+          titleColor:"#f5fbfe",
+          bodyColor:"#d8e9f1",
+          callbacks:{
+            label:(ctx)=>`${ctx.dataset.label}: ${formatNumber(ctx.parsed.y,2)}T`
+          }
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:"#6b8593",maxTicksLimit:6}},
+        y:{
+          grid:{color:"rgba(16,49,71,.08)"},
+          ticks:{color:"#6b8593",callback:(v)=>`${formatNumber(v,1)}T`}
+        }
+      }
+    }
+  });
 }
 
 function renderTakeaways(data) {
@@ -1271,6 +1467,7 @@ function populateDetail(key) {
 
   const body=document.getElementById("detailBody");
   if (body) body.innerHTML=buildDetailBody(key);
+  if (key==="token") requestAnimationFrame(renderTokenDemandDetailChart);
 }
 
 function detailScoreInfo(key) {
@@ -1826,6 +2023,7 @@ function tokenDetailHtml() {
       {label:"Token Expenditure",value:Number.isFinite(expCurrent)?`$${formatNumber(expCurrent,2)} / 1M`:"—",note:Number.isFinite(expChange)?`${formatSignedPercent(expChange)} vs previous observation`:"Silicon Data"},
       {label:"Drawdown from May Peak",value:Number.isFinite(drawChange)?formatSignedPercent(drawChange):"—",note:Number.isFinite(drawPrevious)?`$${formatNumber(drawCurrent,2)} vs $${formatNumber(drawPrevious,2)}`:"Peak comparison",riskScore:drawScore}
     ]))
+    + sectionHtml("TOKEN DEMAND TREND","Daily OpenRouter Token Volume is shown together with a 30D rolling average. The daily series shows real usage volatility; the rolling average makes the underlying demand trend easier to read.",tokenDemandDetailChartHtml())
     + sectionHtml("HOW THE 15.2 IS BUILT","The score is calculated in Google Sheets. Volume receives 60% base weight. Expenditure drawdown receives 40%, but strong volume growth can reduce up to half of that drawdown risk before the 40% weight is applied.",tokenScoreBuildHtml(volScore,drawScore,volChange,finalScore))
     + sectionHtml("UNDERLYING DATA","The two scored drivers and the latest expenditure observation are shown separately so usage growth is not confused with price/expenditure economics.",`
       <div class="token-data-grid">

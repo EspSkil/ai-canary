@@ -6,10 +6,10 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
-<!-- frontend v4.23: Norwegian explanation layer + Fiasco Finance identity -->
-<link href="style.css?v=4.23" rel="stylesheet"/>
+<!-- frontend v4.24: Norwegian explanation layer + Fiasco Finance identity -->
+<link href="style.css?v=4.24" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.23"></script>
+<script defer="" src="script.js?v=4.24"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -172,11 +172,12 @@
 <div class="move-line" id="us10yMove">—</div>
 <div class="sparkline-wrap"><canvas id="us10ySpark"></canvas></div>
 </div>
-<div class="signal-card">
-<div class="signal-head"><div><span class="ticker">HY OAS</span><span class="signal-name">High Yield Credit Spread</span><button aria-label="About HY OAS" class="info-btn" data-info="hyoas">i</button></div><span class="risk-chip" id="hyOasRisk">—</span></div><div class="spark-period">12M</div>
-<div class="signal-value" id="hyOasValue">—</div>
-<div class="move-line" id="hyOasMove">—</div>
-<div class="sparkline-wrap"><canvas id="hyOasSpark"></canvas></div>
+<div class="signal-card token-demand-card">
+<div class="signal-head"><div><span class="ticker">TOKEN DEMAND</span><span class="signal-name">OpenRouter Token Volume</span><button aria-label="About Token Demand" class="info-btn" data-info="tokenDemand">i</button></div><span class="risk-chip" id="tokenDemandRisk">—</span></div><div class="spark-period">12M · DAILY + 30D AVG</div>
+<div class="signal-value" id="tokenDemandValue">—</div>
+<div class="move-line" id="tokenDemandMove">—</div>
+<div class="token-demand-mini-legend"><span class="daily">Daily</span><span class="avg">30D avg</span></div>
+<div class="sparkline-wrap token-demand-spark"><canvas id="tokenDemandSpark"></canvas></div>
 </div>
 <div class="signal-card">
 <div class="signal-head"><div><span class="ticker">TOKEN INDEX</span><span class="signal-name">AI Token Expenditure</span><button aria-label="About Token Index" class="info-btn" data-info="token">i</button></div><span class="risk-chip" id="tokenRisk">—</span></div><div class="spark-period" id="tokenPeriod">HISTORY</div>

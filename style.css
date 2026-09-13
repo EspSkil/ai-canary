@@ -1277,3 +1277,84 @@ body.detail-open{overflow:hidden}
     height:298px!important;
   }
 }
+
+
+/* ===== v4.24 Token Demand trend ===== */
+.token-demand-mini-legend,
+.token-demand-detail-legend{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:8px;
+  color:var(--muted);
+}
+.token-demand-mini-legend{margin-top:5px}
+.token-demand-mini-legend span,
+.token-demand-detail-legend span{display:inline-flex;align-items:center;gap:5px}
+.token-demand-mini-legend span:before,
+.token-demand-detail-legend span:before{
+  content:"";
+  width:16px;
+  height:2px;
+  border-radius:999px;
+  display:inline-block;
+}
+.token-demand-mini-legend .daily:before{background:rgba(142,167,186,.55);height:1px}
+.token-demand-mini-legend .avg:before{background:#45d7ff}
+.token-demand-risk.good{color:var(--green);border-color:rgba(74,209,138,.30);background:rgba(74,209,138,.08)}
+.token-demand-risk.watch{color:var(--yellow);border-color:rgba(247,217,76,.30);background:rgba(247,217,76,.08)}
+.token-demand-risk.warning{color:var(--orange);border-color:rgba(255,157,67,.30);background:rgba(255,157,67,.08)}
+.token-demand-risk.danger{color:var(--red);border-color:rgba(255,94,111,.30);background:rgba(255,94,111,.08)}
+
+.token-demand-detail-card{
+  margin-top:14px;
+  border:1px solid rgba(16,49,71,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.62);
+  padding:14px;
+}
+.token-demand-detail-head{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+}
+.token-demand-detail-head strong{
+  display:block;
+  font-size:11px;
+  letter-spacing:.08em;
+  color:#173747;
+}
+.token-demand-detail-head small{
+  display:block;
+  margin-top:4px;
+  font-size:9px;
+  color:#708895;
+}
+.token-demand-detail-stat{text-align:right;white-space:nowrap}
+.token-demand-detail-stat b{display:block;font-size:24px;color:#0b344b;line-height:1}
+.token-demand-detail-stat span{display:block;font-size:8px;font-weight:900;letter-spacing:.10em;color:#638194;margin-top:3px}
+.token-demand-detail-stat em{display:block;font-style:normal;font-size:9px;font-weight:800;color:#15845a;margin-top:5px}
+.token-demand-detail-legend{margin:12px 0 5px;color:#69818e}
+.token-demand-detail-legend .daily:before{background:rgba(87,116,132,.48);height:1px}
+.token-demand-detail-legend .avg:before{background:#087fa6;height:3px}
+.token-demand-detail-chart{height:230px}
+.token-demand-detail-chart canvas{width:100%!important;height:230px!important}
+.token-demand-detail-foot{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:7px;
+  padding-top:8px;
+  border-top:1px solid rgba(16,49,71,.08);
+  color:#718a98;
+  font-size:8.5px;
+}
+
+@media(max-width:720px){
+  .token-demand-detail-head{gap:10px}
+  .token-demand-detail-stat b{font-size:20px}
+  .token-demand-detail-chart{height:200px}
+  .token-demand-detail-chart canvas{height:200px!important}
+  .token-demand-detail-foot{flex-direction:column;gap:3px}
+}
