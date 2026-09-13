@@ -1358,3 +1358,44 @@ body.detail-open{overflow:hidden}
   .token-demand-detail-chart canvas{height:200px!important}
   .token-demand-detail-foot{flex-direction:column;gap:3px}
 }
+
+
+/* ===== v4.25 compact mobile header + Canary sizing refinements ===== */
+
+/* Desktop headline gauge only: make the Canary slightly larger and a little lower.
+   Mobile headline gauge remains exactly as in v4.24. */
+@media(min-width:721px){
+  .desktop-canary-bird{
+    top:20px!important;
+    width:320px!important;
+    height:320px!important;
+  }
+}
+
+/* Deep Dive: keep the bird in the exact same grid position,
+   only make the illustration moderately larger on all screen sizes. */
+.drawer-canary-wrap{
+  width:104px!important;
+  height:104px!important;
+}
+
+@media(max-width:720px){
+  /* Mobile top: remove the explanatory ownership/model text completely.
+     Keep FIASCOFINANCE.NO + AI CANARY + bird + language/status controls. */
+  .fiasco-model-intro{
+    display:none!important;
+  }
+
+  /* Same Deep Dive placement as before, only a little larger. */
+  .drawer-canary-wrap{
+    width:80px!important;
+    height:80px!important;
+  }
+}
+
+@media(max-width:430px){
+  .drawer-canary-wrap{
+    width:68px!important;
+    height:68px!important;
+  }
+}
