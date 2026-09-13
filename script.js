@@ -447,6 +447,7 @@ function renderOverview(data) {
   const history = data.marketHistory || [];
 
   const score = Number(headline?.score ?? latest.canaryScore);
+  updateCanaryGaugeBirds(score);
   if (Number.isFinite(score)) {
     setText("canaryScore", Math.round(score));
     const gauge = document.getElementById("scoreGauge");
@@ -790,6 +791,7 @@ function renderMobileDashboard(data) {
   const x=data.canary?.latest||{}, m=data.latestMarket||{}, tg=data.latestTokenGpu||{};
   const headline=data.dynamicHeadline?.available?data.dynamicHeadline:null;
   const score=toNum(headline?.score ?? x.canaryScore);
+  updateCanaryGaugeBirds(score);
   setText("mobileCanaryScore",Number.isFinite(score)?Math.round(score):"—");
   setText("mobileCanaryStatus",headline?.status||x.status||scoreStatus(score));
   setText("mobileHedgeRead",`Hedge Read: ${headline?.hedgeRead||x.hedgeRead||"—"}`);
@@ -1094,6 +1096,22 @@ function scoreStatus(score) {
   if (score <= 50) return "WATCH";
   if (score <= 75) return "WARNING";
   return "DANGER";
+}
+
+function canaryImageForScore(score) {
+  if (!Number.isFinite(score)) return "assets/canary-watch.png";
+  if (score <= 25) return "assets/canary-healthy.png";
+  if (score <= 50) return "assets/canary-watch.png";
+  if (score <= 75) return "assets/canary-warning.png";
+  return "assets/canary-danger.png";
+}
+
+function updateCanaryGaugeBirds(score) {
+  const src = canaryImageForScore(score);
+  ["desktopCanaryBird","mobileCanaryBird"].forEach(id => {
+    const img = document.getElementById(id);
+    if (img && img.getAttribute("src") !== src) img.setAttribute("src", src);
+  });
 }
 
 function statusTone(status) {
@@ -1978,7 +1996,7 @@ function explainDetailHtml(){
     {label:"4 · Compute & AI Models",value:"Scarcity or oversupply?",note:"GPU pricing · utilization · tokens"},
     {label:"5 · End Users & Monetization",value:"Is value reaching users?",note:"Demand · adoption · monetization"}
   ]))
-  + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div>`)
+  + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div><div class="canary-status-explainer"><img src="assets/Canary-status.png" alt="AI Canary score levels: Healthy, Watch, Warning and Danger"/><div class="canary-status-caption">Kanarifuglen i gruven ga et tidlig varsel når miljøet ble farlig. AI Canary bruker samme idé: vi følger tegnene før risikoen blir åpenbar.</div></div>`)
   + sectionHtml("DATA MAP · WHAT WE FETCH","The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.",sourceTable)
   + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.",sourceNote("Research framework · source-first · no invented data"));
 }

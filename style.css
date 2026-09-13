@@ -1104,3 +1104,86 @@ body.detail-open{overflow:hidden}
   .fiasco-model-intro{max-width:100%;font-size:10.5px;line-height:1.4;margin-top:6px}
   .fiasco-model-intro strong{font-size:11px}
 }
+
+
+/* ===== v4.21 Canary visual states + Explain metaphor ===== */
+.canary-gauge-bird{
+  position:absolute;
+  left:50%;
+  border-radius:50%;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  mix-blend-mode:screen;
+  filter:saturate(.95) brightness(.88);
+}
+
+/* Desktop: subtle visual state behind the needle and score. */
+.desktop-canary-bird{
+  z-index:4;
+  top:54px;
+  width:154px;
+  height:154px;
+  transform:translateX(-50%);
+  opacity:.27;
+}
+.score-gauge-semi .gauge-needle{z-index:9}
+.score-gauge-semi .semi-score-content{z-index:10}
+.score-gauge-semi .gauge-scale-labels{z-index:8}
+
+/* Mobile uses the same live Canary score and the same four assets. */
+.mobile-canary-bird{
+  z-index:3;
+  top:49px;
+  width:158px;
+  height:158px;
+  transform:translateX(-50%);
+  opacity:.29;
+}
+.mobile-gauge-needle{z-index:7}
+.mobile-gauge-score{z-index:8}
+
+/* Explain: full visual metaphor under the score-band explanation. */
+.canary-status-explainer{
+  margin-top:16px;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid rgba(16,49,71,.12);
+  background:rgba(222,238,245,.46);
+}
+.canary-status-explainer img{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:10px;
+}
+.canary-status-caption{
+  margin-top:9px;
+  font-size:11px;
+  line-height:1.5;
+  color:#4d6f80;
+  text-align:center;
+}
+
+/* The compact mobile header keeps the ownership statement, but drops the second sentence. */
+@media(max-width:800px){
+  .fiasco-model-intro span{display:none!important}
+  .fiasco-model-intro{margin-top:5px}
+}
+@media(max-width:720px){
+  .mobile-canary-bird{
+    top:47px;
+    width:164px;
+    height:164px;
+    opacity:.30;
+  }
+  .canary-status-explainer{
+    padding:7px;
+    margin-top:13px;
+  }
+  .canary-status-caption{
+    font-size:10px;
+    line-height:1.45;
+  }
+}
