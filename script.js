@@ -589,11 +589,62 @@ function weeklyDelta(history,key) {
   return Number(valid[valid.length-1][key]) - Number(valid[valid.length-2][key]);
 }
 
+
+function finiteMarketValue(v){
+  if(v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function marketDateValue(row){
+  const raw = row?.date ?? row?.Date ?? row?.weekEnding ?? row?.WeekEnding;
+  if(!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function last365Days(history){
+  const dated = (history || [])
+    .map(r => ({...r, __date: marketDateValue(r)}))
+    .filter(r => r.__date)
+    .sort((a,b) => a.__date - b.__date);
+  if(!dated.length) return [];
+  const latest = dated[dated.length - 1].__date;
+  const cutoff = new Date(latest);
+  cutoff.setDate(cutoff.getDate() - 365);
+  return dated.filter(r => r.__date >= cutoff);
+}
+
+function weeklyEopSeries(history, key){
+  const rows = last365Days(history);
+  const weeks = new Map();
+
+  rows.forEach(r => {
+    const value = finiteMarketValue(r[key]);
+    if(value === null) return;
+
+    const d = new Date(r.__date);
+    const day = (d.getUTCDay() + 6) % 7; // Monday = 0
+    const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    monday.setUTCDate(monday.getUTCDate() - day);
+    const weekKey = monday.toISOString().slice(0,10);
+
+    const prev = weeks.get(weekKey);
+    if(!prev || r.__date > prev.date){
+      weeks.set(weekKey, {date:r.__date, value});
+    }
+  });
+
+  return Array.from(weeks.values())
+    .sort((a,b) => a.date - b.date)
+    .map(x => x.value);
+}
+
 function renderOverviewSparklines(data) {
   const history = data.marketHistory || [];
-  spark("soxSpark", history.slice(-52).map(r=>r.sox));
-  spark("vixSpark", history.slice(-52).map(r=>r.vix));
-  spark("us10ySpark", history.slice(-52).map(r=>r.us10y));
+  spark("soxSpark", weeklyEopSeries(history, "sox"));
+  spark("vixSpark", weeklyEopSeries(history, "vix"));
+  spark("us10ySpark", weeklyEopSeries(history, "us10y"));
   renderTokenDemandSpark(data);
 
   const tokenSeries = seriesRows(data.tokenGpu || [], "TOKEN_SD");
@@ -1289,7 +1340,7 @@ function lineChart(key,id,labels,datasets) {
 
 function spark(id,data) {
   if (typeof Chart === "undefined") return;
-  const values = data.filter(v => Number.isFinite(Number(v))).map(Number);
+  const values = data.filter(v => v !== "" && v !== null && v !== undefined && Number.isFinite(Number(v))).map(Number);
   if (!values.length) return;
   const key = `spark-${id}`;
   if (charts[key]) charts[key].destroy();
