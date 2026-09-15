@@ -132,6 +132,47 @@ const NO_TEXT = new Map(Object.entries({
   "Tracks market confirmation from semiconductors and chip-linked indicators. Weakness can signal falling expectations for the AI infrastructure cycle before reported fundamentals turn.":"Vi bruker semiconductors og chip-relaterte markedssignaler som en tidlig bekreftelse eller advarsel. Svakhet kan vise fallende forventninger til AI-infrastruktur før det synes i rapporterte fundamentals.",
   "Tracks the scale and momentum of AI-related capital spending by major hyperscalers and infrastructure providers. High CAPEX is not automatically risky; the Canary cares when investment outruns monetization and financing capacity.":"Vi følger størrelse og momentum i AI-relatert CAPEX hos hyperscalers og infrastrukturleverandører. Høy CAPEX er ikke automatisk negativt; risikoen øker når investeringene løper foran monetization og financing capacity.",
   "Tracks the external environment around the AI cycle: rates, volatility, credit spreads and other macro/liquidity signals that can amplify or cushion company-specific stress.":"Vi følger omgivelsene rundt AI-syklusen: rates, volatility, credit spreads og andre macro/liquidity-signaler som kan forsterke eller dempe selskapsspesifikt stress."
+  ,"Capital & Financing asks whether the AI buildout can still be funded on acceptable terms while future obligations continue to accumulate. This is where high rates, widening credit stress and binding commitments can turn an investment boom into financial pressure.":"Capital & Financing undersøker om AI-utbyggingen fortsatt kan finansieres på akseptable vilkår samtidig som fremtidige forpliktelser vokser. Høye renter, økende credit stress og bindende commitments kan gjøre en investeringsboom til finansielt press."
+  ,"Cost of capital":"Cost of capital"
+  ,"Are nominal and real yields making long-duration AI projects harder to finance?":"Gjør nominal og real yields langsiktige AI-prosjekter vanskeligere å finansiere?"
+  ,"AI-specific credit":"AI-specific credit"
+  ,"Are CDS and company financing burdens deteriorating before broad credit markets?":"Svekkes CDS og selskapenes financing burden før det brede credit-markedet?"
+  ,"Locked-in obligations":"Locked-in obligations"
+  ,"Are leases, purchases and other commitments growing faster than the revenue base?":"Vokser leases, purchases og andre commitments raskere enn revenue-basen?"
+  ,"Hyperscalers & Neocloud are the spending engine of the AI cycle. Canary tests whether infrastructure investment and contractual commitments are being matched by durable customer demand rather than simply by continued capacity expansion.":"Hyperscalers & Neocloud er investeringsmotoren i AI-syklusen. Canary undersøker om infrastructure investment og contractual commitments møtes av varig customer demand, og ikke bare av fortsatt kapasitetsutbygging."
+  ,"Investment pace":"Investment pace"
+  ,"Is AI infrastructure CAPEX still accelerating, flattening or being revised?":"Akselererer AI infrastructure CAPEX fortsatt, flater den ut eller blir guidance revidert?"
+  ,"Commitment growth":"Commitment growth"
+  ,"Are future obligations expanding faster than the companies' financial capacity?":"Vokser fremtidige obligations raskere enn selskapenes finansielle kapasitet?"
+  ,"Demand absorption":"Demand absorption"
+  ,"Are cloud growth, backlog and AI revenue strong enough to absorb the new capacity?":"Er cloud growth, backlog og AI revenue sterke nok til å absorbere den nye kapasiteten?"
+  ,"Semis & Hardware is the physical supply chain of the AI boom. Chip-market strength can confirm healthy infrastructure demand, while weakening semiconductor momentum alongside softer compute economics can be an early sign that supply is catching demand.":"Semis & Hardware er den fysiske supply chain i AI-boomen. Styrke i chip-markedet kan bekrefte sunn infrastructure demand, mens svakere semiconductor momentum sammen med mykere compute economics kan være et tidlig tegn på at supply tar igjen demand."
+  ,"Chip-market confirmation":"Chip-market confirmation"
+  ,"Does semiconductor performance still confirm the AI investment narrative?":"Bekrefter semiconductor performance fortsatt AI investment narrative?"
+  ,"Compute balance":"Compute balance"
+  ,"Are GPU supply and rental economics moving from scarcity toward abundance?":"Beveger GPU supply og rental economics seg fra scarcity mot større tilgjengelighet?"
+  ,"Cross-signal confirmation":"Cross-signal confirmation"
+  ,"Does hardware weakness appear together with softer demand or token economics?":"Opptrer svakhet i hardware samtidig med svakere demand eller Token Economics?"
+  ,"Compute & AI Models connects the cost and availability of GPU capacity with actual model usage. Falling compute prices can be healthy when efficiency improves, but become a warning when they coincide with weaker utilization, token demand or monetization.":"Compute & AI Models kobler kostnad og tilgjengelighet på GPU-kapasitet med faktisk model usage. Fallende compute prices kan være sunt når effektiviteten øker, men blir et varselsignal dersom det skjer samtidig med svakere utilization, token demand eller monetization."
+  ,"GPU economics":"GPU economics"
+  ,"Are rental prices and availability signalling scarcity, balance or oversupply?":"Signaliserer rental prices og tilgjengelighet scarcity, balanse eller oversupply?"
+  ,"Utilization":"Utilization"
+  ,"Is installed compute capacity being used intensively enough to justify further buildout?":"Brukes installert compute capacity intensivt nok til å forsvare videre buildout?"
+  ,"Token activity":"Token activity"
+  ,"Is model usage expanding strongly enough as the cost per token changes?":"Vokser model usage sterkt nok når cost per token endres?"
+  ,"End Users & Monetization is where the AI Money Circle ultimately has to pay for itself. Infrastructure spending is sustainable only if enterprises and consumers keep increasing usage and if that activity converts into durable cloud, software and model-layer revenue.":"End Users & Monetization er punktet hvor AI Money Circle til slutt må betale for seg. Infrastructure spending er bærekraftig bare dersom enterprises og consumers fortsetter å øke bruken, og aktiviteten omsettes i varig cloud-, software- og model-layer revenue."
+  ,"Usage growth":"Usage growth"
+  ,"Are token volumes and AI workloads continuing to expand?":"Fortsetter token volumes og AI workloads å vokse?"
+  ,"Revenue conversion":"Revenue conversion"
+  ,"Are cloud growth, RPO/backlog and AI-related revenues keeping pace with capacity?":"Holder cloud growth, RPO/backlog og AI-relatert revenue tritt med kapasiteten?"
+  ,"Unit economics":"Unit economics"
+  ,"Can falling model costs support more usage without destroying monetization?":"Kan fallende model costs støtte høyere usage uten å ødelegge monetization?"
+  ,"Financing and Commitment are separate risk components; confirmation across both is more important than either signal alone.":"Financing og Commitment er separate risk components; bekreftelse fra begge er viktigere enn ett signal alene."
+  ,"The key question is whether demand and monetization keep pace with the enormous infrastructure buildout.":"Nøkkelspørsmålet er om demand og monetization holder tritt med den enorme infrastructure buildout."
+  ,"Semiconductor weakness matters most when it is confirmed by compute, demand and financing signals.":"Semiconductor-svakhet betyr mest når den bekreftes av compute-, demand- og financing-signaler."
+  ,"GPU utilization remains a planned input; the page should distinguish connected evidence from planned signals.":"GPU utilization er fortsatt et planlagt input; siden skiller mellom tilkoblede data og planlagte signaler."
+  ,"Enterprise-adoption data can strengthen this node later when a stable, repeatable series is connected.":"Enterprise-adoption kan styrke dette temaet senere når vi har koblet til en stabil og repeterbar dataserie."
+
 }));
 
 function setupLanguageToggle(){
@@ -1362,20 +1403,20 @@ function escapeHtml(value) {
 
 // ===== v3.6 Universal Canary Deep Dive =====
 const DETAIL_META = {
-  token:{icon:"◈",kicker:"CANARY DEEP DIVE · MONETIZATION",title:"Token Economics",subtitle:"Is AI usage and monetization keeping pace with the investment cycle?"},
-  demand:{icon:"↗",kicker:"CANARY DEEP DIVE · DEMAND",title:"AI Demand",subtitle:"Are customers and cloud workloads absorbing the expanding AI capacity?"},
-  compute:{icon:"▦",kicker:"CANARY DEEP DIVE · COMPUTE",title:"Compute Supply",subtitle:"Is AI compute capacity scarce, balanced or moving toward oversupply?"},
-  semis:{icon:"◇",kicker:"CANARY DEEP DIVE · SEMICONDUCTORS",title:"Semiconductor Market",subtitle:"Does the chip market confirm or challenge the AI investment narrative?"},
-  capex:{icon:"$",kicker:"CANARY DEEP DIVE · INVESTMENT",title:"CAPEX Investment",subtitle:"How quickly is infrastructure spending expanding, and who is carrying it?"},
-  commitment:{icon:"∞",kicker:"CANARY DEEP DIVE · COMMITMENTS",title:"Commitment Overhang",subtitle:"How large, fast-growing and binding are future AI-related obligations?"},
-  financing:{icon:"≈",kicker:"CANARY DEEP DIVE · FINANCING",title:"Financing Conditions",subtitle:"Is funding pressure emerging inside AI before the broad market?"},
-  macro:{icon:"△",kicker:"CANARY DEEP DIVE · MACRO",title:"Macro & Risk",subtitle:"Is the external market environment amplifying or cushioning AI-cycle risk?"},
+  token:{icon:"🪙",kicker:"CANARY DEEP DIVE · MONETIZATION",title:"Token Economics",subtitle:"Holder AI-bruk og monetization tritt med investeringstakten?"},
+  demand:{icon:"☁️",kicker:"CANARY DEEP DIVE · DEMAND",title:"AI Demand",subtitle:"Er demand sterk nok til å absorbere den voksende AI-kapasiteten?"},
+  compute:{icon:"🖥️",kicker:"CANARY DEEP DIVE · COMPUTE",title:"Compute Supply",subtitle:"Er AI compute fortsatt knapp, i balanse eller på vei mot oversupply?"},
+  semis:{icon:"💾",kicker:"CANARY DEEP DIVE · SEMICONDUCTORS",title:"Semiconductor Market",subtitle:"Bekrefter chip-markedet AI investment narrative, eller sender det varselsignaler?"},
+  capex:{icon:"🏗️",kicker:"CANARY DEEP DIVE · INVESTMENT",title:"CAPEX Investment",subtitle:"Hvor raskt vokser infrastructure spending, og hvem bærer investeringene?"},
+  commitment:{icon:"📜",kicker:"CANARY DEEP DIVE · COMMITMENTS",title:"Commitment Overhang",subtitle:"Hvor store, raskt voksende og bindende er fremtidige AI-relaterte obligations?"},
+  financing:{icon:"🏦",kicker:"CANARY DEEP DIVE · FINANCING",title:"Financing Conditions",subtitle:"Oppstår financing stress i AI-sektoren før det synes i det brede markedet?"},
+  macro:{icon:"🌐",kicker:"CANARY DEEP DIVE · MACRO",title:"Macro & Risk",subtitle:"Forsterker eller demper markedet rundt oss risikoen i AI-syklusen?"},
   divergence:{icon:"⇄",kicker:"CANARY DEEP DIVE · CREDIT DIVERGENCE",title:"Canary Divergence",subtitle:"AI-specific credit stress versus broad financing conditions."},
-  "money-financing":{icon:"◎",kicker:"AI MONEY CIRCLE · 1",title:"Capital & Financing",subtitle:"Funding, commitments and credit conditions feeding the AI cycle."},
-  "money-hyperscalers":{icon:"☁",kicker:"AI MONEY CIRCLE · 2",title:"Hyperscalers & Neocloud",subtitle:"CAPEX, commitments and demand across the largest AI infrastructure buyers."},
-  "money-semis":{icon:"◇",kicker:"AI MONEY CIRCLE · 3",title:"Semis & Hardware",subtitle:"Chips, hardware demand and market confirmation."},
-  "money-compute":{icon:"▦",kicker:"AI MONEY CIRCLE · 4",title:"Compute & AI Models",subtitle:"GPU economics, supply, token activity and model-layer demand."},
-  "money-monetization":{icon:"↗",kicker:"AI MONEY CIRCLE · 5",title:"End Users & Monetization",subtitle:"The part of the loop that must ultimately justify the infrastructure buildout."},
+  "money-financing":{icon:"◎",kicker:"AI MONEY CIRCLE · 1",title:"Capital & Financing",subtitle:"Funding, commitments og credit conditions som driver AI-syklusen."},
+  "money-hyperscalers":{icon:"☁",kicker:"AI MONEY CIRCLE · 2",title:"Hyperscalers & Neocloud",subtitle:"CAPEX, commitments og demand hos de største kjøperne av AI-infrastruktur."},
+  "money-semis":{icon:"◇",kicker:"AI MONEY CIRCLE · 3",title:"Semis & Hardware",subtitle:"Chips, hardware demand og markedets bekreftelse på AI-syklusen."},
+  "money-compute":{icon:"▦",kicker:"AI MONEY CIRCLE · 4",title:"Compute & AI Models",subtitle:"GPU economics, supply, token activity og demand i modell-laget."},
+  "money-monetization":{icon:"↗",kicker:"AI MONEY CIRCLE · 5",title:"End Users & Monetization",subtitle:"Delen av kretsløpet som til slutt må forsvare den store infrastructure buildout."},
   explain:{icon:"🐤",kicker:"AI CANARY · EXPLAIN",title:"How AI Canary works",subtitle:"Purpose, model logic, scoring and how to read the dashboard."}
 };
 
