@@ -486,6 +486,13 @@ async function loadDashboard() {
   }
 }
 
+function latestMarketSnapshotDate(data) {
+  const market=data?.latestMarket || {};
+  const dates=[market.sox?.date,market.vix?.date,market.us10y?.date,market.real10y?.date,market.igOas?.date,market.hyOas?.date,market.usdJpy?.date]
+    .filter(Boolean).map(String).sort();
+  return dates.length ? dates[dates.length-1].slice(0,10) : null;
+}
+
 function renderOverview(data) {
   const latest = data.canary?.latest || {};
   const headline = data.dynamicHeadline?.available ? data.dynamicHeadline : null;
@@ -513,7 +520,8 @@ function renderOverview(data) {
 
   setText("canaryStatus", headline?.status || latest.status || "—");
   setText("hedgeRead", `Hedge Read: ${headline?.hedgeRead || latest.hedgeRead || "—"}`);
-  setText("snapshotDate", latest.week ? `Snapshot ${latest.week}` : "Weekly snapshot");
+  const marketSnapshotDate = latestMarketSnapshotDate(data);
+  setText("snapshotDate", marketSnapshotDate ? `Snapshot ${marketSnapshotDate}` : "Latest market data");
 
   marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
     Number(latest.soxChange), latest.soxPeriod || "1W", "pct", "inverse");
@@ -911,6 +919,7 @@ function renderMoneyCircle(data) {
   const dynCompute = dynamicScore(data,"computeSupply",x.computeScore);
   const dynCommit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const dynFin = dynamicScore(data,"financingConditions",x.financingScore);
+  const dynCapex = dynamicScore(data,"capexInvestment",x.capexScore);
 
   const nodes = [
     {
@@ -924,9 +933,9 @@ function renderMoneyCircle(data) {
     },
     {
       id:"moneyNode2",
-      scores:[toNum(x.capexScore),toNum(dynCommit.score)],
+      scores:[toNum(dynCapex.score),toNum(dynCommit.score)],
       badges:[
-        `CAPEX ${fmtScore(x.capexScore)}`,
+        `CAPEX ${fmtScore(dynCapex.score)}`,
         `Commitments ${fmtScore(dynCommit.score)}`
       ]
     },
@@ -1019,13 +1028,14 @@ function componentItems(data) {
   const commit = dynamicScore(data,"commitmentOverhang",x.commitmentScore);
   const fin = dynamicScore(data,"financingConditions",x.financingScore);
   const macro = dynamicScore(data,"macroRisk",x.macroScore);
+  const capex = dynamicScore(data,"capexInvestment",x.capexScore);
 
   return [
     {name:"Token Economics",score:token.score,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Dynamic · volume × expenditure"},
     {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Locked v3 · revenue, cloud growth & backlog"},
     {name:"Compute Supply",score:compute.score,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"Dynamic · H100 pricing & scarcity premium"},
     {name:"Semiconductor Market",score:semis.score,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Dynamic · 30D SOX momentum"},
-    {name:"CAPEX Investment",score:x.capexScore,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"Locked v3 · AI infrastructure spending"},
+    {name:"CAPEX Investment",score:capex.score,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"Dynamic · scale, growth, gap & guidance"},
     {name:"Commitment Overhang",score:commit.score,icon:"📜",detail:"commitment",info:"commitmentOverhangIndicator",subtitle:"Dynamic · future obligations & momentum"},
     {name:"Financing Conditions",score:fin.score,icon:"🏦",detail:"financing",info:"financingConditionsIndicator",subtitle:"Dynamic · credit, rates & financing burden"},
     {name:"Macro & Risk",score:macro.score,icon:"🌐",detail:"macro",info:"macroRisk",subtitle:"Dynamic · VIX, USDJPY & US 10Y"}
@@ -1086,7 +1096,7 @@ function renderMobileDashboard(data) {
   setText("mobileCanaryScore",Number.isFinite(score)?Math.round(score):"—");
   setText("mobileCanaryStatus",headline?.status||x.status||scoreStatus(score));
   setText("mobileHedgeRead",`Hedge Read: ${headline?.hedgeRead||x.hedgeRead||"—"}`);
-  setText("mobileSnapshotDate",x.week||"Latest");
+  setText("mobileSnapshotDate",latestMarketSnapshotDate(data)||"Latest");
   const needle=document.getElementById("mobileGaugeNeedle");
   if(needle&&Number.isFinite(score)) needle.style.setProperty("--needle-angle",`${-90+Math.max(0,Math.min(100,score))*1.8}deg`);
   const history=data.marketHistory||[];
@@ -1568,12 +1578,13 @@ function detailScoreInfo(key) {
   const fin=dynamicScore(DATA,"financingConditions",x.financingScore);
   const macro=dynamicScore(DATA,"macroRisk",x.macroScore);
   const compute=dynamicScore(DATA,"computeSupply",x.computeScore);
+  const capex=dynamicScore(DATA,"capexInvestment",x.capexScore);
   const map={
     token:{score:toNum(dynamicScore(DATA,"tokenEconomics",x.tokenScore).score),status:dynamicScore(DATA,"tokenEconomics",x.tokenScore).status,label:"TOKEN ECONOMICS SCORE",meta:"Dynamic Google Sheet model"},
     demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
     compute:{score:toNum(compute.score),status:compute.status,label:"COMPUTE SUPPLY SCORE",meta:"Dynamic Google Sheet model · GPU utilization planned"},
     semis:{score:toNum(dynamicScore(DATA,"semiconductorMarket",x.semisScore).score),status:dynamicScore(DATA,"semiconductorMarket",x.semisScore).status,label:"SEMICONDUCTOR MARKET SCORE",meta:"Dynamic Google Sheet model · SOX momentum"},
-    capex:{score:toNum(x.capexScore),label:"CAPEX INVESTMENT SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    capex:{score:toNum(capex.score),status:capex.status,label:"CAPEX INVESTMENT SCORE",meta:"Dynamic Google Sheet model · company risk + breadth"},
     commitment:{score:toNum(commit.score),status:commit.status,label:"COMMITMENT OVERHANG SCORE",meta:"Dynamic Google Sheet model"},
     financing:{score:toNum(fin.score),status:fin.status,label:"FINANCING CONDITIONS SCORE",meta:"Dynamic Google Sheet model"},
     macro:{score:toNum(macro.score),status:macro.status,label:"MACRO & RISK SCORE",meta:"Dynamic Google Sheet model · headline Canary 41 remains locked"}
@@ -2210,15 +2221,105 @@ function semisDetailHtml() {
 }
 
 function capexDetailHtml() {
-  const rows=DATA.capex || [];
-  const latestByCompany={};
-  rows.forEach(r=>{ const c=r.company; if(!c) return; const d=String(r.observationDate||r.publicationDate||r.period||""); if(!latestByCompany[c] || d>String(latestByCompany[c].observationDate||latestByCompany[c].publicationDate||latestByCompany[c].period||"")) latestByCompany[c]=r; });
-  const latest=Object.values(latestByCompany).slice(0,8).map(r=>({label:`${r.company} · ${r.metric||"CAPEX"}`,value:Number.isFinite(toNum(r.value))?`${formatNumber(toNum(r.value),1)} ${r.unit||""}`:(Number.isFinite(toNum(r.low))&&Number.isFinite(toNum(r.high))?`${formatNumber(toNum(r.low),0)}–${formatNumber(toNum(r.high),0)} ${r.unit||""}`:"—"),context:r.period||r.dataType||""}));
-  return sectionHtml("WHY IT MATTERS","CAPEX is the physical investment pulse of the AI cycle. The risk comes from the relationship between spending, demand, commitments and financing — not from a high CAPEX number alone.",metricCards([
-    {label:"CAPEX score",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Current Canary component",riskScore:toNum(DATA.canary?.latest?.capexScore),locked:true},
-    {label:"Raw rows",value:String(rows.length),note:"CAPEX API dataset"},
-    {label:"Companies",value:String(new Set(rows.map(r=>r.company).filter(Boolean)).size),note:"Tracked issuers"}
-  ]))+sectionHtml("LATEST COMPANY OBSERVATIONS","Latest available row per company from the connected CAPEX dataset.",evidenceTable(latest))+sectionHtml("DATA & EVIDENCE","CAPEX keeps reported actuals and guidance as separate data types so changes in accounting classification do not silently become economic changes.",sourceNote("Live API-connected"));
+  const rows=(DATA.capexMomentum?.rows || []).filter(r=>r.company && Number.isFinite(toNum(r.compositeRisk)));
+  const summary=DATA.capexMomentum?.summary || {};
+  const dyn=dynamicScore(DATA,"capexInvestment",DATA.canary?.latest?.capexScore);
+  const avg=summaryValue(summary,"averageCompanyRisk");
+  const above50=summaryValue(summary,"companiesAbove50");
+  const above75=summaryValue(summary,"companiesAbove75");
+  const total=summaryValue(summary,"totalCompanies");
+  const elevated=summaryValue(summary,"elevatedBreadth");
+  const danger=summaryValue(summary,"dangerBreadth");
+  const breadth=summaryValue(summary,"breadthScore");
+  const finalScore=summaryValue(summary,"capexInvestment");
+  const score=Number.isFinite(finalScore)?finalScore:toNum(dyn.score);
+  const status=dyn.status || scoreStatus(score);
+
+  const topCards=metricCards([
+    {label:"CAPEX Investment",value:Number.isFinite(score)?formatNumber(score,1):"—",note:`Total score · ${status}`,riskScore:score},
+    {label:"Average Company Risk",value:Number.isFinite(avg)?formatNumber(avg,1):"—",note:"70% av totalscoren",riskScore:avg},
+    {label:"Elevated breadth",value:Number.isFinite(elevated)?formatPercent(elevated):"—",note:`${Number.isFinite(above50)?formatNumber(above50,0):"—"}/${Number.isFinite(total)?formatNumber(total,0):"—"} selskaper over 50`},
+    {label:"Danger breadth",value:Number.isFinite(danger)?formatPercent(danger):"—",note:`${Number.isFinite(above75)?formatNumber(above75,0):"—"}/${Number.isFinite(total)?formatNumber(total,0):"—"} selskaper over 75`}
+  ]);
+
+  const read=`<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">CAPEX-risk er høy og bred, men den mest ekstreme ubalansen er fortsatt konsentrert.</div><p>${Number.isFinite(above50)&&Number.isFinite(total)?`${formatNumber(above50,0)} av ${formatNumber(total,0)} selskaper ligger over 50 i Composite Risk`:`Flere selskaper ligger høyt i modellen`}, mens ${Number.isFinite(above75)?formatNumber(above75,0):"—"} ligger i DANGER. Derfor er totalen ${Number.isFinite(score)?formatNumber(score,1):"—"} · ${escapeHtml(status)} – et tydelig varsel, men ikke et bredt DANGER-signal ennå.</p></section>`;
+
+  return sectionHtml("HVORFOR DET BETYR NOE","CAPEX er den fysiske investeringspulsen i AI-syklusen. Modellen spør ikke bare hvor mye selskapene investerer, men om investeringsveksten er økonomisk begrunnet av demand/monetization growth.",topCards)
+    + read
+    + sectionHtml("SELSKAPSSTATUS","Hvert selskap scores på investeringsintensitet, CAPEX growth, gapet mot demand growth og guidance. Åpne en rad for å se beregningen.",capexCompanyTable(rows))
+    + sectionHtml("TOTALSCORE","Total CAPEX Investment kombinerer gjennomsnittlig selskapsrisiko med hvor bredt stresset er på tvers av selskapene.",capexAggregateBuildHtml(avg,elevated,danger,breadth,score))
+    + sectionHtml("HVORDAN VI SCORER SELSKAPENE","Composite Risk = 30% Scale + 20% Growth + 35% Growth Gap + 15% Guidance. Growth Gap har størst vekt fordi modellen spesielt skal fange når investeringene vokser raskere enn etterspørselen som skal forsvare dem.",capexMethodologyHtml())
+    + sectionHtml("DATA & EVIDENCE","Tallene kommer fra CAPEX, AI_Demand og Company_Financials i Google Sheet. Selskaper uten sammenlignbar Guidance får ikke en kunstig nøytral verdi; tilgjengelige vekter normaliseres i selskapsmodellen.",sourceNote("Live CAPEX_Momentum · dynamic score"));
+}
+
+function capexCompanyTable(rows){
+  if(!rows.length) return `<div class="detail-empty">Ingen tilkoblede CAPEX Momentum-rader ennå.</div>`;
+  return `<div class="capex-model-table">
+    <div class="capex-table-head"><span>Selskap</span><span>CAPEX / Rev.</span><span>CAPEX growth</span><span>Demand growth</span><span>Gap</span><span>Risk</span><span>Status</span><span></span></div>
+    ${rows.map(r=>{
+      const risk=toNum(r.compositeRisk), status=r.status||scoreStatus(risk), tone=statusTone(status);
+      const scale=toNum(r.scaleScore), growth=toNum(r.growthScore), gap=toNum(r.gapScore), guide=toNum(r.guidanceScore);
+      const hasGuide=Number.isFinite(guide);
+      const weights=hasGuide?[.30,.20,.35,.15]:[.30/.85,.20/.85,.35/.85,0];
+      const pieces=[scale,growth,gap,guide];
+      const contrib=pieces.map((v,i)=>Number.isFinite(v)?v*weights[i]:NaN);
+      return `<details class="capex-company-row">
+        <summary>
+          <span class="company-name">${escapeHtml(r.company)}</span>
+          <span class="company-value">${Number.isFinite(toNum(r.capexRevenue))?formatPercent(toNum(r.capexRevenue)):"—"}</span>
+          <span class="company-change ${toNum(r.capexGrowth)>0?"risk-up":toNum(r.capexGrowth)<0?"risk-down":"flat"}">${Number.isFinite(toNum(r.capexGrowth))?formatSignedPercent(toNum(r.capexGrowth)):"—"}</span>
+          <span class="company-value">${Number.isFinite(toNum(r.revenueDemandGrowth))?formatPercent(toNum(r.revenueDemandGrowth)):"—"}</span>
+          <span class="company-change ${toNum(r.capexGrowthGap)>0?"risk-up":"risk-down"}">${Number.isFinite(toNum(r.capexGrowthGap))?formatSignedPercent(toNum(r.capexGrowthGap)):"—"}</span>
+          <span class="company-risk ${tone}">${Number.isFinite(risk)?formatNumber(risk,1):"—"}</span>
+          <span class="capex-status ${tone}">${escapeHtml(status)}</span>
+          <span class="row-action">Detaljer <span class="row-chevron">⌄</span></span>
+        </summary>
+        <div class="company-risk-detail">
+          <div class="company-detail-title">Hvorfor ${escapeHtml(r.company)} scorer ${Number.isFinite(risk)?formatNumber(risk,1):"—"}</div>
+          <div class="company-risk-explain capex-risk-explain">
+            ${capexScoreBox("Scale",scale,weights[0],"TTM CAPEX / TTM Revenue")}
+            ${capexScoreBox("Growth",growth,weights[1],"CAPEX growth YoY")}
+            ${capexScoreBox("Growth Gap",gap,weights[2],"CAPEX growth − demand growth")}
+            ${hasGuide?capexScoreBox("Guidance",guide,weights[3],"Endring i investeringsplan"):`<div><span>Guidance</span><strong>—</strong><small>Ikke sammenlignbar · øvrige vekter normaliseres</small></div>`}
+            <div class="composite-box"><span>Composite Risk</span><strong>${Number.isFinite(risk)?formatNumber(risk,1):"—"}</strong><small>${contrib.filter(Number.isFinite).map(v=>formatNumber(v,1)).join(" + ")} · ${escapeHtml(status)}</small></div>
+          </div>
+          <div class="company-detail-meta capex-detail-meta">
+            <span><b>Current CAPEX:</b> ${Number.isFinite(toNum(r.currentCapex))?formatNumber(toNum(r.currentCapex),2):"—"}</span>
+            <span><b>Previous CAPEX:</b> ${Number.isFinite(toNum(r.previousCapex))?formatNumber(toNum(r.previousCapex),2):"—"}</span>
+            <span><b>TTM CAPEX:</b> ${Number.isFinite(toNum(r.ttmCapex))?formatNumber(toNum(r.ttmCapex),2):"—"}</span>
+            <span><b>TTM Revenue:</b> ${Number.isFinite(toNum(r.ttmRevenue))?formatNumber(toNum(r.ttmRevenue),2):"—"}</span>
+            <span><b>CAPEX growth:</b> ${Number.isFinite(toNum(r.capexGrowth))?formatSignedPercent(toNum(r.capexGrowth)):"—"}</span>
+            <span><b>Demand growth:</b> ${Number.isFinite(toNum(r.revenueDemandGrowth))?formatPercent(toNum(r.revenueDemandGrowth)):"—"}</span>
+            <span><b>Growth Gap:</b> ${Number.isFinite(toNum(r.capexGrowthGap))?formatSignedPercent(toNum(r.capexGrowthGap)):"—"}</span>
+            <span><b>Guidance change:</b> ${Number.isFinite(toNum(r.guidanceChange))?formatSignedPercent(toNum(r.guidanceChange)):"Ikke tilgjengelig"}</span>
+          </div>
+        </div>
+      </details>`;
+    }).join("")}
+    <div class="commitment-table-note">Risk er 0–100. DANGER krever mer enn høy absolutt CAPEX: modellen ser etter bred og ekstrem ubalanse mellom investering, vekst og kommersiell demand.</div>
+  </div>`;
+}
+
+function capexScoreBox(label,score,weight,note){
+  return `<div><span>${escapeHtml(label)} · ${Math.round(weight*100)}%</span><strong>${Number.isFinite(score)?formatNumber(score,1):"—"}</strong><small>${Number.isFinite(score)?`${formatNumber(score,1)} × ${Math.round(weight*100)}% = ${formatNumber(score*weight,1)}`:escapeHtml(note)}</small></div>`;
+}
+
+function capexAggregateBuildHtml(avg,elevated,danger,breadth,total){
+  return `<div class="score-build capex-score-build">
+    <div class="score-build-row"><div><span>Average Company Risk</span><small>Gjennomsnitt av Composite Risk for alle seks selskaper</small></div><strong>${Number.isFinite(avg)?formatNumber(avg,1):"—"}</strong><em>× 70%</em><b>${Number.isFinite(avg)?formatNumber(avg*.70,1):"—"}</b></div>
+    <div class="score-build-row"><div><span>Breadth Score</span><small>50% Elevated breadth + 50% Danger breadth</small></div><strong>${Number.isFinite(breadth)?formatNumber(breadth,1):"—"}</strong><em>× 30%</em><b>${Number.isFinite(breadth)?formatNumber(breadth*.30,1):"—"}</b></div>
+    <div class="capex-breadth-note"><span>Elevated &gt;50: <b>${Number.isFinite(elevated)?formatPercent(elevated):"—"}</b></span><span>Danger &gt;75: <b>${Number.isFinite(danger)?formatPercent(danger):"—"}</b></span></div>
+    <div class="score-build-total"><span>CAPEX Investment</span><strong>${Number.isFinite(total)?formatNumber(total,1):"—"}</strong><small>${Number.isFinite(avg)&&Number.isFinite(breadth)?`${formatNumber(avg*.70,1)} + ${formatNumber(breadth*.30,1)} = ${formatNumber(total,1)}`:"Dynamic model"}</small></div>
+  </div>`;
+}
+
+function capexMethodologyHtml(){
+  return `<div class="methodology-grid capex-methodology">
+    <div><strong>Scale · 30%</strong><span>TTM CAPEX / TTM Revenue. Høy investeringsintensitet øker sårbarheten dersom demand svekkes.</span></div>
+    <div><strong>Growth · 20%</strong><span>CAPEX growth YoY. Rask akselerasjon gir høyere score.</span></div>
+    <div><strong>Growth Gap · 35%</strong><span>CAPEX growth minus relevant demand/revenue growth. Positivt gap betyr at investeringene løper foran demand.</span></div>
+    <div><strong>Guidance · 15%</strong><span>Endring i investeringsplan. Uendret høy guidance er nøytralt 50; økt guidance trekker risiko opp.</span></div>
+  </div>`;
 }
 
 function macroDetailHtml() {
@@ -2327,6 +2428,7 @@ function moneyFinancingHtml(){
 
 function moneyHyperscalersHtml(){
   const commit=dynamicScore(DATA,"commitmentOverhang",DATA.canary?.latest?.commitmentScore);
+  const capex=dynamicScore(DATA,"capexInvestment",DATA.canary?.latest?.capexScore);
   return moneyThemePage(
     "Hyperscalers & Neocloud are the spending engine of the AI cycle. Canary tests whether infrastructure investment and contractual commitments are being matched by durable customer demand rather than simply by continued capacity expansion.",
     [
@@ -2335,7 +2437,7 @@ function moneyHyperscalersHtml(){
       {title:"Demand absorption",text:"Are cloud growth, backlog and AI revenue strong enough to absorb the new capacity?"}
     ],
     [
-      {label:"CAPEX Investment",value:fmtScore(DATA.canary?.latest?.capexScore),note:"Infrastructure spending & guidance",riskScore:toNum(DATA.canary?.latest?.capexScore),detail:"capex",locked:true},
+      {label:"CAPEX Investment",value:fmtScore(capex.score),note:"Scale · growth · demand gap · guidance",riskScore:toNum(capex.score),detail:"capex"},
       {label:"Commitment Overhang",value:fmtScore(commit.score),note:"Future obligations & momentum",riskScore:toNum(commit.score),detail:"commitment"},
       {label:"AI Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Cloud · RPO/backlog · demand quality",riskScore:toNum(DATA.canary?.latest?.demandScore),detail:"demand",locked:true}
     ],
