@@ -405,20 +405,15 @@ function renderCachedDashboard(cache) {
 }
 
 async function fetchLiveData(timeoutMs=35000) {
-  // v4.29.1: Safari/iPad-safe live refresh.
-  // A cache-busting query avoids a stale redirect/response cache, while leaving
-  // redirect handling to the browser (Apps Script ContentService redirects once).
+  // v4.31.1: keep the proven live-refresh request path simple.
+  // Do not add query parameters or change CORS/credential handling here.
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
-  const separator = API_URL.includes("?") ? "&" : "?";
-  const requestUrl = `${API_URL}${separator}_canary=${Date.now()}`;
   try {
-    const response = await fetch(requestUrl, {
-      method:"GET",
-      mode:"cors",
-      credentials:"omit",
+    const response = await fetch(API_URL, {
       cache:"no-store",
-      signal:controller.signal
+      signal:controller.signal,
+      redirect:"follow"
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
