@@ -211,6 +211,69 @@ function applyNorwegianCopy(root=document.body){
     if(translated) n.nodeValue=raw.replace(trimmed,translated);
   });
   document.documentElement.lang="nb";
+  applyIndicatorCardLanguage(root===document.body ? document.getElementById("indicatorDashboardGrid") : root.querySelector?.("#indicatorDashboardGrid"));
+}
+
+
+// v4.32.1 — mobile primary navigation + complete Norwegian copy for the 8 indicator cards.
+function setupMobilePrimaryNav(){
+  document.querySelectorAll('.nav a[href="#overview"], .nav a[href="#moneycircle"]').forEach(link=>{
+    link.addEventListener('click',e=>{
+      if(!window.matchMedia('(max-width: 800px)').matches) return;
+      const href=link.getAttribute('href');
+      const target = href==='#overview'
+        ? document.getElementById('mobileDashboard')
+        : document.querySelector('.mobile-cycle-card');
+      if(!target) return;
+      e.preventDefault();
+      target.scrollIntoView({behavior:'smooth',block:'start'});
+      try { history.replaceState(null,'',href); } catch(_) {}
+    });
+  });
+}
+
+function applyIndicatorCardLanguage(root=document.getElementById('indicatorDashboardGrid')){
+  if(UI_LANG!=="no" || !root) return;
+  const replacements=[
+    ['TOKEN ECONOMICS','TOKENØKONOMI'],['Usage, pricing & unit economics','Bruk, prising og enhetsøkonomi'],
+    ['AI DEMAND','AI-ETTERSPØRSEL'],['AI workloads & cloud demand','AI-arbeidslaster og skyetterspørsel'],
+    ['COMPUTE SUPPLY','COMPUTE-TILBUD'],['GPU pricing & scarcity','GPU-prising og knapphet'],
+    ['SEMICONDUCTOR MARKET','HALVLEDERMARKED'],['Chip-market confirmation','Bekreftelse fra chipmarkedet'],
+    ['CAPEX INVESTMENT','CAPEX-INVESTERINGER'],['Investment intensity & growth','Investeringsintensitet og vekst'],
+    ['COMMITMENT OVERHANG','FORPLIKTELSESOVERHENG'],['Future obligations','Fremtidige forpliktelser'],
+    ['FINANCING CONDITIONS','FINANSIERINGSFORHOLD'],['Funding & credit pressure','Finansiering og kredittpress'],
+    ['MACRO & RISK','MAKRO & RISIKO'],['Market stress & macro regime','Markedsstress og makroregime'],
+    ['CANARY READ','CANARY-VURDERING'],['LIVE · DYNAMIC MODEL','LIVE · DYNAMISK MODELL'],
+    ['INTERIM · FALLBACK SCORE','MIDLERTIDIG · FALLBACK-SCORE'],['INTERIM','MIDLERTIDIG'],
+    ['Open model, methodology & evidence','Åpne modell, metodikk og datagrunnlag'],['DEEP DIVE','DYBDESJEKK'],
+    ['HEALTHY','FRISK'],['WATCH','FØLG MED'],['WARNING','ADVARSEL'],['DANGER','FARE'],
+    ['↑ RISK','↑ RISIKO'],['↓ RISK','↓ RISIKO'],['→ RISK','→ RISIKO'],
+    ['30D TOKEN VOLUME','30D TOKENVOLUM'],['TOKEN EXPENDITURE','TOKENKOSTNAD'],['FROM MAY PEAK','FRA MAI-TOPP'],['VOLUME RISK','VOLUMRISIKO'],
+    ['vs previous 30D','mot forrige 30D'],['vs previous observation','mot forrige observasjon'],['Expenditure drawdown','Fall fra kostnadstopp'],['60% model weight','60% modellvekt'],['Effective expenditure','Effektiv kostnad'],
+    ['BROAD H100','BRED H100'],['GUARANTEED H100','GARANTERT H100'],['SCARCITY PREMIUM','KNAPPHETSPREMIE'],['vs comparison','mot sammenligning'],['vs ~30D','mot ~30D'],['Guaranteed vs broad','Garantert mot bredt marked'],
+    ['Latest market observation','Siste markedsobservasjon'],['30D MOMENTUM','30D MOMENTUM'],['Current vs previous 30D','Dagens mot forrige 30D'],['MODEL SCOPE','MODELLDEKNING'],['Fundamentals planned · not scored yet','Fundamentale data planlagt · ikke scoret ennå'],
+    ['AVG COMPANY RISK','GJ.SN. SELSKAPSRISIKO'],['ELEVATED','FORHØYET'],['BREADTH','BREDDE'],['70% of headline','70% av hovedscore'],['Share above 50','Andel over 50'],['Companies above 50','Selskaper over 50'],['Breadth risk','Bredderisiko'],['30% breadth','30% bredde'],
+    ['Average Company Risk','Gj.sn. selskapsrisiko'],['Breadth Risk','Bredderisiko'],
+    ['GENERAL FINANCING','GENERELL FINANSIERING'],['Broad market funding','Bred markedsfinansiering'],['AI CREDIT STRESS','AI-KREDITTSTRESS'],['AI-linked credit','AI-relatert kreditt'],['COMPANY BURDEN','SELSKAPSBELASTNING'],['Company financing load','Selskapenes finansieringsbelastning'],['30% weight','30% vekt'],['45% weight','45% vekt'],['25% weight','25% vekt'],
+    ['28D comparison','28D sammenligning'],['SCORE','SCORE'],['No current row','Ingen aktuell rad'],['Demand signal','Etterspørselssignal'],
+    ['Usage growth is currently offsetting much of the risk from lower effective token expenditure.','Sterk bruksvekst veier nå opp for mye av risikoen fra lavere effektiv tokenkostnad.'],
+    ['Underlying company demand signals are tracked, while the headline score remains the locked fallback model.','Underliggende etterspørselssignaler fra selskapene følges, mens hovedscoren fortsatt bruker den låste fallback-modellen.'],
+    ['Headline score is not yet calculated from the company signals shown above.','Hovedscoren beregnes foreløpig ikke fra selskapssignalene som vises over.'],
+    ['Current compute pricing does not show a clear oversupply warning; guaranteed capacity still carries a premium.','Dagens compute-prising gir ikke et tydelig varsel om overtilbud; garantert kapasitet handles fortsatt med en premie.'],
+    ['The current v1 model uses SOX momentum as a fast market checkpoint; fundamental semiconductor inputs are not yet scored.','Dagens v1-modell bruker SOX-momentum som et raskt markedssignal; fundamentale halvlederdata scores foreløpig ikke.'],
+    ['CAPEX risk is broad, with the highest company-level pressure concentrated in the most aggressive infrastructure builders.','CAPEX-risikoen er bred, med høyest selskapsrisiko hos de mest aggressive infrastrukturbyggerne.'],
+    ['Commitment pressure is broad across the tracked AI ecosystem, not just large in absolute dollar terms.','Presset fra forpliktelser er bredt i AI-økosystemet og handler ikke bare om store absolutte dollarbeløp.'],
+    ['AI-specific credit stress is currently the largest financing pressure point.','AI-spesifikt kredittstress er nå det største presspunktet innen finansiering.'],
+    ['Financing pressure is distributed across broad conditions and AI-specific signals.','Finansieringspresset er fordelt mellom brede markedsforhold og AI-spesifikke signaler.'],
+    ['Macro risk is driven by volatility, FX stress and the rate regime, with credit spreads kept in Financing to avoid double counting.','Makrorisikoen drives av volatilitet, valutastress og renteregimet; kredittspreader ligger i Finansiering for å unngå dobbelttelling.']
+  ];
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node=>{
+    let text=node.nodeValue;
+    replacements.forEach(([en,no])=>{ if(text.includes(en)) text=text.split(en).join(no); });
+    node.nodeValue=text;
+  });
 }
 
 const LIVE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -225,6 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupIndicatorDetails();
   setupLanguageToggle();
   setupNorwegianObserver();
+  setupMobilePrimaryNav();
   applyNorwegianCopy();
   document.getElementById("liveLoadRetry")?.addEventListener("click", loadDashboard);
 
