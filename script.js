@@ -444,8 +444,22 @@ function renderLiveDashboardSafely(data) {
   return errors;
 }
 
+
+function classifyLiveError(err) {
+  if (err?.name === "AbortError") return {code:"TIMEOUT", detail:"No response within 35s"};
+  const message = String(err?.message || err || "Unknown error");
+  const http = message.match(/HTTP\s+(\d+)/i);
+  if (http) return {code:`HTTP ${http[1]}`, detail:message};
+  if (/ok=false/i.test(message)) return {code:"API ERROR", detail:message};
+  if (/failed to fetch|load failed|networkerror|network request failed/i.test(message)) return {code:"FETCH/NETWORK", detail:message};
+  if (/json|unexpected token|parse/i.test(message)) return {code:"JSON/PARSE", detail:message};
+  return {code:"CLIENT", detail:message};
+}
+
 async function loadDashboard() {
   loadAttempt += 1;
+  const liveStartedAt = performance.now();
+  let requestAttempts = 0;
   const retry = document.getElementById("liveLoadRetry");
   if (retry) retry.hidden = true;
   const overlay = document.getElementById("liveLoadOverlay");
@@ -478,12 +492,14 @@ async function loadDashboard() {
     setLoadStage(1, hasRenderedCachedData ? "Checking Canary snapshot" : "Loading Canary snapshot");
     let data;
     try {
+      requestAttempts += 1;
       data = await fetchLiveData(35000);
     } catch (firstErr) {
       // One retry is useful on Safari/iPad where the Apps Script redirect can
       // occasionally fail even though the endpoint itself is healthy.
       if (loadAttempt === 1 && navigator.onLine !== false) {
         await new Promise(resolve=>setTimeout(resolve,800));
+        requestAttempts += 1;
         data = await fetchLiveData(35000);
       } else {
         throw firstErr;
@@ -507,30 +523,33 @@ async function loadDashboard() {
     }
     hasRenderedCachedData = false;
 
+    const liveSeconds = ((performance.now() - liveStartedAt) / 1000).toFixed(1);
     setStatus(renderErrors.length ? "Live data · display warning" : "Live data",true);
     const generated = new Date(data.generatedAt);
     setText("lastUpdated", renderErrors.length
-      ? `API generated: ${generated.toLocaleString("nb-NO")} · ${renderErrors.length} display section(s) need attention`
-      : `API generated: ${generated.toLocaleString("nb-NO")}`);
+      ? `API generated: ${generated.toLocaleString("nb-NO")} · ${renderErrors.length} display warning(s) · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`
+      : `API generated: ${generated.toLocaleString("nb-NO")} · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`);
     hideLoadOverlay();
   } catch (err) {
     console.error(err);
-    const timedOut = err?.name === "AbortError";
+    const diagnostic = classifyLiveError(err);
+    const liveSeconds = ((performance.now() - liveStartedAt) / 1000).toFixed(1);
+    const attempts = Math.max(1, requestAttempts);
+    const online = navigator.onLine === false ? "offline" : "online";
+    const diagnosticLine = `${diagnostic.code} · ${attempts} attempt(s) · ${liveSeconds}s · ${online}`;
+
     if (hasRenderedCachedData) {
-      const msg = timedOut
-        ? "Live refresh timed out. Showing the latest saved dashboard."
-        : `Live refresh failed (${err.message}). Showing the latest saved dashboard.`;
-      setStatus("Saved data · live refresh failed",false);
-      setText("lastUpdated", document.getElementById("lastUpdated")?.textContent || "Saved dashboard");
-      // Keep the cached dashboard usable; only expose retry through status/next visit.
+      setStatus(`Saved data · ${diagnostic.code}`,false);
+      setText("lastUpdated", `Live refresh failed: ${diagnosticLine} · ${diagnostic.detail}`);
+      // Keep the cached dashboard usable. Diagnostic text tells us what failed
+      // without changing the proven request/retry path.
       hideLoadOverlay();
       return;
     }
 
-    const msg = timedOut
-      ? "The live API did not respond within 35 seconds. The page will not keep you waiting indefinitely. Try again."
-      : `Data error: ${err.message}`;
-    setStatus(msg,false);
+    const msg = `First live load failed: ${diagnosticLine}. ${diagnostic.detail}. Retry without reloading the page.`;
+    setStatus(`Live load failed · ${diagnostic.code}`,false);
+    setText("lastUpdated", diagnosticLine);
     showLoadError(msg);
   }
 }
