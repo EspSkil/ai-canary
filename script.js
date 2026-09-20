@@ -405,15 +405,18 @@ function renderCachedDashboard(cache) {
 }
 
 async function fetchLiveData(timeoutMs=35000) {
-  // v4.31.1: keep the proven live-refresh request path simple.
-  // Do not add query parameters or change CORS/credential handling here.
+  // v4.31.2: exact Safari/iPad request strategy from the proven v4.29.1 path.
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
+  const separator = API_URL.includes("?") ? "&" : "?";
+  const requestUrl = `${API_URL}${separator}_canary=${Date.now()}`;
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(requestUrl, {
+      method:"GET",
+      mode:"cors",
+      credentials:"omit",
       cache:"no-store",
-      signal:controller.signal,
-      redirect:"follow"
+      signal:controller.signal
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
@@ -422,6 +425,23 @@ async function fetchLiveData(timeoutMs=35000) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function renderLiveDashboardSafely(data) {
+  DATA = data;
+  const jobs = [
+    ["overview",()=>renderOverview(data)],
+    ["takeaways",()=>renderTakeaways(data)],
+    ["indicators",()=>renderIndicators(data)],
+    ["mobile",()=>renderMobileDashboard(data)],
+    ["money-circle",()=>renderMoneyCircle(data)],
+    ["indicator-dashboard",()=>renderIndicatorDashboard(data)],
+    ["market-charts",()=>renderMarketCharts(data.marketHistory || [])],
+    ["copy",()=>applyNorwegianCopy()]
+  ];
+  const errors=[];
+  jobs.forEach(([name,fn])=>{ try { fn(); } catch(err) { console.error(`Render failed: ${name}`,err); errors.push(`${name}: ${err?.message||err}`); } });
+  return errors;
 }
 
 async function loadDashboard() {
@@ -477,16 +497,21 @@ async function loadDashboard() {
     const liveGeneratedAt = data?.generatedAt ? String(data.generatedAt) : "";
     const sameSnapshot = hasRenderedCachedData && cachedGeneratedAt && liveGeneratedAt && cachedGeneratedAt === liveGeneratedAt;
 
+    let renderErrors=[];
     if (!sameSnapshot) {
       setLoadStage(2,"Updating dashboard");
-      renderAll(data);
+      // Persist a successfully fetched snapshot before UI rendering. A single
+      // card/rendering issue must never be reported as a failed live connection.
       saveLiveCache(data);
+      renderErrors = renderLiveDashboardSafely(data);
     }
     hasRenderedCachedData = false;
 
-    setStatus("Live data",true);
+    setStatus(renderErrors.length ? "Live data · display warning" : "Live data",true);
     const generated = new Date(data.generatedAt);
-    setText("lastUpdated",`API generated: ${generated.toLocaleString("nb-NO")}`);
+    setText("lastUpdated", renderErrors.length
+      ? `API generated: ${generated.toLocaleString("nb-NO")} · ${renderErrors.length} display section(s) need attention`
+      : `API generated: ${generated.toLocaleString("nb-NO")}`);
     hideLoadOverlay();
   } catch (err) {
     console.error(err);
@@ -1277,7 +1302,13 @@ function renderIndicatorDashboard(data) {
 
   // 8 Macro & Risk
   const mr=data.macroMomentum?.rows||[], lm=data.latestMarket||{};
-  const macroMetric=(label,key,unit="")=>{const r=mr.find(q=>String(q.metric||q.indicator||"").toUpperCase().includes(label)); const v=lm[key]?.value; return miniMetric(label,Number.isFinite(toNum(v))?`${formatNumber(toNum(v),2)}${unit}`:latestHistoryValue(key,2),Number.isFinite(toNum(r?.change))?`${formatSignedPercent(toNum(r.change))} · ~1M`:"28D comparison",r?.compositeRisk)};
+  const macroMetric=(label,key,unit="")=>{
+    const r=mr.find(q=>String(q.metric||q.indicator||"").toUpperCase().includes(label));
+    const v=lm[key]?.value, risk=toNum(r?.compositeRisk), tone=Number.isFinite(risk)?cardTone(risk):"neutral";
+    const value=Number.isFinite(toNum(v))?`${formatNumber(toNum(v),2)}${unit}`:latestHistoryValue(key,2);
+    const change=Number.isFinite(toNum(r?.change))?`${formatSignedPercent(toNum(r.change))} · ~1M`:"28D comparison";
+    return `<div class="cid-mini cid-macro-mini ${tone}"><div class="cid-mini-label">${escapeHtml(label)}</div><div class="cid-macro-value"><strong>${escapeHtml(value)}</strong>${Number.isFinite(risk)?`<b>${escapeHtml(scoreStatus(risk))}</b>`:""}</div><div class="cid-macro-bottom"><small>${escapeHtml(change)}</small>${Number.isFinite(risk)?`<span>SCORE ${fmtScore(risk)}</span>`:""}</div></div>`;
+  };
   const macroBody=`<div class="cid-metrics three">${macroMetric("VIX","vix")}${macroMetric("US 10Y","us10y","%")}${macroMetric("USDJPY","usdJpy")}</div><div class="cid-formula">45% VIX + 30% USDJPY + 25% US 10Y</div>`;
 
   host.innerHTML=[
