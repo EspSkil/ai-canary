@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbx53ydPhicHlX3o3jMbgm0z1HozvgkeJGA0MFmoIZqxeAzIdntHevNZ0JFqa7DTV5OoXw/exec";
+const DATA_URL = "./data.json";
 
 let DATA = null;
 let currentRange = 52;
@@ -404,23 +404,23 @@ function renderCachedDashboard(cache) {
   }
 }
 
-async function fetchLiveData(timeoutMs=35000) {
-  // v4.31.2: exact Safari/iPad request strategy from the proven v4.29.1 path.
+async function fetchLiveData(timeoutMs=10000) {
+  // v4.32: same-origin static snapshot served by GitHub Pages.
+  // This removes Apps Script redirects/CORS from the visitor loading path.
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
-  const separator = API_URL.includes("?") ? "&" : "?";
-  const requestUrl = `${API_URL}${separator}_canary=${Date.now()}`;
+  const separator = DATA_URL.includes("?") ? "&" : "?";
+  const requestUrl = `${DATA_URL}${separator}_canary=${Date.now()}`;
   try {
     const response = await fetch(requestUrl, {
       method:"GET",
-      mode:"cors",
-      credentials:"omit",
+      credentials:"same-origin",
       cache:"no-store",
       signal:controller.signal
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    if (!data.ok) throw new Error(data.error || "API returned ok=false");
+    if (!data || data.ok !== true) throw new Error(data?.error || "Snapshot returned ok=false");
     return data;
   } finally {
     clearTimeout(timer);
@@ -446,7 +446,7 @@ function renderLiveDashboardSafely(data) {
 
 
 function classifyLiveError(err) {
-  if (err?.name === "AbortError") return {code:"TIMEOUT", detail:"No response within 35s"};
+  if (err?.name === "AbortError") return {code:"TIMEOUT", detail:"No response from data.json within 10s"};
   const message = String(err?.message || err || "Unknown error");
   const http = message.match(/HTTP\s+(\d+)/i);
   if (http) return {code:`HTTP ${http[1]}`, detail:message};
@@ -476,35 +476,22 @@ async function loadDashboard() {
   } else {
     setText("liveLoadTitle","Loading live market data…");
     setLoadStage(0, loadAttempt > 1
-      ? `Reconnecting to Canary database · attempt ${loadAttempt}`
-      : "Connecting to Canary database");
+      ? `Reloading Canary snapshot · attempt ${loadAttempt}`
+      : "Loading Canary snapshot");
   }
 
   clearTimeout(slowLoadTimer);
   slowLoadTimer = setTimeout(()=>{
     if (!hasRenderedCachedData) {
       setText("liveLoadTitle","Still connecting…");
-      setText("liveLoadText","The live database is responding slowly. We will stop waiting soon rather than leave the page stuck loading.");
+      setText("liveLoadText","The Canary snapshot is responding slowly. We will stop waiting soon rather than leave the page stuck loading.");
     }
   },8000);
 
   try {
     setLoadStage(1, hasRenderedCachedData ? "Checking Canary snapshot" : "Loading Canary snapshot");
-    let data;
-    try {
-      requestAttempts += 1;
-      data = await fetchLiveData(35000);
-    } catch (firstErr) {
-      // One retry is useful on Safari/iPad where the Apps Script redirect can
-      // occasionally fail even though the endpoint itself is healthy.
-      if (loadAttempt === 1 && navigator.onLine !== false) {
-        await new Promise(resolve=>setTimeout(resolve,800));
-        requestAttempts += 1;
-        data = await fetchLiveData(35000);
-      } else {
-        throw firstErr;
-      }
-    }
+    requestAttempts += 1;
+    const data = await fetchLiveData(10000);
 
     // v4.29: If the device cache already contains the exact same server snapshot,
     // do not rebuild every chart/card. Re-rendering identical data caused a visible
@@ -527,8 +514,8 @@ async function loadDashboard() {
     setStatus(renderErrors.length ? "Live data · display warning" : "Live data",true);
     const generated = new Date(data.generatedAt);
     setText("lastUpdated", renderErrors.length
-      ? `API generated: ${generated.toLocaleString("nb-NO")} · ${renderErrors.length} display warning(s) · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`
-      : `API generated: ${generated.toLocaleString("nb-NO")} · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`);
+      ? `Snapshot generated: ${generated.toLocaleString("nb-NO")} · ${renderErrors.length} display warning(s) · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`
+      : `Snapshot generated: ${generated.toLocaleString("nb-NO")} · fetch ${liveSeconds}s / ${requestAttempts} attempt(s)`);
     hideLoadOverlay();
   } catch (err) {
     console.error(err);
