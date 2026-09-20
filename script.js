@@ -452,12 +452,21 @@ async function loadDashboard() {
   },8000);
 
   try {
-    setLoadStage(1, hasRenderedCachedData ? "Refreshing from Google Sheets" : "Loading live data from Google Sheets");
+    setLoadStage(1, hasRenderedCachedData ? "Checking Canary snapshot" : "Loading Canary snapshot");
     const data = await fetchLiveData(20000);
 
-    setLoadStage(2,"Building dashboard");
-    renderAll(data);
-    saveLiveCache(data);
+    // v4.29: If the device cache already contains the exact same server snapshot,
+    // do not rebuild every chart/card. Re-rendering identical data caused a visible
+    // flash on mobile/iPad even though the dashboard was already ready to use.
+    const cachedGeneratedAt = cache?.data?.generatedAt ? String(cache.data.generatedAt) : "";
+    const liveGeneratedAt = data?.generatedAt ? String(data.generatedAt) : "";
+    const sameSnapshot = hasRenderedCachedData && cachedGeneratedAt && liveGeneratedAt && cachedGeneratedAt === liveGeneratedAt;
+
+    if (!sameSnapshot) {
+      setLoadStage(2,"Updating dashboard");
+      renderAll(data);
+      saveLiveCache(data);
+    }
     hasRenderedCachedData = false;
 
     setStatus("Live data",true);
