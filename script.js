@@ -384,6 +384,7 @@ function renderAll(data) {
   renderMobileDashboard(data);
   renderMoneyCircle(data);
   renderFinancialRisk(data);
+  renderFinancingPrototype(data);
   renderMarketCharts(data.marketHistory || []);
   renderEconomics(data);
   renderTokenGpuTable(data.tokenGpu || []);
@@ -1170,6 +1171,61 @@ function setRiskCard(cardId,score,status,barId) {
   card.style.setProperty("--risk-accent",colors[tone] || colors.watch);
   const bar = document.getElementById(barId);
   if (bar && Number.isFinite(n)) bar.style.width = `${Math.max(0,Math.min(100,n))}%`;
+}
+
+function setPrototypeTone(cardId, score) {
+  const el=document.getElementById(cardId);
+  if (!el) return;
+  const tone=statusTone(scoreStatus(toNum(score)));
+  const colors={good:"#4ad18a",watch:"#f7d94c",warning:"#f59f40",danger:"#f6535b"};
+  el.style.setProperty("--component-accent",colors[tone] || colors.watch);
+}
+
+function prototypeTrendText(trend) {
+  const t=String(trend?.text||"").toLowerCase();
+  if (t.includes("↑")) return "↑ RISK";
+  if (t.includes("↓")) return "↓ RISK";
+  if (t.includes("flat")) return "→ FLAT";
+  return "→ N/A";
+}
+
+function renderFinancingPrototype(data) {
+  const fin=dynamicScore(data,"financingConditions",data.canary?.latest?.financingScore);
+  const s=data.financingMomentum?.summary || {};
+  const rows=data.financingMomentum?.rows || [];
+  const general=summaryValue(s,"generalFinancingScore");
+  const ai=summaryValue(s,"aiCreditStressScore");
+  const burden=summaryValue(s,"companyFinancingBurden");
+  const generalRows=rows.filter(r=>r.signalGroup==="GENERAL_FINANCING");
+  const aiRows=rows.filter(r=>r.signalGroup==="AI_CREDIT_STRESS");
+  const burdenRows=rows.filter(r=>r.signalGroup==="COMPANY_FINANCING");
+  const gt=riskTrendForRows(generalRows), at=riskTrendForRows(aiRows), bt=riskTrendForRows(burdenRows);
+
+  setText("financingPrototypeScore",fmtScore(fin.score));
+  setText("financingPrototypeStatus",fin.status);
+  const statusEl=document.getElementById("financingPrototypeStatus");
+  if (statusEl) statusEl.className=`status-pill compact ${statusTone(fin.status)}`;
+  const bird=document.getElementById("financingPrototypeBird");
+  if (bird) bird.src=canaryImageForScore(fin.score);
+
+  [["General",general,gt],["Ai",ai,at],["Burden",burden,bt]].forEach(([key,score,tr])=>{
+    setText(`prototype${key}Score`,fmtScore(score));
+    setText(`prototype${key}Status`,scoreStatus(toNum(score)));
+    setText(`prototype${key}Trend`,prototypeTrendText(tr));
+    setPrototypeTone(`prototype${key}Card`,score);
+    const trendEl=document.getElementById(`prototype${key}Trend`);
+    if (trendEl) trendEl.style.color=tr.tone==="danger"?"#f6535b":tr.tone==="good"?"#4ad18a":"#8da8ba";
+  });
+
+  if (Number.isFinite(ai) && Number.isFinite(general)) {
+    const gap=ai-general;
+    const read=gap>15
+      ? "AI-specific credit stress is doing most of the damage."
+      : gap<-15
+        ? "Broad financing conditions are currently the larger pressure point."
+        : "Broad and AI-specific financing stress are relatively aligned.";
+    setText("financingPrototypeRead",read);
+  }
 }
 
 function renderFinancialRisk(data) {
