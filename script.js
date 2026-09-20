@@ -407,11 +407,22 @@ function renderCachedDashboard(cache) {
   }
 }
 
-async function fetchLiveData(timeoutMs=20000) {
+async function fetchLiveData(timeoutMs=35000) {
+  // v4.29.1: Safari/iPad-safe live refresh.
+  // A cache-busting query avoids a stale redirect/response cache, while leaving
+  // redirect handling to the browser (Apps Script ContentService redirects once).
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), timeoutMs);
+  const separator = API_URL.includes("?") ? "&" : "?";
+  const requestUrl = `${API_URL}${separator}_canary=${Date.now()}`;
   try {
-    const response = await fetch(API_URL, { cache:"no-store", signal:controller.signal, redirect:"follow" });
+    const response = await fetch(requestUrl, {
+      method:"GET",
+      mode:"cors",
+      credentials:"omit",
+      cache:"no-store",
+      signal:controller.signal
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!data.ok) throw new Error(data.error || "API returned ok=false");
@@ -453,7 +464,19 @@ async function loadDashboard() {
 
   try {
     setLoadStage(1, hasRenderedCachedData ? "Checking Canary snapshot" : "Loading Canary snapshot");
-    const data = await fetchLiveData(20000);
+    let data;
+    try {
+      data = await fetchLiveData(35000);
+    } catch (firstErr) {
+      // One retry is useful on Safari/iPad where the Apps Script redirect can
+      // occasionally fail even though the endpoint itself is healthy.
+      if (loadAttempt === 1 && navigator.onLine !== false) {
+        await new Promise(resolve=>setTimeout(resolve,800));
+        data = await fetchLiveData(35000);
+      } else {
+        throw firstErr;
+      }
+    }
 
     // v4.29: If the device cache already contains the exact same server snapshot,
     // do not rebuild every chart/card. Re-rendering identical data caused a visible
@@ -488,7 +511,7 @@ async function loadDashboard() {
     }
 
     const msg = timedOut
-      ? "The live API did not respond within 20 seconds. The page will not keep you waiting indefinitely. Try again."
+      ? "The live API did not respond within 35 seconds. The page will not keep you waiting indefinitely. Try again."
       : `Data error: ${err.message}`;
     setStatus(msg,false);
     showLoadError(msg);
