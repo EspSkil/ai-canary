@@ -383,12 +383,8 @@ function renderAll(data) {
   renderIndicators(data);
   renderMobileDashboard(data);
   renderMoneyCircle(data);
-  renderFinancialRisk(data);
-  renderFinancingPrototype(data);
+  renderIndicatorDashboard(data);
   renderMarketCharts(data.marketHistory || []);
-  renderEconomics(data);
-  renderTokenGpuTable(data.tokenGpu || []);
-  renderCompanies(data.aiDemand || []);
   applyNorwegianCopy();
 }
 
@@ -1187,6 +1183,122 @@ function prototypeTrendText(trend) {
   if (t.includes("↓")) return "↓ RISK";
   if (t.includes("flat")) return "→ FLAT";
   return "→ N/A";
+}
+
+
+// ===== v4.31 Systematic 8-indicator overview =====
+function indicatorTrendLabel(rows) {
+  const t=riskTrendForRows((rows||[]).filter(Boolean));
+  if (t?.text?.includes("↑")) return {text:"↑ RISK",tone:"danger"};
+  if (t?.text?.includes("↓")) return {text:"↓ RISK",tone:"good"};
+  return {text:"→ RISK",tone:"neutral"};
+}
+function indicatorBird(score){ return canaryImageForScore(score); }
+function cardTone(score){ return statusTone(scoreStatus(toNum(score))); }
+function indicatorShell({key,icon,title,subtitle,score,status,trend,read,body,model="LIVE · DYNAMIC MODEL",note=""}) {
+  const n=toNum(score), tone=cardTone(n), st=status||scoreStatus(n), tr=trend||{text:"→ RISK",tone:"neutral"};
+  return `<article class="panel canary-indicator-card ${tone}" data-detail="${key}" role="button" tabindex="0" aria-label="Open ${escapeHtml(title)} deep dive">
+    <div class="cid-top">
+      <div class="cid-title"><span class="cid-icon">${icon}</span><div><div class="eyebrow">${escapeHtml(title)}</div><h3>${escapeHtml(subtitle)}</h3></div></div>
+      <div class="status-pill compact ${tone}">${escapeHtml(st)}</div>
+    </div>
+    <div class="cid-hero">
+      <div class="cid-score"><span>${fmtScore(n)}</span><small>/100</small><em>${escapeHtml(model)}</em></div>
+      <div class="cid-bird"><img src="${indicatorBird(n)}" alt="${escapeHtml(st)} canary"/></div>
+      <div class="cid-trend ${tr.tone||"neutral"}">${escapeHtml(tr.text||"→ RISK")}</div>
+    </div>
+    <div class="cid-read"><span>CANARY READ</span><strong>${escapeHtml(read)}</strong></div>
+    <div class="cid-body">${body}</div>
+    ${note?`<div class="cid-note">${escapeHtml(note)}</div>`:""}
+    <div class="cid-footer"><span>Open model, methodology &amp; evidence</span><strong>DEEP DIVE ›</strong></div>
+  </article>`;
+}
+function miniMetric(label,value,sub="",score=NaN,trend="") {
+  const n=toNum(score), tone=Number.isFinite(n)?cardTone(n):"neutral";
+  return `<div class="cid-mini ${tone}"><div class="cid-mini-label">${escapeHtml(label)}</div><div class="cid-mini-main"><strong>${escapeHtml(value)}</strong>${Number.isFinite(n)?`<b>${escapeHtml(scoreStatus(n))}</b>`:""}</div>${sub?`<small>${escapeHtml(sub)}</small>`:""}${trend?`<em>${escapeHtml(trend)}</em>`:""}</div>`;
+}
+function companyRiskMini(row) {
+  const n=toNum(row?.compositeRisk), tone=cardTone(n);
+  return `<div class="cid-company ${tone}"><span>${escapeHtml(row?.company||"—")}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><small>${escapeHtml(row?.status||scoreStatus(n))}</small></div>`;
+}
+function demandCompanyMini(company,rows) {
+  const cr=(rows||[]).filter(r=>String(r.company||"").toLowerCase().includes(company.toLowerCase()));
+  if(!cr.length) return `<div class="cid-demand"><span>${escapeHtml(company)}</span><strong>—</strong><small>No current row</small></div>`;
+  const periods=cr.map(r=>String(r.period||r.observationDate||"")).sort();
+  const latest=periods[periods.length-1];
+  const candidates=cr.filter(r=>String(r.period||r.observationDate||"")===latest);
+  const r=candidates.find(x=>Number.isFinite(toNum(x.yoyChange))) || candidates[0] || cr[cr.length-1];
+  return `<div class="cid-demand"><span>${escapeHtml(company)}</span><strong>${formatDemandValue(r)}</strong><small>${escapeHtml(r.metric||latest||"Demand signal")}${r.yoyChange!==undefined&&r.yoyChange!==null?` · ${formatDemandChange(r)}`:""}</small></div>`;
+}
+function renderIndicatorDashboard(data) {
+  const host=document.getElementById("indicatorDashboardGrid"); if(!host) return;
+  const x=data.canary?.latest||{};
+  const token=dynamicScore(data,"tokenEconomics",x.tokenScore);
+  const compute=dynamicScore(data,"computeSupply",x.computeScore);
+  const semis=dynamicScore(data,"semiconductorMarket",x.semisScore);
+  const capex=dynamicScore(data,"capexInvestment",x.capexScore);
+  const commit=dynamicScore(data,"commitmentOverhang",x.commitmentScore);
+  const fin=dynamicScore(data,"financingConditions",x.financingScore);
+  const macro=dynamicScore(data,"macroRisk",x.macroScore);
+
+  // 1 Token Economics
+  const vol=tokenRow("30D Avg Token Volume"), exp=tokenRow("LLM Token Expenditure Index"), draw=tokenRow("Drawdown from May Peak");
+  const tokenTrend=indicatorTrendLabel([vol,draw]);
+  const tokenBody=`<div class="cid-metrics two">${miniMetric("30D TOKEN VOLUME",tokenTrillions(vol.currentValue),Number.isFinite(toNum(vol.change))?`${formatSignedPercent(toNum(vol.change))} vs previous 30D`:"Volume momentum",vol.score)}${miniMetric("TOKEN EXPENDITURE",Number.isFinite(toNum(exp.currentValue))?`$${formatNumber(toNum(exp.currentValue),2)} / 1M`:"—",Number.isFinite(toNum(exp.change))?`${formatSignedPercent(toNum(exp.change))} vs previous observation`:"Effective expenditure")}</div><div class="cid-metrics two compact">${miniMetric("FROM MAY PEAK",Number.isFinite(toNum(draw.change))?formatSignedPercent(toNum(draw.change)):"—","Expenditure drawdown",draw.score)}${miniMetric("VOLUME RISK",Number.isFinite(toNum(vol.score))?formatNumber(toNum(vol.score),1):"—","60% model weight",vol.score)}</div>`;
+  const tokenRead="Usage growth is currently offsetting much of the risk from lower effective token expenditure.";
+
+  // 2 AI Demand — explicitly interim / locked headline score
+  const demandRows=data.aiDemand||[];
+  const demandBody=`<div class="cid-demand-grid">${["CoreWeave","Microsoft","Amazon","Oracle"].map(c=>demandCompanyMini(c,demandRows)).join("")}</div>`;
+
+  // 3 Compute Supply
+  const compRows=data.computeMomentum?.rows||[];
+  const broad=compRows.find(r=>String(r.metric||"").includes("Broad Rental"))||{};
+  const guaranteed=compRows.find(r=>String(r.metric||"").includes("Guaranteed 30D"))||{};
+  const premium=compRows.find(r=>String(r.metric||"").includes("Guaranteed Premium"))||{};
+  const computeBody=`<div class="cid-metrics three">${miniMetric("BROAD H100",Number.isFinite(toNum(broad.currentValue))?`$${formatNumber(toNum(broad.currentValue),2)}`:"—",Number.isFinite(toNum(broad.change))?`${formatSignedPercent(toNum(broad.change))} vs comparison`:"Rental / GPU-h",broad.riskScore)}${miniMetric("GUARANTEED H100",Number.isFinite(toNum(guaranteed.currentValue))?`$${formatNumber(toNum(guaranteed.currentValue),2)}`:"—",Number.isFinite(toNum(guaranteed.change))?`${formatSignedPercent(toNum(guaranteed.change))} vs ~30D`:"CCIR / GPU-h",guaranteed.riskScore)}${miniMetric("SCARCITY PREMIUM",Number.isFinite(toNum(premium.currentValue))?formatPercent(toNum(premium.currentValue)):"—","Guaranteed vs broad",premium.riskScore)}</div>`;
+
+  // 4 Semiconductor Market — v1 is intentionally SOX-only
+  const semi=semiRow("30D Avg SOX"), sox=data.latestMarket?.sox||{};
+  const semisBody=`<div class="cid-metrics three">${miniMetric("SOX",Number.isFinite(toNum(sox.value))?formatNumber(toNum(sox.value),0):"—",sox.date||"Latest market observation")}${miniMetric("30D MOMENTUM",Number.isFinite(toNum(semi.change))?formatSignedPercent(toNum(semi.change)):"—",Number.isFinite(toNum(semi.previousValue))?`${formatNumber(toNum(semi.currentValue),0)} vs ${formatNumber(toNum(semi.previousValue),0)}`:"Current vs previous 30D",semi.score)}${miniMetric("MODEL SCOPE","SOX v1","Fundamentals planned · not scored yet")}</div>`;
+
+  // 5 CAPEX
+  const capRows=(data.capexMomentum?.rows||[]).filter(r=>r.company&&Number.isFinite(toNum(r.compositeRisk)));
+  const cs=data.capexMomentum?.summary||{};
+  const capAvg=summaryValue(cs,"averageCompanyRisk"), capBreadth=summaryValue(cs,"breadthScore"), capElev=summaryValue(cs,"companiesAbove50"), capDanger=summaryValue(cs,"companiesAbove75"), capTotal=summaryValue(cs,"totalCompanies");
+  const capBody=`<div class="cid-company-grid">${capRows.map(companyRiskMini).join("")}</div><div class="cid-summary-row">${miniMetric("AVG COMPANY RISK",Number.isFinite(capAvg)?formatNumber(capAvg,0):"—","70% of headline",capAvg)}${miniMetric("ELEVATED",Number.isFinite(capElev)&&Number.isFinite(capTotal)?`${capElev}/${capTotal}`:"—",Number.isFinite(summaryValue(cs,"elevatedBreadth"))?formatPercent(summaryValue(cs,"elevatedBreadth")):"Breadth")}${miniMetric("DANGER",Number.isFinite(capDanger)&&Number.isFinite(capTotal)?`${capDanger}/${capTotal}`:"—",Number.isFinite(capBreadth)?`Breadth risk ${formatNumber(capBreadth,0)}`:"30% breadth")}</div><div class="cid-formula">70% Average Company Risk + 30% Breadth Risk → <strong>${fmtScore(capex.score)}</strong></div>`;
+
+  // 6 Commitment
+  const comRows=(data.commitmentMomentum?.rows||[]).filter(r=>r.company&&Number.isFinite(toNum(r.compositeRisk)));
+  const cms=data.commitmentMomentum?.summary||{};
+  const comAvg=summaryValue(cms,"averageCompanyRisk"), comBreadth=summaryValue(cms,"breadth"), comElev=summaryValue(cms,"companiesAbove50"), comTotal=summaryValue(cms,"totalCompanies");
+  const comBody=`<div class="cid-company-grid">${comRows.map(companyRiskMini).join("")}</div><div class="cid-summary-row">${miniMetric("AVG COMPANY RISK",Number.isFinite(comAvg)?formatNumber(comAvg,0):"—","70% of headline",comAvg)}${miniMetric("BREADTH",Number.isFinite(comBreadth)?formatPercent(comBreadth):"—","Share above 50")}${miniMetric("ELEVATED",Number.isFinite(comElev)&&Number.isFinite(comTotal)?`${comElev}/${comTotal}`:"—","Companies above 50")}</div>`;
+
+  // 7 Financing Conditions
+  const fs=data.financingMomentum?.summary||{}, fr=data.financingMomentum?.rows||[];
+  const general=summaryValue(fs,"generalFinancingScore"), ai=summaryValue(fs,"aiCreditStressScore"), burden=summaryValue(fs,"companyFinancingBurden");
+  const financingBody=`<div class="cid-financing-grid">${financingSub("GENERAL FINANCING","Broad market funding",general,"30% weight",indicatorTrendLabel(fr.filter(r=>r.signalGroup==="GENERAL_FINANCING")))}${financingSub("AI CREDIT STRESS","AI-linked credit",ai,"45% weight",indicatorTrendLabel(fr.filter(r=>r.signalGroup==="AI_CREDIT_STRESS")))}${financingSub("COMPANY BURDEN","Company financing load",burden,"25% weight",indicatorTrendLabel(fr.filter(r=>r.signalGroup==="COMPANY_FINANCING")))}</div>`;
+  const finRead=Number.isFinite(ai)&&Number.isFinite(general)&&ai-general>15?"AI-specific credit stress is currently the largest financing pressure point.":"Financing pressure is distributed across broad conditions and AI-specific signals.";
+
+  // 8 Macro & Risk
+  const mr=data.macroMomentum?.rows||[], lm=data.latestMarket||{};
+  const macroMetric=(label,key,unit="")=>{const r=mr.find(q=>String(q.metric||q.indicator||"").toUpperCase().includes(label)); const v=lm[key]?.value; return miniMetric(label,Number.isFinite(toNum(v))?`${formatNumber(toNum(v),2)}${unit}`:latestHistoryValue(key,2),Number.isFinite(toNum(r?.change))?`${formatSignedPercent(toNum(r.change))} · ~1M`:"28D comparison",r?.compositeRisk)};
+  const macroBody=`<div class="cid-metrics three">${macroMetric("VIX","vix")}${macroMetric("US 10Y","us10y","%")}${macroMetric("USDJPY","usdJpy")}</div><div class="cid-formula">45% VIX + 30% USDJPY + 25% US 10Y</div>`;
+
+  host.innerHTML=[
+    indicatorShell({key:"token",icon:"🪙",title:"TOKEN ECONOMICS",subtitle:"Usage, pricing & unit economics",score:token.score,status:token.status,trend:tokenTrend,read:tokenRead,body:tokenBody}),
+    indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:"AI workloads & cloud demand",score:x.demandScore,status:scoreStatus(toNum(x.demandScore)),trend:{text:"INTERIM",tone:"neutral"},read:"Underlying company demand signals are tracked, while the headline score remains the locked fallback model.",body:demandBody,model:"INTERIM · FALLBACK SCORE",note:"Headline score is not yet calculated from the company signals shown above."}),
+    indicatorShell({key:"compute",icon:"🖥️",title:"COMPUTE SUPPLY",subtitle:"GPU pricing & scarcity",score:compute.score,status:compute.status,trend:indicatorTrendLabel(compRows),read:"Current compute pricing does not show a clear oversupply warning; guaranteed capacity still carries a premium.",body:computeBody}),
+    indicatorShell({key:"semis",icon:"💾",title:"SEMICONDUCTOR MARKET",subtitle:"Chip-market confirmation",score:semis.score,status:semis.status,trend:indicatorTrendLabel([semi]),read:"The current v1 model uses SOX momentum as a fast market checkpoint; fundamental semiconductor inputs are not yet scored.",body:semisBody}),
+    indicatorShell({key:"capex",icon:"🏗️",title:"CAPEX INVESTMENT",subtitle:"Investment intensity & growth",score:capex.score,status:capex.status,trend:indicatorTrendLabel(capRows),read:"CAPEX risk is broad, with the highest company-level pressure concentrated in the most aggressive infrastructure builders.",body:capBody}),
+    indicatorShell({key:"commitment",icon:"📜",title:"COMMITMENT OVERHANG",subtitle:"Future obligations",score:commit.score,status:commit.status,trend:indicatorTrendLabel(comRows),read:"Commitment pressure is broad across the tracked AI ecosystem, not just large in absolute dollar terms.",body:comBody}),
+    indicatorShell({key:"financing",icon:"🏦",title:"FINANCING CONDITIONS",subtitle:"Funding & credit pressure",score:fin.score,status:fin.status,trend:indicatorTrendLabel(fr),read:finRead,body:financingBody}),
+    indicatorShell({key:"macro",icon:"🌐",title:"MACRO & RISK",subtitle:"Market stress & macro regime",score:macro.score,status:macro.status,trend:indicatorTrendLabel(mr),read:"Macro risk is driven by volatility, FX stress and the rate regime, with credit spreads kept in Financing to avoid double counting.",body:macroBody})
+  ].join("");
+}
+function financingSub(title,subtitle,score,weight,trend){
+  const n=toNum(score), tone=cardTone(n);
+  return `<div class="cid-fin-sub ${tone}"><div class="cid-fin-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small><em>${escapeHtml(weight)}</em></div><div class="cid-fin-right"><b>${escapeHtml(scoreStatus(n))}</b><span>${fmtScore(n)}</span><small class="${trend.tone||"neutral"}">${escapeHtml(trend.text||"→ RISK")}</small></div></div>`;
 }
 
 function renderFinancingPrototype(data) {
