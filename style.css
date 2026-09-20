@@ -1474,3 +1474,8 @@ body.detail-open{overflow:hidden}
 .cid-macro-value{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:7px}.cid-macro-value strong{font-size:19px;color:#f3f7fa}.cid-macro-value b{font-size:9px;letter-spacing:.05em;color:var(--cid-accent)}
 .cid-macro-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px}.cid-macro-bottom small{margin:0;font-size:10px}.cid-macro-bottom span{font-size:10px;font-weight:900;color:#dce8f0;white-space:nowrap}
 @media(max-width:560px){.cid-company span{font-size:12px}.cid-company strong{font-size:19px}.cid-mini-label{font-size:11px}.cid-mini-main strong{font-size:18px}.cid-mini small,.cid-mini em{font-size:10px}.cid-read strong{font-size:12px}.cid-fin-copy strong{font-size:14px}.cid-fin-copy small,.cid-fin-copy em{font-size:10px}.cid-macro-value strong{font-size:18px}.cid-macro-bottom small,.cid-macro-bottom span{font-size:9.5px}}
+
+/* v4.32.3 language-specific section heading */
+.lang-no-only,.lang-en-only{display:none}
+html[lang="nb"] .lang-no-only{display:inline}
+html:not([lang="nb"]) .lang-en-only{display:inline}

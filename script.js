@@ -205,6 +205,9 @@ function applyNorwegianCopy(root=document.body){
   const nodes=[];
   while(walker.nextNode()) nodes.push(walker.currentNode);
   nodes.forEach(n=>{
+    // The 8 indicator cards use fixed English terminology. Their explanatory
+    // sentences are localized separately by applyIndicatorCardLanguage().
+    if(n.parentElement?.closest?.('#indicatorDashboardGrid')) return;
     const raw=n.nodeValue, trimmed=raw.trim();
     if(!trimmed) return;
     const translated=NO_TEXT.get(trimmed);
