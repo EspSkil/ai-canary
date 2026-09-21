@@ -287,6 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
   setupInfoButtons();
   setupIndicatorDetails();
+  setupCanaryWatchDetails();
   setupLanguageToggle();
   setupNorwegianObserver();
   setupMobilePrimaryNav();
@@ -1245,19 +1246,20 @@ function renderCanaryWatch(data) {
     .sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")))
     .slice(0,3);
 
+  window.CANARY_WATCH_ROWS=rows;
   const formatDate=(value)=>{
     if(!value) return "—";
     const d=new Date(`${String(value).slice(0,10)}T12:00:00`);
     if(Number.isNaN(d.getTime())) return String(value);
     return d.toLocaleDateString(UI_LANG==="no"?"nb-NO":"en-GB",{day:"2-digit",month:"short"}).replace(".","").toUpperCase();
   };
-  const cards=rows.map(r=>{
+  const cards=rows.map((r,index)=>{
     const url=String(r.url||"").trim();
     const safeUrl=/^https:\/\//i.test(url)?url:"#";
     const source=escapeHtml(r.source||"Source");
     const component=escapeHtml(r.component||"");
     const priority=escapeHtml(String(r.priority||"").toUpperCase());
-    return `<article class="canary-watch-item">
+    return `<article class="canary-watch-item" data-watch-index="${index}" tabindex="0" role="button" aria-label="Open Canary Watch detail: ${escapeHtml(r.headline||"")}">
       <div class="watch-meta"><span>${formatDate(r.date)}</span><span>${escapeHtml(r.topic||"")}</span><span>${source}</span></div>
       <h3>${escapeHtml(r.headline||"")}</h3>
       <p>${escapeHtml(r.summary||"")}</p>
@@ -1266,6 +1268,53 @@ function renderCanaryWatch(data) {
   }).join("");
   const empty=`<div class="canary-watch-empty">${UI_LANG==="no"?"Ingen aktive Canary Watch-saker akkurat nå.":"No active Canary Watch items right now."}</div>`;
   ["canaryWatchGrid","mobileCanaryWatchGrid"].forEach(id=>{const el=document.getElementById(id);if(el) el.innerHTML=cards||empty;});
+}
+
+function setupCanaryWatchDetails(){
+  document.addEventListener("click",e=>{
+    if(e.target.closest(".canary-watch-item a")) return;
+    const card=e.target.closest(".canary-watch-item[data-watch-index]");
+    if(card){ openCanaryWatchDetail(Number(card.dataset.watchIndex)); return; }
+    if(e.target.id==="watchDetailClose" || e.target.id==="watchBackdrop") closeCanaryWatchDetail();
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape") closeCanaryWatchDetail();
+    const card=e.target.closest?.(".canary-watch-item[data-watch-index]");
+    if(card && (e.key==="Enter" || e.key===" ")){e.preventDefault();openCanaryWatchDetail(Number(card.dataset.watchIndex));}
+  });
+}
+
+function openCanaryWatchDetail(index){
+  const r=(window.CANARY_WATCH_ROWS||[])[index];
+  const drawer=document.getElementById("watchDrawer"), backdrop=document.getElementById("watchBackdrop");
+  if(!r || !drawer || !backdrop) return;
+  const date=String(r.date||"").slice(0,10);
+  setText("watchDetailMeta",[date,r.topic,r.source].filter(Boolean).join(" · "));
+  setText("watchDetailTitle",r.headline||"");
+  const text=document.getElementById("watchDetailText");
+  if(text){
+    const body=String(r.longerText||r.summary||"").trim();
+    text.innerHTML=body.split(/\n+/).filter(Boolean).map(x=>`<p>${escapeHtml(x)}</p>`).join("");
+  }
+  const tags=document.getElementById("watchDetailTags");
+  if(tags){
+    const vals=[r.component,r.priority?String(r.priority).toUpperCase():""].filter(Boolean);
+    tags.innerHTML=vals.map(v=>`<span>${escapeHtml(v)}</span>`).join("");
+  }
+  const link=document.getElementById("watchDetailLink");
+  const url=String(r.url||"").trim();
+  if(link){link.href=/^https:\/\//i.test(url)?url:"#";link.hidden=link.href.endsWith("#");}
+  backdrop.hidden=false;
+  document.body.classList.add("watch-detail-open");
+  requestAnimationFrame(()=>{backdrop.classList.add("is-visible");drawer.classList.add("is-open");drawer.setAttribute("aria-hidden","false");});
+}
+
+function closeCanaryWatchDetail(){
+  const drawer=document.getElementById("watchDrawer"), backdrop=document.getElementById("watchBackdrop");
+  if(!drawer || !backdrop || !drawer.classList.contains("is-open")) return;
+  drawer.classList.remove("is-open");backdrop.classList.remove("is-visible");drawer.setAttribute("aria-hidden","true");
+  document.body.classList.remove("watch-detail-open");
+  window.setTimeout(()=>{backdrop.hidden=true;},220);
 }
 
 function dynamicScore(data,key,fallback) {
