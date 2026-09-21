@@ -1479,3 +1479,32 @@ body.detail-open{overflow:hidden}
 .lang-no-only,.lang-en-only{display:none}
 html[lang="nb"] .lang-no-only{display:inline}
 html:not([lang="nb"]) .lang-en-only{display:inline}
+
+/* ===== v4.33 Canary Watch ===== */
+.canary-watch-section{margin-top:18px}
+.canary-watch-panel{padding:22px 26px;border-color:rgba(69,215,255,.20);background:linear-gradient(145deg,rgba(10,38,57,.96),rgba(5,24,37,.98))}
+.canary-watch-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.canary-watch-head h2{margin:4px 0 0;font-size:27px}
+.research-chip{font-size:9px;font-weight:850;letter-spacing:.11em;color:#8de5fb;border:1px solid rgba(69,215,255,.28);background:rgba(69,215,255,.06);border-radius:999px;padding:7px 10px;white-space:nowrap}
+.canary-watch-context{margin-top:5px;color:#8eabbf;font-size:11px}
+.canary-watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+.canary-watch-item{display:flex;flex-direction:column;min-width:0;padding:15px;border:1px solid rgba(69,215,255,.14);border-radius:13px;background:rgba(4,21,33,.48)}
+.watch-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:#7fcfe7;font-size:8.5px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.watch-meta span:not(:last-child):after{content:" ·";color:#486b7d;margin-left:6px}
+.canary-watch-item h3{font-size:15px;line-height:1.28;margin:9px 0 7px;color:#f4f8fb}
+.canary-watch-item p{font-size:11px;line-height:1.5;color:#a9c3d2;margin:0 0 14px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.watch-footer{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:auto;padding-top:10px;border-top:1px solid rgba(141,181,210,.10)}
+.watch-tags{display:flex;gap:5px;flex-wrap:wrap}.watch-tags span{font-size:8.5px;color:#a9dced;border:1px solid rgba(69,215,255,.17);border-radius:999px;padding:4px 7px}.watch-tags .watch-priority{color:#f7d94c;border-color:rgba(247,217,76,.22)}
+.watch-footer a{font-size:10px;font-weight:850;color:#67dfff;text-decoration:none;white-space:nowrap}.watch-footer a:hover{text-decoration:underline}
+.canary-watch-empty{grid-column:1/-1;color:#8eabbf;padding:18px 0;font-size:12px}
+#mobileCanaryWatch{display:none}
+#mobileOverview,#mobileMoneyCircle{scroll-margin-top:62px}
+@media(max-width:900px){.canary-watch-grid{grid-template-columns:1fr 1fr}.canary-watch-item:last-child:nth-child(odd){grid-column:1/-1}}
+@media(max-width:720px){
+  .canary-watch-section{display:none}
+  #mobileCanaryWatch{display:block}
+  .mobile-canary-watch-card .canary-watch-head{align-items:flex-start}.mobile-canary-watch-card .canary-watch-head h2{font-size:20px}.mobile-canary-watch-card .research-chip{font-size:7px;padding:5px 7px}
+  .mobile-canary-watch-card .canary-watch-context{font-size:10px;line-height:1.4}
+  .mobile-watch-grid{grid-template-columns:1fr;gap:8px;margin-top:12px}.mobile-watch-grid .canary-watch-item:last-child:nth-child(odd){grid-column:auto}
+  .mobile-watch-grid .canary-watch-item{padding:12px}.mobile-watch-grid .canary-watch-item h3{font-size:13px}.mobile-watch-grid .canary-watch-item p{font-size:10.5px;-webkit-line-clamp:3}
+}

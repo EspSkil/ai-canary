@@ -41,7 +41,7 @@
 </nav>
 <main>
 <section class="mobile-dashboard" id="mobileDashboard" aria-label="AI Canary mobile overview">
-  <article class="panel mobile-score-card">
+  <article class="panel mobile-score-card" id="mobileOverview">
     <div class="eyebrow">CANARY SCORE · WEEKLY OVERVIEW</div>
     <div class="mobile-gauge" id="mobileGauge">
       <div class="mobile-gauge-arc"></div>
@@ -57,11 +57,19 @@
     <div class="mobile-section-head"><div><div class="eyebrow">LIVE / WEEKLY DATA</div><h2>Key signals</h2></div><div class="date-chip" id="mobileSnapshotDate">—</div></div>
     <div class="mobile-signal-grid" id="mobileSignalGrid"></div>
   </article>
+  <article class="panel mobile-canary-watch-card canary-watch-panel" id="mobileCanaryWatch">
+    <div class="canary-watch-head">
+      <div><div class="eyebrow">🐤 CANARY WATCH</div><h2>News &amp; research</h2></div>
+      <div class="research-chip">RESEARCH · NO SCORE IMPACT</div>
+    </div>
+    <div class="canary-watch-context"><span class="lang-no-only">Nyheter og analyser som gir kontekst til AI-syklusen · påvirker ikke Canary Score.</span><span class="lang-en-only">News &amp; research context · does not affect Canary Score.</span></div>
+    <div class="canary-watch-grid mobile-watch-grid" id="mobileCanaryWatchGrid"></div>
+  </article>
   <article class="panel mobile-indicators-card">
     <div class="mobile-section-head"><div><div class="eyebrow">CANARY INDICATORS</div><h2>Risk components</h2></div><button class="info-btn" data-info="indicators" aria-label="About Canary Indicators">i</button></div>
     <div class="mobile-indicator-list" id="mobileIndicatorList"></div>
   </article>
-  <article class="panel mobile-cycle-card">
+  <article class="panel mobile-cycle-card" id="mobileMoneyCircle">
     <div class="eyebrow">EXPLORE THE AI CYCLE</div>
     <div class="mobile-cycle-mini" aria-label="AI investment cycle: capital to monetization and back">
       <div class="mobile-cycle-ring"></div>
@@ -189,6 +197,19 @@
 </div>
 </div>
 </article></section>
+<section class="canary-watch-section" id="canaryWatch">
+  <article class="panel canary-watch-panel">
+    <div class="canary-watch-head">
+      <div>
+        <div class="eyebrow">🐤 CANARY WATCH</div>
+        <h2><span class="lang-no-only">Aktuelle saker vi følger</span><span class="lang-en-only">What we are watching</span></h2>
+      </div>
+      <div class="research-chip">RESEARCH · NO SCORE IMPACT</div>
+    </div>
+    <div class="canary-watch-context"><span class="lang-no-only">Nyheter og analyser som gir kontekst til AI-syklusen · påvirker ikke Canary Score.</span><span class="lang-en-only">News &amp; research context · does not affect Canary Score.</span></div>
+    <div class="canary-watch-grid" id="canaryWatchGrid"></div>
+  </article>
+</section>
 <section class="indicator-dashboard-section" id="indicatorDashboard">
   <div class="section-head indicator-dashboard-head">
     <div>

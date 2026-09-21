@@ -113,7 +113,7 @@ const NO_TEXT = new Map(Object.entries({
   "AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.":"AI Canary er Fiasco Finance sin hjemmelagde early-warning modell for AI-investeringssyklusen. Vi samler signaler fra monetization, demand, compute, commitments, financing og markedene for å se om stress bygger seg opp før det blir tydelig i brede markedsindekser.",
   "The cycle is easiest to read from funding through monetization. Capital enables builders, builders buy hardware, hardware becomes compute, and compute must ultimately create end-user value. Weakness can then feed back into financing and the next investment round.":"Vi leser syklusen fra capital til monetization: Capital finansierer utbygging, hyperscalers og neocloud kjøper hardware, hardware blir til compute, og compute må til slutt skape verdi hos sluttbrukerne. Hvis verdiskapingen svikter, kan svakheten slå tilbake på financing og neste investeringsrunde.",
   "Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.":"Hver komponent har terskler som er tilpasset signalet vi måler. Dynamiske komponenter beregnes i Google Sheets. Der en dynamisk score finnes bruker dashboardet denne; komponenter som ikke er oppgradert ennå bruker fortsatt låst v3-score. Den blandede headline-scoren fylles ikke bakover i historikken.",
-  "The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.":"Tabellen viser hvordan vi håndterer kildene. AUTO betyr at Apps Script henter data automatisk. SEMI_AUTO betyr at kvartalsdata kontrolleres og vedlikeholdes rundt rapportering. MANUAL / ASSISTED brukes når vi ikke har en stabil offentlig API.",
+  "The dashboard snapshot is generated and published daily. The table below shows source discipline and source cadence: AUTO means the scheduled Apps Script checks/fetches the source during the daily chain, while the underlying source itself may publish less frequently; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.":"Tabellen viser hvordan vi håndterer kildene. AUTO betyr at Apps Script henter data automatisk. SEMI_AUTO betyr at kvartalsdata kontrolleres og vedlikeholdes rundt rapportering. MANUAL / ASSISTED brukes når vi ikke har en stabil offentlig API.",
   "AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.":"AI Canary er ikke et automatisk kjøps- eller salgssignal. Vi bruker endringer som et varsel om å undersøke dataene nærmere. Det sterkeste signalet oppstår når uavhengige fundamental-, financing- og market-indikatorer peker i samme negative retning.",
   "Research framework · source-first · no invented data":"Fiasco Finance-modell · source-first · ingen oppdiktede data",
 
@@ -220,13 +220,26 @@ function applyNorwegianCopy(root=document.body){
 
 // v4.32.1 — mobile primary navigation + complete Norwegian copy for the 8 indicator cards.
 function setupMobilePrimaryNav(){
-  document.querySelectorAll('.nav a[href="#overview"], .nav a[href="#moneycircle"]').forEach(link=>{
+  const links=[
+    {selector:'.nav a[href="#overview"]', desktop:'#overview', mobile:'#mobileOverview'},
+    {selector:'.nav a[href="#moneycircle"]', desktop:'#moneycircle', mobile:'#mobileMoneyCircle'}
+  ];
+  const sync=()=>{
+    const mobile=window.matchMedia('(max-width: 720px)').matches;
+    links.forEach(item=>{
+      const link=document.querySelector(item.selector) || document.querySelector(`.nav a[data-desktop-target="${item.desktop}"]`);
+      if(!link) return;
+      link.dataset.desktopTarget=item.desktop;
+      link.setAttribute('href', mobile ? item.mobile : item.desktop);
+    });
+  };
+  sync();
+  window.addEventListener('resize',sync,{passive:true});
+  document.querySelectorAll('.nav a').forEach(link=>{
     link.addEventListener('click',e=>{
-      if(!window.matchMedia('(max-width: 800px)').matches) return;
       const href=link.getAttribute('href');
-      const target = href==='#overview'
-        ? document.getElementById('mobileDashboard')
-        : document.querySelector('.mobile-cycle-card');
+      if(!href || !href.startsWith('#')) return;
+      const target=document.querySelector(href);
       if(!target) return;
       e.preventDefault();
       target.scrollIntoView({behavior:'smooth',block:'start'});
@@ -431,6 +444,7 @@ function renderAll(data) {
   renderIndicators(data);
   renderMobileDashboard(data);
   renderMoneyCircle(data);
+  renderCanaryWatch(data);
   renderIndicatorDashboard(data);
   renderMarketCharts(data.marketHistory || []);
   applyNorwegianCopy();
@@ -483,6 +497,7 @@ function renderLiveDashboardSafely(data) {
     ["indicators",()=>renderIndicators(data)],
     ["mobile",()=>renderMobileDashboard(data)],
     ["money-circle",()=>renderMoneyCircle(data)],
+    ["canary-watch",()=>renderCanaryWatch(data)],
     ["indicator-dashboard",()=>renderIndicatorDashboard(data)],
     ["market-charts",()=>renderMarketCharts(data.marketHistory || [])],
     ["copy",()=>applyNorwegianCopy()]
@@ -1217,6 +1232,36 @@ function renderMobileDashboard(data) {
   const items=componentItems(data).map(i=>[i.icon,i.name,i.score,i.detail]);
   const list=document.getElementById("mobileIndicatorList");
   if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><small>${st}</small><b>›</b></button>`}).join("");
+}
+
+
+function renderCanaryWatch(data) {
+  const rows=(data?.canaryWatch||[])
+    .filter(r=>r && r.show!==false && String(r.show).toLowerCase()!=="false")
+    .sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")))
+    .slice(0,3);
+
+  const formatDate=(value)=>{
+    if(!value) return "—";
+    const d=new Date(`${String(value).slice(0,10)}T12:00:00`);
+    if(Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString(UI_LANG==="no"?"nb-NO":"en-GB",{day:"2-digit",month:"short"}).replace(".","").toUpperCase();
+  };
+  const cards=rows.map(r=>{
+    const url=String(r.url||"").trim();
+    const safeUrl=/^https:\/\//i.test(url)?url:"#";
+    const source=escapeHtml(r.source||"Source");
+    const component=escapeHtml(r.component||"");
+    const priority=escapeHtml(String(r.priority||"").toUpperCase());
+    return `<article class="canary-watch-item">
+      <div class="watch-meta"><span>${formatDate(r.date)}</span><span>${escapeHtml(r.topic||"")}</span><span>${source}</span></div>
+      <h3>${escapeHtml(r.headline||"")}</h3>
+      <p>${escapeHtml(r.summary||"")}</p>
+      <div class="watch-footer"><div class="watch-tags">${component?`<span>${component}</span>`:""}${priority?`<span class="watch-priority">${priority}</span>`:""}</div>${safeUrl!=="#"?`<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${UI_LANG==="no"?"Les artikkel":"Read article"} <b>↗</b></a>`:""}</div>
+    </article>`;
+  }).join("");
+  const empty=`<div class="canary-watch-empty">${UI_LANG==="no"?"Ingen aktive Canary Watch-saker akkurat nå.":"No active Canary Watch items right now."}</div>`;
+  ["canaryWatchGrid","mobileCanaryWatchGrid"].forEach(id=>{const el=document.getElementById(id);if(el) el.innerHTML=cards||empty;});
 }
 
 function dynamicScore(data,key,fallback) {
@@ -2646,17 +2691,17 @@ function macroWeightCards(rows){
 
 function explainDetailHtml(){
   const sourceRows = [
-    ["SOX","AUTO","Weekly refresh","FRED · NASDAQSOX","30D momentum / market confirmation","Semiconductor Market"],
-    ["VIX","AUTO","Weekly refresh","FRED · VIXCLS","Risk sentiment / hedge context","Macro & Risk"],
-    ["US 10Y","AUTO","Weekly refresh","FRED · DGS10","Funding level and rate pressure","Financing + Macro"],
-    ["Real 10Y","AUTO","Weekly refresh","FRED · DFII10","Real funding / discount-rate context","Financing Conditions"],
-    ["IG OAS","AUTO","Weekly refresh","FRED · BAMLC0A0CM","Broad investment-grade credit stress","Financing Conditions"],
-    ["HY OAS","AUTO","Weekly refresh","FRED · BAMLH0A0HYM2","Broad high-yield credit stress","Financing Conditions"],
-    ["USD/JPY","AUTO","Weekly refresh","FRED · DEXJPUS","Japan/carry/global-liquidity proxy","Macro & Risk"],
-    ["LLM Token Expenditure","AUTO","Weekly refresh","Silicon Data","Price/mix drawdown + short-term context","Token Economics"],
-    ["OpenRouter Token Volume","AUTO","Weekly refresh","OpenRouter rankings-daily API","30D avg vs previous 30D avg","Token Economics"],
-    ["H100 rental index","AUTO","Weekly refresh","Silicon Data","GPU rental-price signal","Compute Supply"],
-    ["H100 reference rates","AUTO","Weekly refresh","CCIR","Independent GPU-price cross-check","Compute Supply"],
+    ["SOX","AUTO","Daily snapshot","FRED · NASDAQSOX","30D momentum / market confirmation","Semiconductor Market"],
+    ["VIX","AUTO","Daily snapshot","FRED · VIXCLS","Risk sentiment / hedge context","Macro & Risk"],
+    ["US 10Y","AUTO","Daily snapshot","FRED · DGS10","Funding level and rate pressure","Financing + Macro"],
+    ["Real 10Y","AUTO","Daily snapshot","FRED · DFII10","Real funding / discount-rate context","Financing Conditions"],
+    ["IG OAS","AUTO","Daily snapshot","FRED · BAMLC0A0CM","Broad investment-grade credit stress","Financing Conditions"],
+    ["HY OAS","AUTO","Daily snapshot","FRED · BAMLH0A0HYM2","Broad high-yield credit stress","Financing Conditions"],
+    ["USD/JPY","AUTO","Daily snapshot","FRED · DEXJPUS","Japan/carry/global-liquidity proxy","Macro & Risk"],
+    ["LLM Token Expenditure","AUTO","Daily snapshot","Silicon Data","Price/mix drawdown + short-term context","Token Economics"],
+    ["OpenRouter Token Volume","AUTO","Daily snapshot","OpenRouter rankings-daily API","30D avg vs previous 30D avg","Token Economics"],
+    ["H100 rental index","AUTO","Daily snapshot","Silicon Data","GPU rental-price signal","Compute Supply"],
+    ["H100 reference rates","AUTO","Daily snapshot","CCIR","Independent GPU-price cross-check","Compute Supply"],
     ["AI demand / RPO / revenue","SEMI_AUTO","Quarterly / releases","Company IR + SEC filings","Growth, backlog and demand quality","AI Demand"],
     ["AI CAPEX","SEMI_AUTO","Quarterly / guidance","Company IR + SEC filings","Actual spend + guidance momentum","CAPEX Investment"],
     ["Commitments / leases / obligations","SEMI_AUTO","Quarterly / filings","Company IR + SEC filings","Scale, change and bindingness","Commitment Overhang"],
@@ -2676,7 +2721,7 @@ function explainDetailHtml(){
     {label:"5 · End Users & Monetization",value:"Is value reaching users?",note:"Demand · adoption · monetization"}
   ]))
   + sectionHtml("HOW SCORES WORK","Each component uses its own economically relevant thresholds. Dynamic components are calculated in Google Sheets. The headline now uses the dynamic component score when one exists and the locked v3 score as a fallback for components not upgraded yet. This mixed headline is not backfilled into history.",`<div class="score-bands"><div><span class="band green"></span><b>0–25</b><small>Healthy</small></div><div><span class="band yellow"></span><b>26–50</b><small>Watch</small></div><div><span class="band orange"></span><b>51–75</b><small>Warning</small></div><div><span class="band red"></span><b>76–100</b><small>Danger</small></div></div><div class="canary-status-explainer"><img src="assets/Canary-status.png" alt="AI Canary score levels: Healthy, Watch, Warning and Danger"/><div class="canary-status-caption">Kanarifuglen i gruven ga et tidlig varsel når miljøet ble farlig. AI Canary bruker samme idé: vi følger tegnene før risikoen blir åpenbar.</div></div>`)
-  + sectionHtml("DATA MAP · WHAT WE FETCH","The table below shows the intended source discipline. AUTO means the scheduled Apps Script fetches the data; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.",sourceTable)
+  + sectionHtml("DATA MAP · WHAT WE FETCH","The dashboard snapshot is generated and published daily. The table below shows source discipline and source cadence: AUTO means the scheduled Apps Script checks/fetches the source during the daily chain, while the underlying source itself may publish less frequently; SEMI_AUTO means quarterly source rows are verified/maintained around releases; MANUAL / ASSISTED is used where a stable public API is not available.",sourceTable)
   + sectionHtml("HOW TO USE IT","AI Canary is not an automatic buy/sell signal. Treat a change as a prompt to inspect the underlying evidence. The strongest warning is when independent fundamental, financing and market indicators confirm the same deterioration.",sourceNote("Research framework · source-first · no invented data"));
 }
 
