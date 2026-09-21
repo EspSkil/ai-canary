@@ -1508,3 +1508,10 @@ html:not([lang="nb"]) .lang-en-only{display:inline}
   .mobile-watch-grid{grid-template-columns:1fr;gap:8px;margin-top:12px}.mobile-watch-grid .canary-watch-item:last-child:nth-child(odd){grid-column:auto}
   .mobile-watch-grid .canary-watch-item{padding:12px}.mobile-watch-grid .canary-watch-item h3{font-size:13px}.mobile-watch-grid .canary-watch-item p{font-size:10.5px;-webkit-line-clamp:3}
 }
+
+/* ===== v4.33.1 mobile section order + sticky navigation targets ===== */
+#mobileOverview,#mobileIndicators,#mobileCanaryWatch,#mobileMoneyCircle,#markets,#history{scroll-margin-top:72px}
+@media(max-width:720px){
+  .nav{scrollbar-width:none;-ms-overflow-style:none}
+  .nav::-webkit-scrollbar{display:none}
+}

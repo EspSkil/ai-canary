@@ -221,13 +221,17 @@ function applyNorwegianCopy(root=document.body){
 // v4.32.1 — mobile primary navigation + complete Norwegian copy for the 8 indicator cards.
 function setupMobilePrimaryNav(){
   const links=[
-    {selector:'.nav a[href="#overview"]', desktop:'#overview', mobile:'#mobileOverview'},
-    {selector:'.nav a[href="#moneycircle"]', desktop:'#moneycircle', mobile:'#mobileMoneyCircle'}
+    {desktop:'#overview', mobile:'#mobileOverview'},
+    {desktop:'#indicatorDashboard', mobile:'#mobileIndicators'},
+    {desktop:'#canaryWatch', mobile:'#mobileCanaryWatch'},
+    {desktop:'#moneycircle', mobile:'#mobileMoneyCircle'},
+    {desktop:'#markets', mobile:'#markets'},
+    {desktop:'#history', mobile:'#history'}
   ];
   const sync=()=>{
     const mobile=window.matchMedia('(max-width: 720px)').matches;
     links.forEach(item=>{
-      const link=document.querySelector(item.selector) || document.querySelector(`.nav a[data-desktop-target="${item.desktop}"]`);
+      const link=document.querySelector(`.nav a[data-desktop-target="${item.desktop}"]`) || document.querySelector(`.nav a[href="${item.desktop}"]`) || document.querySelector(`.nav a[href="${item.mobile}"]`);
       if(!link) return;
       link.dataset.desktopTarget=item.desktop;
       link.setAttribute('href', mobile ? item.mobile : item.desktop);
