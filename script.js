@@ -1183,6 +1183,40 @@ function renderIndicatorStrip(data) {
   });
 }
 
+
+function indicatorHistoryKey(detail) {
+  return {
+    token:"tokenEconomics", demand:"aiDemand", compute:"computeSupply",
+    semis:"semiconductorMarket", capex:"capexInvestment",
+    commitment:"commitmentOverhang", financing:"financingConditions", macro:"macroRisk"
+  }[detail] || null;
+}
+
+function indicator7dTrend(data, detail) {
+  const key=indicatorHistoryKey(detail);
+  const rows=(data?.scoreHistory||[])
+    .filter(r=>r && r.date && key && Number.isFinite(toNum(r[key])))
+    .slice()
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if (!key || rows.length < 2) return {arrow:"—",delta:NaN,tone:"neutral",text:"—"};
+  const latest=rows[rows.length-1];
+  const latestDate=new Date(`${String(latest.date).slice(0,10)}T12:00:00Z`);
+  if (Number.isNaN(latestDate.getTime())) return {arrow:"—",delta:NaN,tone:"neutral",text:"—"};
+  const target=latestDate.getTime()-7*86400000;
+  let previous=null;
+  for (const row of rows) {
+    const d=new Date(`${String(row.date).slice(0,10)}T12:00:00Z`).getTime();
+    if (Number.isFinite(d) && d<=target) previous=row;
+  }
+  if (!previous) return {arrow:"—",delta:NaN,tone:"neutral",text:"—"};
+  const delta=toNum(latest[key])-toNum(previous[key]);
+  if (!Number.isFinite(delta)) return {arrow:"—",delta:NaN,tone:"neutral",text:"—"};
+  const arrow=delta>0.5?"↑":delta<-0.5?"↓":"→";
+  const tone=arrow==="↑"?"danger":arrow==="↓"?"good":"neutral";
+  const signed=`${delta>0?"+":""}${formatNumber(delta,1)}`;
+  return {arrow,delta,tone,text:`${arrow} ${signed} · 7D`};
+}
+
 function renderIndicators(data) {
   const items = componentItems(data);
 
@@ -1191,18 +1225,12 @@ function renderIndicators(data) {
     const n = Number(item.score);
     const status = scoreStatus(n);
     const tone = statusTone(status);
-    const dyn = data.dynamicScores?.[
-      item.detail === "token" ? "tokenEconomics" :
-      item.detail === "semis" ? "semiconductorMarket" :
-      item.detail === "commitment" ? "commitmentOverhang" :
-      item.detail === "financing" ? "financingConditions" :
-      item.detail === "macro" ? "macroRisk" : ""
-    ];
-    const trend = dyn?.trend || "—";
+    const trend7d = indicator7dTrend(data,item.detail);
+    const trend = trend7d.arrow;
     return `<div class="indicator-row indicator-row-clickable" role="button" tabindex="0" data-detail="${item.detail}" aria-label="Open ${escapeHtml(item.name)} deep dive">
       <div class="indicator-name-wrap"><span class="indicator-icon icon-${tone}">${item.icon}</span><div><div class="indicator-name">${escapeHtml(item.name)} <button class="info-btn indicator-info" data-info="${item.info}" aria-label="About ${escapeHtml(item.name)}">i</button><span class="indicator-chevron">›</span></div><span class="indicator-subtitle">${escapeHtml(item.subtitle)}</span></div></div>
       <div class="indicator-score ${tone}">${Number.isFinite(n)?formatNumber(n,1):"—"}</div>
-      <div class="trend">${escapeHtml(trend)}</div>
+      <div class="trend trend-7d ${trend7d.tone}" title="${escapeHtml(trend7d.text)}">${escapeHtml(trend)}</div>
       <div class="${tone}">${status}</div>
     </div>`;
   }).join("");
@@ -1236,7 +1264,7 @@ function renderMobileDashboard(data) {
   if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
   const items=componentItems(data).map(i=>[i.icon,i.name,i.score,i.detail]);
   const list=document.getElementById("mobileIndicatorList");
-  if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><small>${st}</small><b>›</b></button>`}).join("");
+  if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st),tr=indicator7dTrend(data,key);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><span class="mobile-indicator-trend ${tr.tone}" title="${escapeHtml(tr.text)}">${escapeHtml(tr.arrow)}</span><small>${st}</small><b>›</b></button>`}).join("");
 }
 
 
@@ -1928,6 +1956,10 @@ function populateDetail(key) {
     setText("detailScoreDenom","/100");
     setText("detailStatus",scoreInfo.status);
     setText("detailMeta",scoreInfo.meta || "Live Canary component");
+    const detailTrend=indicator7dTrend(DATA,key);
+    setText("detailTrend",detailTrend.text);
+    const detailTrendEl=document.getElementById("detailTrend");
+    if (detailTrendEl) detailTrendEl.className=`drawer-trend ${detailTrend.tone}`;
     if (denomEl) denomEl.hidden=false;
     if (statusEl) statusEl.className=`drawer-status ${statusTone(scoreInfo.status)}`;
     if (hero) hero.classList.remove("theme-hero");
@@ -1939,6 +1971,7 @@ function populateDetail(key) {
     setText("detailScoreDenom","");
     setText("detailStatus","MULTI-SIGNAL");
     setText("detailMeta","Uses existing Canary components; no new node score");
+    setText("detailTrend","");
     if (denomEl) denomEl.hidden=true;
     if (statusEl) statusEl.className="drawer-status watch";
     if (hero) hero.classList.add("theme-hero");

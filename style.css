@@ -458,7 +458,7 @@ body.detail-open{overflow:hidden}
   .mobile-score-meta{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;color:#b9d5e5;font-size:11px;margin-top:-3px}.baseline-chip{color:#7f9db3;border:1px solid rgba(141,181,210,.18);padding:3px 7px;border-radius:999px}
   .mobile-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}.mobile-section-head h2{font-size:20px;margin:2px 0 0}
   .mobile-signal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.mobile-signal{padding:11px;border-radius:11px;background:rgba(255,255,255,.025);border:1px solid rgba(141,181,210,.12);display:grid;gap:3px}.mobile-signal span{font-size:9px;font-weight:850;letter-spacing:.07em;color:#8eabbf}.mobile-signal strong{font-size:22px;color:#f1f7fb}.mobile-signal small{font-size:10px;color:#7fd7f0}
-  .mobile-indicator-list{display:grid;margin-top:10px}.mobile-indicator{display:grid;grid-template-columns:34px minmax(0,1fr) 38px 66px 12px;gap:7px;align-items:center;text-align:left;padding:10px 4px;border:0;border-bottom:1px solid rgba(141,181,210,.13);background:transparent;color:#e9f3f9;cursor:pointer}.mobile-indicator:last-child{border-bottom:0}.mobile-indicator-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(69,215,255,.08);font-size:17px}.mobile-indicator-name{font-size:11px;font-weight:750}.mobile-indicator strong{font-size:15px;text-align:center}.mobile-indicator small{font-size:9px;font-weight:850;text-align:right}.mobile-indicator b{font-size:19px;color:#7ce4ff}.mobile-indicator.good strong,.mobile-indicator.good small{color:var(--green)}.mobile-indicator.watch strong,.mobile-indicator.watch small{color:var(--yellow)}.mobile-indicator.warning strong,.mobile-indicator.warning small{color:var(--orange)}.mobile-indicator.danger strong,.mobile-indicator.danger small{color:var(--red)}
+  .mobile-indicator-list{display:grid;margin-top:10px}.mobile-indicator{display:grid;grid-template-columns:34px minmax(0,1fr) 38px 26px 66px 12px;gap:7px;align-items:center;text-align:left;padding:10px 4px;border:0;border-bottom:1px solid rgba(141,181,210,.13);background:transparent;color:#e9f3f9;cursor:pointer}.mobile-indicator:last-child{border-bottom:0}.mobile-indicator-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(69,215,255,.08);font-size:17px}.mobile-indicator-name{font-size:11px;font-weight:750}.mobile-indicator strong{font-size:15px;text-align:center}.mobile-indicator small{font-size:9px;font-weight:850;text-align:right}.mobile-indicator b{font-size:19px;color:#7ce4ff}.mobile-indicator.good strong,.mobile-indicator.good small{color:var(--green)}.mobile-indicator.watch strong,.mobile-indicator.watch small{color:var(--yellow)}.mobile-indicator.warning strong,.mobile-indicator.warning small{color:var(--orange)}.mobile-indicator.danger strong,.mobile-indicator.danger small{color:var(--red)}
   .mobile-cycle-links{display:grid;gap:7px;margin-top:10px}.mobile-cycle-links button{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:10px;border:1px solid rgba(69,215,255,.13);background:rgba(69,215,255,.035);color:#dcebf4;font-weight:700;text-align:left;cursor:pointer}.mobile-cycle-links span{font-size:20px;color:#7ce4ff}
   .financial-risk-section{margin-top:18px}
   .gauge-needle{top:160px;height:92px}
@@ -466,7 +466,7 @@ body.detail-open{overflow:hidden}
 }
 @media(max-width:430px){
   .mobile-signal-grid{grid-template-columns:1fr 1fr}.mobile-signal strong{font-size:20px}
-  .mobile-indicator{grid-template-columns:32px minmax(0,1fr) 34px 58px 10px;gap:5px}.mobile-indicator small{font-size:8px}.mobile-indicator-name{font-size:10.5px}
+  .mobile-indicator{grid-template-columns:32px minmax(0,1fr) 34px 24px 58px 10px;gap:5px}.mobile-indicator small{font-size:8px}.mobile-indicator-name{font-size:10.5px}
 }
 
 
@@ -1547,3 +1547,11 @@ body.watch-detail-open{overflow:hidden}
   .watch-drawer-footer{align-items:flex-start;flex-direction:column}
   .watch-drawer-footer a{font-size:12px}
 }
+
+/* v4.35 · 7-day component risk trends from Score_History */
+.trend-7d,.mobile-indicator-trend,.drawer-trend{font-weight:900}
+.trend-7d.danger,.mobile-indicator-trend.danger,.drawer-trend.danger{color:#ff5e6f}
+.trend-7d.good,.mobile-indicator-trend.good,.drawer-trend.good{color:#4ad18a}
+.trend-7d.neutral,.mobile-indicator-trend.neutral,.drawer-trend.neutral{color:#8da8ba}
+.drawer-trend{margin-top:8px;font-size:11px;letter-spacing:.08em}
+.mobile-indicator-trend{font-size:16px;text-align:center;line-height:1}
