@@ -1560,3 +1560,39 @@ body.watch-detail-open{overflow:hidden}
 /* ===== v4.36 Semiconductor Market model transparency ===== */
 .semi-v2-build{display:grid;gap:10px;margin-top:13px}.semi-v2-driver{padding:12px 13px;border:1px solid rgba(16,49,71,.11);border-radius:12px;background:rgba(255,255,255,.58)}.semi-v2-driver-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.semi-v2-driver-head strong{display:block;font-size:10px;color:#173c4f}.semi-v2-driver-head small{display:block;margin-top:3px;font-size:8.5px;line-height:1.35;color:#6b8492}.semi-weight{flex:0 0 auto;padding:4px 8px;border-radius:999px;background:#dff3f8;color:#17647c;font-size:9px;font-weight:900}.semi-v2-values{display:grid;grid-template-columns:1.35fr .7fr .7fr .9fr;gap:8px;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid rgba(16,49,71,.08);font-size:9px;color:#557485}.semi-v2-values b{font-size:11px;color:#163f53}.semi-v2-values strong{font-size:10px;color:#173c4f}.semi-v2-values em{font-style:normal;font-weight:800;color:#177b64}.semi-v2-total{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;background:#0b405c;color:#fff}.semi-v2-total span{display:block;font-size:9px;font-weight:900;letter-spacing:.06em}.semi-v2-total small{display:block;margin-top:3px;font-size:8px;color:#b9d8e5}.semi-v2-total strong{font-size:22px}.semi-v2-total b{padding:5px 8px;border-radius:999px;background:#fff3bf;color:#79620c;font-size:9px}.semi-ladder{margin-top:13px;border:1px solid rgba(16,49,71,.11);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.58)}.semi-ladder-row{display:grid;grid-template-columns:1.25fr .8fr .8fr;gap:8px;padding:8px 11px;border-top:1px solid rgba(16,49,71,.07);font-size:9px;color:#4d6f80}.semi-ladder-row:first-child{border-top:0}.semi-ladder-head{background:#dceef5;font-weight:900;color:#28586e}.semi-ladder-row.active{background:#fff9dc}.semi-ladder-row .current{font-weight:900;color:#8a6b00}.semi-ladder-row span:nth-child(n+2){text-align:right}
 @media(max-width:720px){.semi-v2-values{grid-template-columns:1fr 1fr}.semi-v2-total{grid-template-columns:1fr auto}.semi-v2-total b{grid-column:1/-1;justify-self:start}.semi-ladder-row{grid-template-columns:1.1fr .85fr .85fr;font-size:8.5px}}
+
+
+/* ===== v4.37 · Semiconductor readability + selectable Canary Risk History ===== */
+/* Deep-dive secondary text: one readable step larger on laptop/desktop. */
+.detail-metric-grid .connected-card span{font-size:10.5px}
+.detail-metric-grid .connected-card small{font-size:10.5px;line-height:1.45}
+.detail-metric-grid .metric-risk-badge{font-size:9px}
+.semi-v2-driver-head strong{font-size:11.5px}
+.semi-v2-driver-head small{font-size:10px;line-height:1.45}
+.semi-weight{font-size:10px}
+.semi-v2-values{font-size:10.5px}
+.semi-v2-values b{font-size:12px}
+.semi-v2-values strong{font-size:11px}
+.semi-v2-values em{font-size:10.5px}
+.semi-v2-total span{font-size:10px}
+.semi-v2-total small{font-size:9.5px}
+.semi-v2-total b{font-size:10px}
+.semi-ladder-row{font-size:10px}
+
+.risk-history-card{padding:18px 18px 16px}
+.risk-history-top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:14px}
+.risk-history-top>div:first-child>strong{font-size:15px;color:#dcecf5}
+.risk-history-top .muted{max-width:680px;margin-top:4px;font-size:10px;line-height:1.45}
+.risk-history-summary{display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:baseline;text-align:right;white-space:nowrap}
+.risk-history-summary strong{font-size:28px;color:#f4fbff;grid-row:1/3}
+.risk-history-summary span{font-size:9px;color:#8ba5b4;text-transform:uppercase;letter-spacing:.08em}
+.risk-history-summary small{font-size:10px;font-weight:850}.risk-history-summary small.good{color:#4ad18a}.risk-history-summary small.danger{color:#ff6d7c}.risk-history-summary small.neutral{color:#8ba5b4}
+.risk-history-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.risk-history-chip{--series-color:#7ce4ff;display:grid;grid-template-columns:auto auto;gap:1px 7px;align-items:center;padding:7px 9px;border-radius:10px;border:1px solid rgba(123,167,187,.18);background:rgba(255,255,255,.025);color:#9bb2bf;cursor:pointer;font:inherit;text-align:left;transition:.16s ease}
+.risk-history-chip:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--series-color);grid-row:1/3;opacity:.35}
+.risk-history-chip span{font-size:9px;font-weight:800}.risk-history-chip strong{font-size:11px;color:#bcd0da}.risk-history-chip small{grid-column:2;font-size:8.5px;font-weight:800}.risk-history-chip small.good{color:#4ad18a}.risk-history-chip small.danger{color:#ff6d7c}.risk-history-chip small.neutral{color:#819aa8}
+.risk-history-chip.active{border-color:color-mix(in srgb,var(--series-color) 55%,transparent);background:rgba(124,228,255,.055);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+.risk-history-chip.active:before{opacity:1;box-shadow:0 0 9px var(--series-color)}
+.risk-history-chip.main{cursor:default}
+.risk-history-chart-wrap{height:310px;position:relative}
+@media(max-width:720px){.detail-metric-grid .connected-card span{font-size:10px}.detail-metric-grid .connected-card small{font-size:10px}.risk-history-top{display:block}.risk-history-summary{margin-top:10px;justify-content:start;text-align:left}.risk-history-chips{display:grid;grid-template-columns:1fr 1fr}.risk-history-chip{width:100%}.risk-history-chart-wrap{height:260px}.semi-v2-driver-head small{font-size:9.5px}.semi-v2-values{font-size:10px}.semi-ladder-row{font-size:9.5px}}

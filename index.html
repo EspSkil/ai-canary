@@ -7,9 +7,9 @@
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
 <!-- frontend v4.32.1: same-origin GitHub data.json snapshot -->
-<link href="style.css?v=4.32.1" rel="stylesheet"/>
+<link href="style.css?v=4.37" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.32.1"></script>
+<script defer="" src="script.js?v=4.37"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -261,14 +261,10 @@
 <h2>Canary Score History</h2>
 </div>
 </div>
-<article class="panel history-card">
-<div class="history-placeholder">
-<div class="history-score">41</div>
-<div>
-<strong>v3 baseline</strong>
-<div class="muted">History starts here. Future weekly snapshots will build the comparable trend.</div>
-</div>
-</div>
+<article class="panel history-card risk-history-card">
+<div class="risk-history-top"><div><strong>Canary Risk History</strong><div class="muted">Canary Score vises som standard. Klikk på indikatorene for å legge dem til eller fjerne dem fra grafen.</div></div><div class="risk-history-summary" id="riskHistorySummary"></div></div>
+<div class="risk-history-chips" id="riskHistoryChips"></div>
+<div class="risk-history-chart-wrap"><canvas id="riskHistoryChart"></canvas></div>
 </article>
 </section>
 </main>

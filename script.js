@@ -36,6 +36,7 @@ const NO_TEXT = new Map(Object.entries({
   "The model is intentionally transparent: each input, weight and transformation is visible. A future version can add utilization and capacity data without changing the meaning of today's historical score.":"Modellen er bevisst transparent: hvert input, hver vekt og transformasjon kan inspiseres. En senere versjon kan legge til utilization og capacity-data uten å endre betydningen av dagens historiske score.",
 
   "Semiconductor Market asks whether the chip market is confirming or challenging the AI infrastructure cycle. SOX is used as a fast market signal because semiconductor expectations often move before reported company fundamentals.":"Semiconductor Market undersøker om chip-markedet bekrefter eller utfordrer AI infrastructure cycle. SOX brukes som et raskt markedssignal fordi forventningene til semiconductors ofte beveger seg før endringene synes i rapporterte company fundamentals.",
+  "Semiconductors are a fast market checkpoint on AI infrastructure expectations. Persistent SOX weakness can signal falling expectations for the AI investment cycle before company fundamentals fully reflect the slowdown.":"Semiconductors fungerer som et raskt markedssignal for forventningene til AI infrastructure. Vedvarende svakhet i SOX kan varsle fallende forventninger til AI-investeringssyklusen før dette blir tydelig i selskapenes fundamentals.",
   "The current v1 score uses 30D SOX momentum only. It is deliberately simple and transparent while we build stable fundamental semiconductor inputs.":"Dagens v1-score bruker kun 30D SOX momentum. Den er bevisst enkel og transparent mens vi bygger stabile fundamentale semiconductor-inputs.",
   "HOW THE SCORE IS BUILT":"SLIK BYGGES SCOREN",
   "SCORING LADDER":"SCORING LADDER",
@@ -460,6 +461,7 @@ function renderAll(data) {
   renderCanaryWatch(data);
   renderIndicatorDashboard(data);
   renderMarketCharts(data.marketHistory || []);
+  renderRiskHistory(data);
   applyNorwegianCopy();
 }
 
@@ -513,6 +515,7 @@ function renderLiveDashboardSafely(data) {
     ["canary-watch",()=>renderCanaryWatch(data)],
     ["indicator-dashboard",()=>renderIndicatorDashboard(data)],
     ["market-charts",()=>renderMarketCharts(data.marketHistory || [])],
+    ["risk-history",()=>renderRiskHistory(data)],
     ["copy",()=>applyNorwegianCopy()]
   ];
   const errors=[];
@@ -1223,6 +1226,73 @@ function indicator7dTrend(data, detail) {
   const tone=arrow==="↑"?"danger":arrow==="↓"?"good":"neutral";
   const signed=`${delta>0?"+":""}${formatNumber(delta,1)}`;
   return {arrow,delta,tone,text:`${arrow} ${signed} · 7D`};
+}
+
+function renderRiskHistory(data) {
+  const canvas=document.getElementById("riskHistoryChart");
+  const chips=document.getElementById("riskHistoryChips");
+  const summary=document.getElementById("riskHistorySummary");
+  if (!canvas || !chips || typeof Chart === "undefined") return;
+
+  const rows=(data?.scoreHistory||[])
+    .filter(r=>r?.date && Number.isFinite(toNum(r.canaryScore)))
+    .slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if (!rows.length) return;
+
+  const series=[
+    {key:"canaryScore",label:"Canary Score",main:true},
+    {key:"tokenEconomics",label:"Token Economics"},
+    {key:"aiDemand",label:"AI Demand"},
+    {key:"computeSupply",label:"Compute Supply"},
+    {key:"semiconductorMarket",label:"Semiconductor Market"},
+    {key:"capexInvestment",label:"CAPEX Investment"},
+    {key:"commitmentOverhang",label:"Commitment Overhang"},
+    {key:"financingConditions",label:"Financing Conditions"},
+    {key:"macroRisk",label:"Macro & Risk"}
+  ];
+  const latest=rows[rows.length-1];
+  const latestDate=new Date(`${String(latest.date).slice(0,10)}T12:00:00Z`).getTime();
+  const priorFor=(key)=>{
+    let prior=null;
+    for(const r of rows){
+      const t=new Date(`${String(r.date).slice(0,10)}T12:00:00Z`).getTime();
+      if(Number.isFinite(t)&&t<=latestDate-7*86400000&&Number.isFinite(toNum(r[key]))) prior=r;
+    }
+    return prior;
+  };
+  const trendFor=(key)=>{
+    const now=toNum(latest[key]), prior=priorFor(key), before=toNum(prior?.[key]);
+    if(!Number.isFinite(now)||!Number.isFinite(before)) return {arrow:"—",delta:NaN,tone:"neutral"};
+    const d=now-before, arrow=d>0.5?"↑":d<-0.5?"↓":"→";
+    return {arrow,delta:d,tone:arrow==="↑"?"danger":arrow==="↓"?"good":"neutral"};
+  };
+
+  const selected=new Set(["canaryScore"]);
+  const palette=["#7ce4ff","#4ad18a","#b7c5ff","#ffca5c","#f7d94c","#ff9d43","#ff5e6f","#d49cff","#77b9ff"];
+  const fmtDelta=(t)=>Number.isFinite(t.delta)?`${t.arrow} ${t.delta>0?"+":""}${formatNumber(t.delta,1)} · 7D`:"—";
+  chips.innerHTML=series.map((x,i)=>{
+    const n=toNum(latest[x.key]), t=trendFor(x.key);
+    return `<button type="button" class="risk-history-chip${x.main?' active main':''}" data-history-key="${x.key}" style="--series-color:${palette[i]}"><span>${escapeHtml(x.label)}</span><strong>${Number.isFinite(n)?formatNumber(n,1):"—"}</strong><small class="${t.tone}">${escapeHtml(fmtDelta(t))}</small></button>`;
+  }).join("");
+
+  const datasets=()=>series.filter(x=>selected.has(x.key)).map((x)=>{
+    const i=series.findIndex(y=>y.key===x.key);
+    return {label:x.label,data:rows.map(r=>Number.isFinite(toNum(r[x.key]))?toNum(r[x.key]):null),borderColor:palette[i],backgroundColor:"transparent",borderWidth:x.main?4:2,pointRadius:0,pointHoverRadius:4,tension:.22,spanGaps:true};
+  });
+  const labels=rows.map(r=>String(r.date).slice(5,10));
+  if(charts.riskHistory) charts.riskHistory.destroy();
+  charts.riskHistory=new Chart(canvas,{type:"line",data:{labels,datasets:datasets()},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${formatNumber(ctx.parsed.y,1)}`}}},scales:{y:{min:0,max:100,ticks:{stepSize:25,color:"#6f8b9b"},grid:{color:"rgba(90,130,150,.12)"}},x:{ticks:{color:"#6f8b9b",maxTicksLimit:8},grid:{display:false}}}}});
+  const totalTrend=trendFor("canaryScore");
+  if(summary) summary.innerHTML=`<strong>${formatNumber(toNum(latest.canaryScore),1)}</strong><span>Canary Score</span><small class="${totalTrend.tone}">${escapeHtml(fmtDelta(totalTrend))}</small>`;
+
+  chips.onclick=(e)=>{
+    const btn=e.target.closest("[data-history-key]"); if(!btn) return;
+    const key=btn.dataset.historyKey;
+    if(key==="canaryScore") return;
+    selected.has(key)?selected.delete(key):selected.add(key);
+    btn.classList.toggle("active",selected.has(key));
+    charts.riskHistory.data.datasets=datasets(); charts.riskHistory.update();
+  };
 }
 
 function renderIndicators(data) {
