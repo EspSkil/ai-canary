@@ -37,6 +37,14 @@ const NO_TEXT = new Map(Object.entries({
 
   "Semiconductor Market asks whether the chip market is confirming or challenging the AI infrastructure cycle. SOX is used as a fast market signal because semiconductor expectations often move before reported company fundamentals.":"Semiconductor Market undersøker om chip-markedet bekrefter eller utfordrer AI infrastructure cycle. SOX brukes som et raskt markedssignal fordi forventningene til semiconductors ofte beveger seg før endringene synes i rapporterte company fundamentals.",
   "The current v1 score uses 30D SOX momentum only. It is deliberately simple and transparent while we build stable fundamental semiconductor inputs.":"Dagens v1-score bruker kun 30D SOX momentum. Den er bevisst enkel og transparent mens vi bygger stabile fundamentale semiconductor-inputs.",
+  "HOW THE SCORE IS BUILT":"SLIK BYGGES SCOREN",
+  "SCORING LADDER":"SCORING LADDER",
+  "The model combines a smoothed short-term SOX momentum signal with a longer point-to-point SOX trend. The 30D signal receives 60% weight because Canary is designed as an early-warning model; the 90D trend receives 40% to reduce the risk of overreacting to a short move.":"Modellen kombinerer et glattet kortsiktig SOX momentum-signal med en lengre point-to-point SOX trend. 30D-signalet får 60% vekt fordi Canary er en early-warning modell; 90D Trend får 40% for å redusere risikoen for å overreagere på en kort markedsbevegelse.",
+  "Both inputs use fixed, transparent risk bands. Short-term declines are scored slightly more severely than the same decline over 90 days, while a flat or modestly positive market remains in Watch rather than being treated as neutral risk 50.":"Begge input bruker faste og transparente risk bands. Kortsiktige fall scores litt strengere enn samme fall over 90 dager, mens et flatt eller moderat positivt marked blir liggende i Watch i stedet for å behandles som nøytral risiko 50.",
+  "The 52-week view provides broader market context. It is not a third scored input: the model score is based only on SOX 30D Momentum and SOX 90D Trend.":"52-ukersgrafen gir bredere markedskontekst. Den er ikke et tredje scoret input: modellen bygger kun på SOX 30D Momentum og SOX 90D Trend.",
+  "The model deliberately combines two different horizons: 30D average-to-average momentum for a smoother early signal, and a 90D point-to-point trend for longer confirmation. A positive SOX trend lowers risk; sustained negative momentum raises it.":"Modellen kombinerer bevisst to ulike tidshorisonter: 30D average-to-average momentum som et glattere tidlig signal, og 90D point-to-point trend som lengre bekreftelse. Positiv SOX trend reduserer risiko; vedvarende negativ momentum øker den.",
+  "SOX is currently providing moderate market confirmation rather than a semiconductor-cycle warning.":"SOX gir nå moderat markedsbekreftelse snarere enn et varsel om svak semiconductor-cycle.",
+  "SOX history is fetched automatically into MarketHistory from the FRED/Nasdaq series. Semi_Momentum calculates SOX 30D Momentum, SOX 90D Trend and the 60/40 Semiconductor Market Composite. The website displays the Google Sheet result and does not recreate or override the headline score.":"SOX history hentes automatisk til MarketHistory fra FRED/Nasdaq-serien. Semi_Momentum beregner SOX 30D Momentum, SOX 90D Trend og 60/40 Semiconductor Market Composite. Nettsiden viser resultatet fra Google Sheet og beregner ikke headline-scoren på nytt.",
 
   "AI Demand is the demand-side counterweight to the investment boom. Strong revenue growth, backlog and cloud activity make high infrastructure spending easier to absorb; broad weakening would make the same CAPEX and commitments more dangerous.":"AI Demand er demand-sidens motvekt til investeringsboomen. Sterk revenue growth, backlog og cloud activity gjør høy infrastructure spending lettere å absorbere. Bred svekkelse ville gjort den samme CAPEX og commitments langt mer risikable.",
   "Demand is supportive today, but this component is still using the locked baseline score until the dynamic Demand model is upgraded.":"Demand er støttende i dag, men komponenten bruker fortsatt låst baseline-score frem til den dynamiske Demand-modellen er oppgradert.",
@@ -2608,27 +2616,58 @@ function semisDetailHtml() {
   const m=DATA.latestMarket || {}, x=DATA.canary?.latest||{};
   const sox=m.sox||{};
   const dyn=dynamicScore(DATA,"semiconductorMarket",x.semisScore);
-  const row=semiRow("30D Avg SOX");
-  const current=toNum(row.currentValue);
-  const previous=toNum(row.previousValue);
-  const change=toNum(row.change);
-  const risk=toNum(row.score);
+  const row30=semiRow("SOX 30D Momentum") || {};
+  const legacy30=Object.keys(row30).length ? row30 : semiRow("30D Avg SOX");
+  const row90=semiRow("SOX 90D Trend");
+
+  const current30=toNum(legacy30.currentValue);
+  const previous30=toNum(legacy30.previousValue);
+  const change30=toNum(legacy30.change);
+  const risk30=toNum(legacy30.score);
+  const current90=toNum(row90.currentValue);
+  const previous90=toNum(row90.previousValue);
+  const change90=toNum(row90.change);
+  const risk90=toNum(row90.score);
   const finalScore=toNum(dyn.score);
-  const trend=String(row.trend||DATA.semiMomentum?.trend||"→");
   const status=dyn.status||scoreStatus(finalScore);
-  const contributionText=Number.isFinite(change)?`50 − (${formatPercent(change)} × 500)`:`50 − (30D momentum × 500)`;
+  const contribution30=Number.isFinite(risk30)?risk30*0.60:NaN;
+  const contribution90=Number.isFinite(risk90)?risk90*0.40:NaN;
+
+  const scoreBuild=`<div class="semi-v2-build">
+    <div class="semi-v2-driver">
+      <div class="semi-v2-driver-head"><div><strong>SOX 30D Momentum</strong><small>Current 30D average vs previous non-overlapping 30D average</small></div><span class="semi-weight">60%</span></div>
+      <div class="semi-v2-values"><span>${Number.isFinite(current30)&&Number.isFinite(previous30)?`${formatNumber(current30,2)} vs ${formatNumber(previous30,2)}`:"—"}</span><b>${Number.isFinite(change30)?formatSignedPercent(change30):"—"}</b><strong>Risk ${Number.isFinite(risk30)?formatNumber(risk30,0):"—"}</strong><em>Contribution ${Number.isFinite(contribution30)?formatNumber(contribution30,1):"—"}</em></div>
+    </div>
+    <div class="semi-v2-driver">
+      <div class="semi-v2-driver-head"><div><strong>SOX 90D Trend</strong><small>Latest SOX vs last available observation on or before ~90 calendar days earlier</small></div><span class="semi-weight">40%</span></div>
+      <div class="semi-v2-values"><span>${Number.isFinite(current90)&&Number.isFinite(previous90)?`${formatNumber(current90,2)} vs ${formatNumber(previous90,2)}`:"—"}</span><b>${Number.isFinite(change90)?formatSignedPercent(change90):"—"}</b><strong>Risk ${Number.isFinite(risk90)?formatNumber(risk90,0):"—"}</strong><em>Contribution ${Number.isFinite(contribution90)?formatNumber(contribution90,1):"—"}</em></div>
+    </div>
+    <div class="semi-v2-total"><div><span>SEMICONDUCTOR MARKET</span><small>60% × 30D Risk + 40% × 90D Risk</small></div><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,1):"—"}</strong><b>${escapeHtml(status)}</b></div>
+  </div>`;
+
+  const ladder=`<div class="semi-ladder">
+    <div class="semi-ladder-row semi-ladder-head"><span>SOX change</span><span>30D Risk</span><span>90D Risk</span></div>
+    ${[
+      ["≥ +15%",10,10],["+10% to +15%",15,15],["+5% to +10%",25,25],["0% to +5%",40,35],["−5% to 0%",55,50],["−10% to −5%",70,65],["−15% to −10%",80,75],["−20% to −15%",90,85],["< −20%",100,100]
+    ].map(([band,r30,r90])=>{
+      const active30=Number.isFinite(risk30)&&risk30===r30;
+      const active90=Number.isFinite(risk90)&&risk90===r90;
+      return `<div class="semi-ladder-row${active30||active90?' active':''}"><span>${band}</span><span class="${active30?'current':''}">${r30}${active30?' ← current':''}</span><span class="${active90?'current':''}">${r90}${active90?' ← current':''}</span></div>`;
+    }).join('')}
+  </div>`;
 
   return sectionHtml("WHY IT MATTERS","Semiconductors are a fast market checkpoint on AI infrastructure expectations. Persistent SOX weakness can signal falling expectations for the AI investment cycle before company fundamentals fully reflect the slowdown.",metricCards([
       {label:"SOX",value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):"—",note:sox.date||"Latest market observation"},
-      {label:"30D average",value:Number.isFinite(current)?formatNumber(current,0):"—",note:Number.isFinite(previous)?`Previous 30D ${formatNumber(previous,0)}`:"Current 30D window",trend:Number.isFinite(change)?formatSignedPercent(change):trend,trendTone:Number.isFinite(change)?(change>0?"good":change<0?"danger":"neutral"):"neutral"},
-      {label:"Semiconductor score",value:fmtScore(finalScore),note:`${status} · dynamic`,riskScore:finalScore}
+      {label:"30D Momentum",value:Number.isFinite(change30)?formatSignedPercent(change30):"—",note:Number.isFinite(risk30)?`Risk ${formatNumber(risk30,0)} · 60% weight`:"Current vs previous 30D",riskScore:risk30},
+      {label:"90D Trend",value:Number.isFinite(change90)?formatSignedPercent(change90):"—",note:Number.isFinite(risk90)?`Risk ${formatNumber(risk90,0)} · 40% weight`:"Latest vs ~90D ago",riskScore:risk90}
     ]))
-    + sectionHtml("HOW THE 48 IS BUILT","The score is calculated in Semi_Momentum from two non-overlapping 30-calendar-day SOX averages. The website displays the spreadsheet result and does not recreate or override the model.",`<div class="score-build semi-score-build"><div class="score-build-row"><div><span>SOX 30D momentum</span><small>${Number.isFinite(current)&&Number.isFinite(previous)?`${formatNumber(current,2)} vs ${formatNumber(previous,2)}`:"Current 30D vs previous 30D"}</small></div><strong>${Number.isFinite(change)?formatSignedPercent(change):"—"}</strong><em>× 500</em><b>${Number.isFinite(risk)?formatNumber(risk,2):"—"}</b></div><div class="score-build-total"><span>Semiconductor Market</span><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,2):"—"}</strong><small>${escapeHtml(contributionText)} · bounded 0–100</small></div></div>`)
-    + sectionHtml("SOX TREND","The 52-week view provides context around the short 30D scoring window. It is evidence, not an additional scored input.",semisTrendSvg())
-    + sectionHtml("MODEL LOGIC","Semiconductor Market v1 is intentionally simple. A flat SOX trend maps near 50 risk. Strong positive 30D momentum pushes risk toward 0; strong negative momentum pushes risk toward 100. The mapping is linear and capped at both ends.",`<div class="methodology-grid semis-methodology"><div><strong>+10% 30D momentum</strong><span>≈ 0 risk · strong market confirmation</span></div><div><strong>0% momentum</strong><span>50 risk · neutral / no confirmation</span></div><div><strong>−10% 30D momentum</strong><span>≈ 100 risk · strong market warning</span></div><div><strong>Current reading</strong><span>${Number.isFinite(change)?`${formatSignedPercent(change)} → ${formatNumber(finalScore,1)} / ${status}`:"Dynamic Semi_Momentum model"}</span></div></div>`)
+    + sectionHtml("HOW THE SCORE IS BUILT","The model combines a smoothed short-term SOX momentum signal with a longer point-to-point SOX trend. The 30D signal receives 60% weight because Canary is designed as an early-warning model; the 90D trend receives 40% to reduce the risk of overreacting to a short move.",scoreBuild)
+    + sectionHtml("SCORING LADDER","Both inputs use fixed, transparent risk bands. Short-term declines are scored slightly more severely than the same decline over 90 days, while a flat or modestly positive market remains in Watch rather than being treated as neutral risk 50.",ladder)
+    + sectionHtml("SOX TREND","The 52-week view provides broader market context. It is not a third scored input: the model score is based only on SOX 30D Momentum and SOX 90D Trend.",semisTrendSvg())
+    + sectionHtml("MODEL LOGIC","The model deliberately combines two different horizons: 30D average-to-average momentum for a smoother early signal, and a 90D point-to-point trend for longer confirmation. A positive SOX trend lowers risk; sustained negative momentum raises it.",`<div class="methodology-grid semis-methodology"><div><strong>SOX 30D Momentum</strong><span>60% · short-term early-warning signal</span></div><div><strong>SOX 90D Trend</strong><span>40% · longer trend confirmation</span></div><div><strong>Current 30D reading</strong><span>${Number.isFinite(change30)?`${formatSignedPercent(change30)} → Risk ${formatNumber(risk30,0)}`:"—"}</span></div><div><strong>Current 90D reading</strong><span>${Number.isFinite(change90)?`${formatSignedPercent(change90)} → Risk ${formatNumber(risk90,0)}`:"—"}</span></div></div>`)
     + sectionHtml("WHAT THIS MODEL DOES NOT YET CAPTURE","SOX is a market-price signal, not a complete semiconductor-cycle model. We will only add fundamental inputs after selecting stable, comparable data sources.",`<div class="semis-planned-grid"><div><strong>DRAM / NAND pricing</strong><small>PLANNED · memory-cycle confirmation</small></div><div><strong>Foundry / wafer utilization</strong><small>PLANNED · physical capacity signal</small></div><div><strong>Gross margins</strong><small>PLANNED · semiconductor economics</small></div><div><strong>Inventory / lead times</strong><small>PLANNED · supply-demand balance</small></div></div>`)
-    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">SOX is currently broadly neutral rather than flashing a cycle warning.</div><p>The latest 30D average is ${Number.isFinite(change)?`${formatSignedPercent(change)} versus the previous 30D window`:"close to the previous comparison window"}, producing ${Number.isFinite(finalScore)?`${formatNumber(finalScore,1)} · ${escapeHtml(status)}`:"a dynamic spreadsheet score"}. This should be read as market confirmation only; fundamental semiconductor-cycle inputs are not yet included.</p></section>`
-    + sectionHtml("DATA & EVIDENCE","SOX history is fetched automatically into MarketHistory from the FRED/Nasdaq series. Semi_Momentum calculates the 30D-versus-prior-30D signal and dynamic risk score.",sourceNote("AUTO · FRED NASDAQSOX · dynamic Semi_Momentum model"));
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">SOX is currently providing moderate market confirmation rather than a semiconductor-cycle warning.</div><p>The 30D signal is ${Number.isFinite(change30)?`${formatSignedPercent(change30)} (Risk ${formatNumber(risk30,0)})`:"not available"} and the 90D trend is ${Number.isFinite(change90)?`${formatSignedPercent(change90)} (Risk ${formatNumber(risk90,0)})`:"not available"}. With 60/40 weighting, Semiconductor Market is ${Number.isFinite(finalScore)?`${formatNumber(finalScore,1)} · ${escapeHtml(status)}`:"a dynamic spreadsheet score"}. Fundamental semiconductor-cycle inputs are not yet included.</p></section>`
+    + sectionHtml("DATA & EVIDENCE","SOX history is fetched automatically into MarketHistory from the FRED/Nasdaq series. Semi_Momentum calculates SOX 30D Momentum, SOX 90D Trend and the 60/40 Semiconductor Market Composite. The website displays the Google Sheet result and does not recreate or override the headline score.",sourceNote("AUTO · FRED NASDAQSOX · dynamic Semi_Momentum model"));
 }
 
 function capexDetailHtml() {
