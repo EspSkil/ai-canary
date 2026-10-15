@@ -1599,3 +1599,8 @@ body.watch-detail-open{overflow:hidden}
 
 /* v4.38: 10D drawdown ladder uses two columns */
 .semi-drawdown-ladder .semi-ladder-row{grid-template-columns:1.25fr .8fr}
+
+/* AI Demand Deep Dive: readable formula panels on light backgrounds */
+.cid-formula.cid-demand-light{color:#36556b;background:#e6f1f7;font-size:11px;line-height:1.55}
+.cid-formula.cid-demand-light strong{color:#173d59;font-size:12px}
+.cid-formula.cid-demand-light p,.cid-formula.cid-demand-light small{color:#36556b}
