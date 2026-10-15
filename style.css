@@ -1596,3 +1596,6 @@ body.watch-detail-open{overflow:hidden}
 .risk-history-chip.main{cursor:default}
 .risk-history-chart-wrap{height:310px;position:relative}
 @media(max-width:720px){.detail-metric-grid .connected-card span{font-size:10px}.detail-metric-grid .connected-card small{font-size:10px}.risk-history-top{display:block}.risk-history-summary{margin-top:10px;justify-content:start;text-align:left}.risk-history-chips{display:grid;grid-template-columns:1fr 1fr}.risk-history-chip{width:100%}.risk-history-chart-wrap{height:260px}.semi-v2-driver-head small{font-size:9.5px}.semi-v2-values{font-size:10px}.semi-ladder-row{font-size:9.5px}}
+
+/* v4.38: 10D drawdown ladder uses two columns */
+.semi-drawdown-ladder .semi-ladder-row{grid-template-columns:1.25fr .8fr}
