@@ -1604,3 +1604,7 @@ body.watch-detail-open{overflow:hidden}
 .cid-formula.cid-demand-light{color:#36556b;background:#e6f1f7;font-size:11px;line-height:1.55}
 .cid-formula.cid-demand-light strong{color:#173d59;font-size:12px}
 .cid-formula.cid-demand-light p,.cid-formula.cid-demand-light small{color:#36556b}
+
+/* AI Demand Deep Dive: desktop and mobile readable labels (override dark-panel rules). */
+.cid-formula.cid-demand-light, .cid-formula.cid-demand-light p, .cid-formula.cid-demand-light small {color:#24465d!important;background-color:#e6f1f7;}
+.cid-formula.cid-demand-light strong, .cid-formula.cid-demand-light b {color:#173d59!important;-webkit-text-fill-color:#173d59!important;opacity:1!important;}
