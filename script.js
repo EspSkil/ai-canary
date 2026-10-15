@@ -1093,9 +1093,9 @@ function renderMoneyCircle(data) {
     },
     {
       id:"moneyNode5",
-      scores:[toNum(x.demandScore),toNum(dynToken.score)],
+      scores:[toNum(dynamicScore(DATA,"aiDemand",x.demandScore).score),toNum(dynToken.score)],
       badges:[
-        `Demand ${fmtScore(x.demandScore)}`,
+        `Demand ${fmtScore(dynamicScore(DATA,"aiDemand",x.demandScore).score)}`,
         Number.isFinite(toNum(token.value)) ? `Token ${formatNumber(token.value,2)}` : null
       ]
     }
@@ -1166,7 +1166,7 @@ function componentItems(data) {
 
   return [
     {name:"Token Economics",score:token.score,icon:"🪙",detail:"token",info:"tokenEconomics",subtitle:"Dynamic · volume × expenditure"},
-    {name:"AI Demand",score:x.demandScore,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Locked v3 · revenue, cloud growth & backlog"},
+    {name:"AI Demand",score:dynamicScore(data,"aiDemand",x.demandScore).score,icon:"☁️",detail:"demand",info:"aiDemandIndicator",subtitle:"Dynamic · revenue growth & momentum"},
     {name:"Compute Supply",score:compute.score,icon:"🖥️",detail:"compute",info:"computeSupply",subtitle:"Dynamic · H100 pricing & scarcity premium"},
     {name:"Semiconductor Market",score:semis.score,icon:"💾",detail:"semis",info:"semiconductorMarket",subtitle:"Dynamic · 30D SOX momentum"},
     {name:"CAPEX Investment",score:capex.score,icon:"🏗️",detail:"capex",info:"capexInvestment",subtitle:"Dynamic · scale, growth, gap & guidance"},
@@ -1525,9 +1525,10 @@ function renderIndicatorDashboard(data) {
   const tokenBody=`<div class="cid-metrics two">${miniMetric("30D TOKEN VOLUME",tokenTrillions(vol.currentValue),Number.isFinite(toNum(vol.change))?`${formatSignedPercent(toNum(vol.change))} vs previous 30D`:"Volume momentum",vol.score)}${miniMetric("TOKEN EXPENDITURE",Number.isFinite(toNum(exp.currentValue))?`$${formatNumber(toNum(exp.currentValue),2)} / 1M`:"—",Number.isFinite(toNum(exp.change))?`${formatSignedPercent(toNum(exp.change))} vs previous observation`:"Effective expenditure")}</div><div class="cid-metrics two compact">${miniMetric("FROM MAY PEAK",Number.isFinite(toNum(draw.change))?formatSignedPercent(toNum(draw.change)):"—","Expenditure drawdown",draw.score)}${miniMetric("VOLUME RISK",Number.isFinite(toNum(vol.score))?formatNumber(toNum(vol.score),1):"—","60% model weight",vol.score)}</div>`;
   const tokenRead="Usage growth is currently offsetting much of the risk from lower effective token expenditure.";
 
-  // 2 AI Demand — explicitly interim / locked headline score
-  const demandRows=data.aiDemand||[];
-  const demandBody=`<div class="cid-demand-grid">${["CoreWeave","Microsoft","Amazon","Oracle"].map(c=>demandCompanyMini(c,demandRows)).join("")}</div>`;
+  // 2 AI Demand — dynamic quarterly revenue growth model
+  const demand=dynamicScore(data,"aiDemand",x.demandScore);
+  const dm=data.aiDemandMomentum||{};
+  const demandBody=`<div class="cid-metrics two">${miniMetric("GROWTH LEVEL WEIGHT","60%","YoY revenue growth")}${miniMetric("MOMENTUM WEIGHT","40%","Quarterly change in YoY growth (pp)")}</div><div class="cid-company-grid">${(dm.rows||[]).map(r=>`<div class="cid-mini"><div class="cid-mini-label">${escapeHtml(String(r.company||""))}</div><strong>${fmtScore(r.riskScore)} / 100</strong><small>YoY ${formatPercent(toNum(r.growthLevel))} · Momentum ${formatNumber(toNum(r.momentumPp),1)} pp</small></div>`).join("")}</div>`;
 
   // 3 Compute Supply
   const compRows=data.computeMomentum?.rows||[];
@@ -1571,7 +1572,7 @@ function renderIndicatorDashboard(data) {
 
   host.innerHTML=[
     indicatorShell({key:"token",icon:"🪙",title:"TOKEN ECONOMICS",subtitle:"Usage, pricing & unit economics",score:token.score,status:token.status,trend:tokenTrend,read:tokenRead,body:tokenBody}),
-    indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:"AI workloads & cloud demand",score:x.demandScore,status:scoreStatus(toNum(x.demandScore)),trend:{text:"INTERIM",tone:"neutral"},read:"Underlying company demand signals are tracked, while the headline score remains the locked fallback model.",body:demandBody,model:"INTERIM · FALLBACK SCORE",note:"Headline score is not yet calculated from the company signals shown above."}),
+    indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:"AI workloads & cloud demand",score:demand.score,status:demand.status,trend:indicatorTrendLabel(dm.rows||[]),read:"Quarterly YoY revenue growth and its acceleration/deceleration across five AI/cloud companies. This measures growth risk, not profitability.",body:demandBody,model:"DYNAMIC · 60% LEVEL / 40% MOMENTUM",note:"Equal company weights (20% each). Revenue-based demand; RPO is evidence only."}),
     indicatorShell({key:"compute",icon:"🖥️",title:"COMPUTE SUPPLY",subtitle:"GPU pricing & scarcity",score:compute.score,status:compute.status,trend:indicatorTrendLabel(compRows),read:"Current compute pricing does not show a clear oversupply warning; guaranteed capacity still carries a premium.",body:computeBody}),
     indicatorShell({key:"semis",icon:"💾",title:"SEMICONDUCTOR MARKET",subtitle:"Chip-market confirmation",score:semis.score,status:semis.status,trend:indicatorTrendLabel([semi]),read:"The current v1 model uses SOX momentum as a fast market checkpoint; fundamental semiconductor inputs are not yet scored.",body:semisBody}),
     indicatorShell({key:"capex",icon:"🏗️",title:"CAPEX INVESTMENT",subtitle:"Investment intensity & growth",score:capex.score,status:capex.status,trend:indicatorTrendLabel(capRows),read:"CAPEX risk is broad, with the highest company-level pressure concentrated in the most aggressive infrastructure builders.",body:capBody}),
@@ -2070,7 +2071,7 @@ function detailScoreInfo(key) {
   const capex=dynamicScore(DATA,"capexInvestment",x.capexScore);
   const map={
     token:{score:toNum(dynamicScore(DATA,"tokenEconomics",x.tokenScore).score),status:dynamicScore(DATA,"tokenEconomics",x.tokenScore).status,label:"TOKEN ECONOMICS SCORE",meta:"Dynamic Google Sheet model"},
-    demand:{score:toNum(x.demandScore),label:"AI DEMAND SCORE",meta:"Locked v3 baseline · dynamic model pending"},
+    demand:{score:toNum(dynamicScore(DATA,"aiDemand",x.demandScore).score),status:dynamicScore(DATA,"aiDemand",x.demandScore).status,label:"AI DEMAND SCORE",meta:"Dynamic · 60% level / 40% momentum · five companies"},
     compute:{score:toNum(compute.score),status:compute.status,label:"COMPUTE SUPPLY SCORE",meta:"Dynamic Google Sheet model · GPU utilization planned"},
     semis:{score:toNum(dynamicScore(DATA,"semiconductorMarket",x.semisScore).score),status:dynamicScore(DATA,"semiconductorMarket",x.semisScore).status,label:"SEMICONDUCTOR MARKET SCORE",meta:"Dynamic Google Sheet model · SOX momentum"},
     capex:{score:toNum(capex.score),status:capex.status,label:"CAPEX INVESTMENT SCORE",meta:"Dynamic Google Sheet model · company risk + breadth"},
@@ -2649,16 +2650,25 @@ function tokenDetailHtml() {
 }
 
 function demandDetailHtml() {
-  const rows=DATA.aiDemand || [];
-  const latestByCompany={};
-  rows.forEach(r=>{ if(!r.company) return; const d=String(r.observationDate||r.period||""); if(!latestByCompany[r.company] || d>String(latestByCompany[r.company].observationDate||latestByCompany[r.company].period||"")) latestByCompany[r.company]=r; });
-  const companies=[...new Set(rows.map(r=>r.company).filter(Boolean))];
-  const recent=rows.slice(-8).map(r=>({label:`${r.company||"—"} · ${r.metric||"Metric"}`,value:formatDemandValue(r),context:r.yoyChange!==undefined&&r.yoyChange!==null?formatDemandChange(r):r.period||""}));
-  return sectionHtml("WHY IT MATTERS","Demand is the bridge between infrastructure investment and monetization. Canary follows growth, backlog/RPO and operating signals across major AI/cloud companies.",metricCards([
-    {label:"Companies tracked",value:String(companies.length),note:"Current AI_Demand dataset"},
-    {label:"Demand score",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Current Canary component",riskScore:toNum(DATA.canary?.latest?.demandScore),locked:true},
-    {label:"Evidence rows",value:String(rows.length),note:"API-connected observations"}
-  ]))+sectionHtml("RECENT COMPANY SIGNALS","Selected live rows from AI_Demand.",evidenceTable(recent))+sectionHtml("DATA & EVIDENCE","Company demand rows come from the AI_Demand Google Sheet tab with source, observation date and verification fields retained in the API.",sourceNote("Live API-connected"));
+  const model=DATA.aiDemandMomentum||{};
+  const dyn=dynamicScore(DATA,"aiDemand",DATA.canary?.latest?.demandScore);
+  const rows=model.rows||[];
+  const scoreTable=evidenceTable(rows.map(r=>({
+    label:String(r.company||""),
+    value:`${fmtScore(r.riskScore)} / 100`,
+    context:`YoY ${formatPercent(toNum(r.growthLevel))} · previous ${formatPercent(toNum(r.previousGrowth))} · momentum ${formatNumber(toNum(r.momentumPp),1)} pp · level risk ${fmtScore(r.levelRisk)} · momentum risk ${fmtScore(r.momentumRisk)} · weight ${formatPercent(toNum(r.weight))}`
+  })));
+  const bands= `<div class="cid-formula"><strong>LEVEL RISK (YoY growth)</strong><p>&gt;40% → 0 · 25–40% → 25 · 15–25% → 50 · 5–15% → 75 · &lt;5% → 100</p><strong>MOMENTUM RISK (change in YoY growth, pp)</strong><p>&gt;+5 → 0 · +2 to +5 → 15 · −2 to +2 → 30 · −5 to −2 → 50 · −10 to −5 → 75 · &lt;−10 → 100</p><small>Threshold boundary values follow the live Google Sheet formulas.</small></div>`;
+  return sectionHtml("WHAT WE MEASURE","Five revenue-based demand indicators: Microsoft Azure, Amazon AWS, Alphabet Google Cloud, Oracle IaaS and CoreWeave revenue. Revenue growth is measured against the same fiscal/calendar quarter a year earlier; momentum is the percentage-point change in YoY growth compared with the preceding quarter.",metricCards([
+    {label:"Dynamic demand risk",value:fmtScore(dyn.score),note:dyn.status||"",riskScore:toNum(dyn.score)},
+    {label:"Growth Level",value:formatPercent(toNum(model.weights?.growthLevel)),note:"Within each company"},
+    {label:"Growth Momentum",value:formatPercent(toNum(model.weights?.momentum)),note:"Within each company"},
+    {label:"Company weighting",value:"20% each",note:"Five companies"}
+  ]))+sectionHtml("LIVE COMPANY SCORES","Company-level YoY growth, previous-quarter YoY growth, momentum in percentage points and separate risk scores.",scoreTable)
+  +sectionHtml("EXACT SCORING THRESHOLDS","Higher risk score means weaker growth or deceleration.",bands)
+  +sectionHtml("COMPOSITE & WEIGHTING","Each company risk = 60% Level Risk + 40% Momentum Risk. AI Demand composite = weighted average of the five company risks, with 20% each.",`<div class="cid-formula">0.60 × Level Risk + 0.40 × Momentum Risk → company score<br>Σ (20% × company score) → <strong>${fmtScore(dyn.score)} / 100</strong></div>`)
+  +sectionHtml("INTERPRETATION & LIMITATIONS","Strong AI/cloud revenue growth indicates healthy demand, but does not prove that customer AI workloads are profitable or that the infrastructure buildout earns adequate returns. Oracle and CoreWeave grow from smaller bases. Cloud revenue includes non-AI workloads. RPO/backlog is tracked separately as supporting evidence, not scored here to avoid overlap with Commitment Overhang.")
+  +sectionHtml("HISTORY & SOURCES","The new dynamic model replaces the historical locked AI Demand score of 20 from the activation date. This is a methodology break, not a sudden market move. Source rows, observation dates and official company references are retained in the AI_Demand sheet; score calculations are in AI_Demand_Momentum.",sourceNote("Google Sheet · AI_Demand / AI_Demand_Momentum"));
 }
 
 function semiRow(metricName) {
@@ -2935,7 +2945,7 @@ function moneyHyperscalersHtml(){
     [
       {label:"CAPEX Investment",value:fmtScore(capex.score),note:"Scale · growth · demand gap · guidance",riskScore:toNum(capex.score),detail:"capex"},
       {label:"Commitment Overhang",value:fmtScore(commit.score),note:"Future obligations & momentum",riskScore:toNum(commit.score),detail:"commitment"},
-      {label:"AI Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Cloud · RPO/backlog · demand quality",riskScore:toNum(DATA.canary?.latest?.demandScore),detail:"demand",locked:true}
+      {label:"AI Demand",value:fmtScore(dynamicScore(DATA,"aiDemand",DATA.canary?.latest?.demandScore).score),note:"Dynamic · revenue growth & momentum",riskScore:toNum(dynamicScore(DATA,"aiDemand",DATA.canary?.latest?.demandScore).score),detail:"demand"}
     ],
     "The key question is whether demand and monetization keep pace with the enormous infrastructure buildout."
   );
@@ -2987,7 +2997,7 @@ function moneyMonetizationHtml(){
       {title:"Unit economics",text:"Can falling model costs support more usage without destroying monetization?"}
     ],
     [
-      {label:"AI Demand",value:fmtScore(DATA.canary?.latest?.demandScore),note:"Cloud · backlog · company demand",riskScore:toNum(DATA.canary?.latest?.demandScore),detail:"demand",locked:true},
+      {label:"AI Demand",value:fmtScore(dynamicScore(DATA,"aiDemand",DATA.canary?.latest?.demandScore).score),note:"Dynamic · revenue growth & momentum",riskScore:toNum(dynamicScore(DATA,"aiDemand",DATA.canary?.latest?.demandScore).score),detail:"demand"},
       {label:"Token Economics",value:fmtScore(token.score),note:"Usage · effective token expenditure",riskScore:toNum(token.score),detail:"token"}
     ],
     "Enterprise-adoption data can strengthen this node later when a stable, repeatable series is connected."
