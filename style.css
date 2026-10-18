@@ -1616,3 +1616,13 @@ body.watch-detail-open{overflow:hidden}
   .mobile-takeaways-card .takeaway{font-size:13px;line-height:1.5;min-width:0}
   .mobile-takeaways-card .takeaway>div:last-child{overflow-wrap:anywhere}
 }
+
+/* v4.40: Compact risk-direction pills in existing mobile weekly signal cards. */
+@media(max-width:760px){
+  .mobile-signal-heading{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0}
+  .mobile-signal-heading>span:first-child{min-width:0}
+  .mobile-signal-risk{font-size:9px!important;font-weight:800;letter-spacing:0;white-space:nowrap;border:1px solid;border-radius:999px;padding:3px 5px;line-height:1.15}
+  .mobile-signal-risk.risk-up{color:#ffd0a4;border-color:rgba(255,157,67,.35);background:rgba(255,157,67,.12)}
+  .mobile-signal-risk.risk-down{color:#9ff2c4;border-color:rgba(74,209,138,.35);background:rgba(74,209,138,.12)}
+  .mobile-signal-risk.risk-flat{color:#9db5c4;border-color:rgba(141,181,210,.25);background:rgba(141,181,210,.06)}
+}

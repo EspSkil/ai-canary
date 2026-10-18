@@ -1403,8 +1403,23 @@ function renderMobileDashboard(data) {
     ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"]))) } · 7D`:"—"],
     ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"]))) } · 7D`:"—"]
   ];
+  // Same risk-direction rules as the desktop signal cards; the arrow below remains the raw market move.
+  // Missing data is explicitly neutral, never inferred from the sign of a stale value.
+  const riskMoves=[
+    {change:marketSevenDayChange(data,"sox")?.delta,mode:"inverse"},
+    {change:marketSevenDayChange(data,"vix")?.delta,mode:"direct"},
+    {change:marketSevenDayChange(data,"us10y")?.delta,mode:"direct"},
+    {change:marketSevenDayChange(data,"hyOas")?.delta,mode:"direct"},
+    {change:tg.H100_SD ? finiteMarketValue(tg.H100_SD["7dChange"]) : null,mode:"inverse"},
+    {change:tg.TOKEN_SD ? finiteMarketValue(tg.TOKEN_SD["7dChange"]) : null,mode:"inverse"}
+  ];
   const sg=document.getElementById("mobileSignalGrid");
-  if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
+  if(sg) sg.innerHTML=signals.map(([label,value,change],i)=>{
+    const {change:delta,mode}=riskMoves[i];
+    const direction=delta===null||delta===undefined||!Number.isFinite(delta)||delta===0?"flat":((delta>0)===(mode==="direct")?"up":"down");
+    const riskText=direction==="up"?"↑ Risiko":direction==="down"?"↓ Risiko":"→ Risiko";
+    return `<div class="mobile-signal"><div class="mobile-signal-heading"><span>${escapeHtml(label)}</span><span class="mobile-signal-risk risk-${direction}">${riskText}</span></div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`;
+  }).join("");
   const items=componentItems(data).map(i=>[i.icon,i.name,i.score,i.detail]);
   const list=document.getElementById("mobileIndicatorList");
   if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st),tr=indicator7dTrend(data,key);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><span class="mobile-indicator-trend ${tr.tone}" title="${escapeHtml(tr.text)}">${escapeHtml(tr.arrow)}</span><small>${st}</small><b>›</b></button>`}).join("");
