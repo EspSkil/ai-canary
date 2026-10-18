@@ -1608,3 +1608,11 @@ body.watch-detail-open{overflow:hidden}
 /* AI Demand Deep Dive: desktop and mobile readable labels (override dark-panel rules). */
 .cid-formula.cid-demand-light, .cid-formula.cid-demand-light p, .cid-formula.cid-demand-light small {color:#24465d!important;background-color:#e6f1f7;}
 .cid-formula.cid-demand-light strong, .cid-formula.cid-demand-light b {color:#173d59!important;-webkit-text-fill-color:#173d59!important;opacity:1!important;}
+
+/* v4.39: Additional mobile weekly takeaways panel; no other mobile layout changes. */
+@media(min-width:721px){.mobile-takeaways-card{display:none}}
+@media(max-width:720px){
+  .mobile-takeaways-card .takeaway-list{margin-top:12px;gap:12px}
+  .mobile-takeaways-card .takeaway{font-size:13px;line-height:1.5;min-width:0}
+  .mobile-takeaways-card .takeaway>div:last-child{overflow-wrap:anywhere}
+}

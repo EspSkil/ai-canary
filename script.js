@@ -1095,13 +1095,15 @@ function renderTakeaways(data) {
 
   items.sort((a,b)=>b.weight-a.weight);
   const selected=items.slice(0,5);
-  const el=document.getElementById("takeaways");
-  if (!el) return;
-  el.innerHTML=selected.length ? selected.map(x => `
+  const content=selected.length ? selected.map(x => `
     <div class="takeaway">
       <div class="takeaway-dot ${x.risk?"dot-warn":"dot-good"}">${x.risk?"!":"↓"}</div>
       <div>${escapeHtml(x.text)}</div>
     </div>`).join("") : '<div class="takeaway">Ingen sammenlignbare ukesendringer tilgjengelig.</div>';
+  for (const id of ["takeaways", "mobileTakeaways"]) {
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=content;
+  }
 }
 
 function renderMoneyCircle(data) {
