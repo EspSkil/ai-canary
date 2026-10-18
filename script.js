@@ -657,14 +657,15 @@ function renderOverview(data) {
   const marketSnapshotDate = latestMarketSnapshotDate(data);
   setText("snapshotDate", marketSnapshotDate ? `Snapshot ${marketSnapshotDate}` : "Latest market data");
 
-  marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
-    Number(latest.soxChange), latest.soxPeriod || "1W", "pct", "inverse");
-
-  marketSignal("VIX", market.vix, "vixValue","vixMove","vixRisk",
-    Number(latest.vixChange), latest.vixPeriod || "1D", "pct", "direct");
-
-  marketSignal("US10Y", market.us10y, "us10yValue","us10yMove","us10yRisk",
-    Number(latest.us10yChangeBps), latest.us10yPeriod || "1W", "bps", "direct", "%");
+  const sox7=marketSevenDayChange(data,"sox");
+  const vix7=marketSevenDayChange(data,"vix");
+  const yield7=marketSevenDayChange(data,"us10y");
+  marketSignal("SOX",market.sox,"soxValue","soxMove","soxRisk",
+    sox7?.pct ?? NaN,"7D","pct","inverse");
+  marketSignal("VIX",market.vix,"vixValue","vixMove","vixRisk",
+    vix7?.pct ?? NaN,"7D","pct","direct");
+  marketSignal("US10Y",market.us10y,"us10yValue","us10yMove","us10yRisk",
+    yield7?.delta != null?yield7.delta*100:NaN,"7D","bps","direct","%");
 
   renderTokenDemandOverview(data);
 
@@ -681,6 +682,29 @@ function renderOverview(data) {
   }
 
   renderOverviewSparklines(data);
+}
+
+// Market cards: compare actual observations seven calendar days apart.
+// Never use the legacy WeeklyData change fields for current market prices.
+function marketSevenDayChange(data,key) {
+  const rows=(data.marketHistory||[]).map(r=>({date:String(r.weekEnding||r.date||"").slice(0,10),value:finiteMarketValue(r[key])}))
+    .filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.value!==null)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(rows.length<2)return null;
+  const last=rows[rows.length-1];
+  const target=new Date(last.date+"T12:00:00Z");target.setUTCDate(target.getUTCDate()-7);
+  const date=target.toISOString().slice(0,10);
+  const previous=rows.filter(r=>r.date<=date).pop();
+  if(!previous)return null;
+  const lag=(Date.parse(date+"T12:00:00Z")-Date.parse(previous.date+"T12:00:00Z"))/86400000;
+  if(lag>5)return null;
+  return {value:last.value,previous:previous.value,delta:last.value-previous.value,pct:previous.value?last.value/previous.value-1:null};
+}
+function mobileMarketChange(data,key,mode) {
+  const d=marketSevenDayChange(data,key);
+  if(!d)return "— · 7D";
+  const amount=mode==="bps"?`${formatNumber(Math.abs(d.delta*100),0)} bp`:formatPercent(Math.abs(d.pct));
+  return `${d.delta>0?"↑":d.delta<0?"↓":"→"} ${amount} · 7D`;
 }
 
 function marketSignal(name,item,valueId,moveId,riskId,change,period,mode,riskMode,suffix="") {
@@ -1370,12 +1394,12 @@ function renderMobileDashboard(data) {
   const history=data.marketHistory||[];
   const hy=weeklyDelta(history,"hyOas");
   const signals=[
-    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",Number.isFinite(toNum(x.soxChange))?`${toNum(x.soxChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.soxChange)))}`:"—"],
-    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",Number.isFinite(toNum(x.vixChange))?`${toNum(x.vixChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.vixChange)))}`:"—"],
-    ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",marketMonthChange("us10y","bps").text],
-    ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",Number.isFinite(hy)?`${hy>0?"↑":"↓"} ${Math.abs(hy*100).toFixed(0)} bps · 1W`:"—"],
-    ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"])))}`:"—"],
-    ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"])))}`:"—"]
+    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",mobileMarketChange(data,"sox","pct")],
+    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",mobileMarketChange(data,"vix","pct")],
+    ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",mobileMarketChange(data,"us10y","bps")],
+    ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",mobileMarketChange(data,"hyOas","bps")],
+    ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"]))) } · 7D`:"—"],
+    ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"]))) } · 7D`:"—"]
   ];
   const sg=document.getElementById("mobileSignalGrid");
   if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
