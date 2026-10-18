@@ -1698,7 +1698,12 @@ function renderCreditStress(rows) {
 function renderMarketCharts(history) {
   if (!history.length || typeof Chart === "undefined") return;
 
-  const rows = currentRange >= 9999 ? history : history.slice(-currentRange);
+  const dated = history.filter(r => /^\d{4}-\d{2}-\d{2}$/.test(String(r.weekEnding || r.date || ""))).sort((a,b) => String(a.weekEnding || a.date).localeCompare(String(b.weekEnding || b.date)));
+  const end = dated.length ? new Date(String(dated[dated.length-1].weekEnding || dated[dated.length-1].date) + "T12:00:00Z") : new Date();
+  const start = new Date(end);
+  if (currentRange < 9999) start.setUTCDate(start.getUTCDate() - currentRange * 7);
+  const cutoff = start.toISOString().slice(0,10);
+  const rows = currentRange >= 9999 ? dated : dated.filter(r => String(r.weekEnding || r.date) >= cutoff);
   const labels = rows.map(r => r.weekEnding);
 
   lineChart("sox","soxChart",labels,[dataset("SOX",rows.map(r=>r.sox))]);
@@ -2679,7 +2684,11 @@ function semiRow(metricName) {
 }
 
 function semisTrendSvg() {
-  const rows=(DATA?.marketHistory||[]).filter(r=>Number.isFinite(toNum(r.sox))).slice(-52);
+  const history=(DATA?.marketHistory||[]).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(String(r.weekEnding||r.date||""))).sort((a,b)=>String(a.weekEnding||a.date).localeCompare(String(b.weekEnding||b.date)));
+  const endDate=history.length?new Date(String(history[history.length-1].weekEnding||history[history.length-1].date)+"T12:00:00Z"):new Date();
+  const cutoffDate=new Date(endDate); cutoffDate.setUTCFullYear(cutoffDate.getUTCFullYear()-1);
+  const cutoff=cutoffDate.toISOString().slice(0,10);
+  const rows=history.filter(r=>String(r.weekEnding||r.date)>=cutoff && Number.isFinite(toNum(r.sox)));
   if (rows.length < 2) return `<div class="detail-empty">SOX history is not available.</div>`;
   const values=rows.map(r=>toNum(r.sox));
   const min=Math.min(...values), max=Math.max(...values), span=(max-min)||1;
