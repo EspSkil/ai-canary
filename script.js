@@ -993,53 +993,92 @@ function renderTokenDemandDetailChart() {
 }
 
 function renderTakeaways(data) {
-  const latest = data.canary?.latest || {};
-  const tg = data.latestTokenGpu || {};
+  // v4.20: Actual 7-calendar-day comparisons; no stale WeeklyData changes.
   const history = data.marketHistory || [];
+  const scores = data.scoreHistory || [];
   const items = [];
+  const today = (data.latestMarket?.sox?.date || data.generatedAt || "").slice(0,10);
 
-  if (Number.isFinite(Number(latest.soxChange))) {
-    items.push({
-      good:Number(latest.soxChange) > 0,
-      text:`SOX ${Number(latest.soxChange)>0?"strengthened":"weakened"} ${formatPercent(Math.abs(Number(latest.soxChange)))}`
-    });
+  function datedChange(rows, field, maxLagDays=5) {
+    const valid = rows.map(r => ({
+      date: String(r.weekEnding || r.date || "").slice(0,10),
+      value: finiteMarketValue(r[field])
+    })).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.value !== null)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    if (valid.length < 2) return null;
+    const last = valid[valid.length-1];
+    const target = new Date(last.date + "T12:00:00Z");
+    target.setUTCDate(target.getUTCDate()-7);
+    const targetKey = target.toISOString().slice(0,10);
+    const prev = valid.filter(r => r.date <= targetKey).pop();
+    if (!prev) return null;
+    const lag = (Date.parse(targetKey+"T12:00:00Z")-Date.parse(prev.date+"T12:00:00Z"))/86400000;
+    if (lag > maxLagDays) return null;
+    return {last:last.value, previous:prev.value, delta:last.value-prev.value, date:last.date, previousDate:prev.date};
   }
-
-  const token = tg.TOKEN_SD;
-  if (token && Number.isFinite(Number(token["7dChange"]))) {
-    items.push({
-      good:Number(token["7dChange"]) > 0,
-      text:`Token economics ${Number(token["7dChange"])>0?"improved":"weakened"} ${formatPercent(Math.abs(Number(token["7dChange"])))} over 7D`
-    });
+  function add(text, risk, weight) {
+    if (text && Number.isFinite(weight)) items.push({text, risk, weight});
   }
-
-  const hy = weeklyDelta(history,"hyOas");
-  if (Number.isFinite(hy)) {
-    items.push({
-      good:hy < 0,
-      text:`HY credit spreads ${hy>0?"widened":"tightened"} ${Math.abs(hy*100).toFixed(0)} bps`
-    });
+  const sox = datedChange(history,"sox");
+  if (sox && sox.previous > 0) {
+    const pct = sox.delta/sox.previous;
+    add(`SOX ${pct<0?"falt":"steg"} ${formatPercent(Math.abs(pct))} siste uke`, pct<0, Math.abs(pct)*100);
   }
-
-  const dynCommit = dynamicScore(data,"commitmentOverhang",latest.commitmentScore);
-  const dynFin = dynamicScore(data,"financingConditions",latest.financingScore);
-  items.push({
-    good:Number(dynCommit.score) <= 25,
-    text:`Commitment Overhang ${fmtScore(dynCommit.score)} · ${dynCommit.status}`
+  const vix = datedChange(history,"vix");
+  if (vix) {
+    add(`VIX ${vix.delta>0?"steg":"falt"} fra ${formatNumber(vix.previous,1)} til ${formatNumber(vix.last,1)} siste uke`,
+      vix.delta>0, Math.abs(vix.delta)*2);
+  }
+  for (const [key,label] of [["hyOas","HY-kredittspread"],["igOas","IG-kredittspread"]]) {
+    const d = datedChange(history,key);
+    if (d) {
+      const bps = d.delta*100; // Source series is in percent units.
+      if (Math.abs(bps)>=1) add(`${label} ${bps>0?"økte":"falt"} ${formatNumber(Math.abs(bps),0)} bp siste uke (${formatNumber(d.last,2)} %)`,
+        bps>0, Math.abs(bps)/5);
+    }
+  }
+  const yield10 = datedChange(history,"us10y");
+  if (yield10 && Math.abs(yield10.delta)>=0.05) {
+    add(`US 10Y ${yield10.delta>0?"steg":"falt"} ${formatNumber(Math.abs(yield10.delta*100),0)} bp siste uke`,
+      yield10.delta>0, Math.abs(yield10.delta*100)/6);
+  }
+  // Daily model history is a score (0–100), not a market percentage.
+  for (const [key,label] of [
+    ["semiconductorMarket","Semiconductor Market"],
+    ["financingConditions","Financing Conditions"],
+    ["tokenEconomics","Token Economics"],
+    ["computeSupply","Compute Supply"],
+    ["macroRisk","Macro & Risk"],
+    ["aiDemand","AI Demand"],
+    ["commitmentOverhang","Commitment Overhang"],
+    ["capexInvestment","CAPEX Investment"]
+  ]) {
+    const d=datedChange(scores,key,2);
+    if (d && Math.abs(d.delta)>=2) {
+      add(`${label}: risiko ${d.delta>0?"økte":"falt"} ${formatNumber(Math.abs(d.delta),1)} poeng siste uke (score ${formatNumber(d.last,1)})`,
+        d.delta>0, Math.abs(d.delta)/2);
+    }
+  }
+  // Only fresh, explicitly dated news may supplement the weekly data summary.
+  const watch = (data.canaryWatch || []).filter(n => {
+    const d=String(n.date || "").slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) &&
+      Date.parse(d+"T12:00:00Z") >= Date.now()-7*86400000 &&
+      n.show !== false && String(n.show).toLowerCase() !== "false";
   });
+  const cds = watch.find(n => /coreweave|cds/i.test([n.topic,n.headline,n.summary,n.tags].join(" ")));
+  if (cds) add(`Kredittmarkedet: ${cds.summary || cds.headline}`,true,7);
 
-  items.push({
-    good:Number(dynFin.score) <= 25,
-    text:`Financing Conditions ${fmtScore(dynFin.score)} · ${dynFin.status}`
-  });
-
-  document.getElementById("takeaways").innerHTML = items.slice(0,5).map(x => `
+  items.sort((a,b)=>b.weight-a.weight);
+  const selected=items.slice(0,5);
+  const el=document.getElementById("takeaways");
+  if (!el) return;
+  el.innerHTML=selected.length ? selected.map(x => `
     <div class="takeaway">
-      <div class="takeaway-dot ${x.good?"dot-good":"dot-warn"}">${x.good?"↑":"!"}</div>
+      <div class="takeaway-dot ${x.risk?"dot-warn":"dot-good"}">${x.risk?"!":"↓"}</div>
       <div>${escapeHtml(x.text)}</div>
-    </div>`).join("");
+    </div>`).join("") : '<div class="takeaway">Ingen sammenlignbare ukesendringer tilgjengelig.</div>';
 }
-
 
 function renderMoneyCircle(data) {
   const x = data.canary?.latest || {};
