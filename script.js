@@ -657,15 +657,14 @@ function renderOverview(data) {
   const marketSnapshotDate = latestMarketSnapshotDate(data);
   setText("snapshotDate", marketSnapshotDate ? `Snapshot ${marketSnapshotDate}` : "Latest market data");
 
-  const sox7=marketSevenDayChange(data,"sox");
-  const vix7=marketSevenDayChange(data,"vix");
-  const yield7=marketSevenDayChange(data,"us10y");
-  marketSignal("SOX",market.sox,"soxValue","soxMove","soxRisk",
-    sox7?.pct ?? NaN,"7D","pct","inverse");
-  marketSignal("VIX",market.vix,"vixValue","vixMove","vixRisk",
-    vix7?.pct ?? NaN,"7D","pct","direct");
-  marketSignal("US10Y",market.us10y,"us10yValue","us10yMove","us10yRisk",
-    yield7?.delta != null?yield7.delta*100:NaN,"7D","bps","direct","%");
+  marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
+    Number(latest.soxChange), latest.soxPeriod || "1W", "pct", "inverse");
+
+  marketSignal("VIX", market.vix, "vixValue","vixMove","vixRisk",
+    Number(latest.vixChange), latest.vixPeriod || "1D", "pct", "direct");
+
+  marketSignal("US10Y", market.us10y, "us10yValue","us10yMove","us10yRisk",
+    Number(latest.us10yChangeBps), latest.us10yPeriod || "1W", "bps", "direct", "%");
 
   renderTokenDemandOverview(data);
 
@@ -682,29 +681,6 @@ function renderOverview(data) {
   }
 
   renderOverviewSparklines(data);
-}
-
-// Market cards: compare actual observations seven calendar days apart.
-// Never use the legacy WeeklyData change fields for current market prices.
-function marketSevenDayChange(data,key) {
-  const rows=(data.marketHistory||[]).map(r=>({date:String(r.weekEnding||r.date||"").slice(0,10),value:finiteMarketValue(r[key])}))
-    .filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.value!==null)
-    .sort((a,b)=>a.date.localeCompare(b.date));
-  if(rows.length<2)return null;
-  const last=rows[rows.length-1];
-  const target=new Date(last.date+"T12:00:00Z");target.setUTCDate(target.getUTCDate()-7);
-  const date=target.toISOString().slice(0,10);
-  const previous=rows.filter(r=>r.date<=date).pop();
-  if(!previous)return null;
-  const lag=(Date.parse(date+"T12:00:00Z")-Date.parse(previous.date+"T12:00:00Z"))/86400000;
-  if(lag>5)return null;
-  return {value:last.value,previous:previous.value,delta:last.value-previous.value,pct:previous.value?last.value/previous.value-1:null};
-}
-function mobileMarketChange(data,key,mode) {
-  const d=marketSevenDayChange(data,key);
-  if(!d)return "— · 7D";
-  const amount=mode==="bps"?`${formatNumber(Math.abs(d.delta*100),0)} bp`:formatPercent(Math.abs(d.pct));
-  return `${d.delta>0?"↑":d.delta<0?"↓":"→"} ${amount} · 7D`;
 }
 
 function marketSignal(name,item,valueId,moveId,riskId,change,period,mode,riskMode,suffix="") {
@@ -1017,94 +993,53 @@ function renderTokenDemandDetailChart() {
 }
 
 function renderTakeaways(data) {
-  // v4.20: Actual 7-calendar-day comparisons; no stale WeeklyData changes.
+  const latest = data.canary?.latest || {};
+  const tg = data.latestTokenGpu || {};
   const history = data.marketHistory || [];
-  const scores = data.scoreHistory || [];
   const items = [];
-  const today = (data.latestMarket?.sox?.date || data.generatedAt || "").slice(0,10);
 
-  function datedChange(rows, field, maxLagDays=5) {
-    const valid = rows.map(r => ({
-      date: String(r.weekEnding || r.date || "").slice(0,10),
-      value: finiteMarketValue(r[field])
-    })).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.value !== null)
-      .sort((a,b) => a.date.localeCompare(b.date));
-    if (valid.length < 2) return null;
-    const last = valid[valid.length-1];
-    const target = new Date(last.date + "T12:00:00Z");
-    target.setUTCDate(target.getUTCDate()-7);
-    const targetKey = target.toISOString().slice(0,10);
-    const prev = valid.filter(r => r.date <= targetKey).pop();
-    if (!prev) return null;
-    const lag = (Date.parse(targetKey+"T12:00:00Z")-Date.parse(prev.date+"T12:00:00Z"))/86400000;
-    if (lag > maxLagDays) return null;
-    return {last:last.value, previous:prev.value, delta:last.value-prev.value, date:last.date, previousDate:prev.date};
+  if (Number.isFinite(Number(latest.soxChange))) {
+    items.push({
+      good:Number(latest.soxChange) > 0,
+      text:`SOX ${Number(latest.soxChange)>0?"strengthened":"weakened"} ${formatPercent(Math.abs(Number(latest.soxChange)))}`
+    });
   }
-  function add(text, risk, weight) {
-    if (text && Number.isFinite(weight)) items.push({text, risk, weight});
+
+  const token = tg.TOKEN_SD;
+  if (token && Number.isFinite(Number(token["7dChange"]))) {
+    items.push({
+      good:Number(token["7dChange"]) > 0,
+      text:`Token economics ${Number(token["7dChange"])>0?"improved":"weakened"} ${formatPercent(Math.abs(Number(token["7dChange"])))} over 7D`
+    });
   }
-  const sox = datedChange(history,"sox");
-  if (sox && sox.previous > 0) {
-    const pct = sox.delta/sox.previous;
-    add(`SOX ${pct<0?"falt":"steg"} ${formatPercent(Math.abs(pct))} siste uke`, pct<0, Math.abs(pct)*100);
+
+  const hy = weeklyDelta(history,"hyOas");
+  if (Number.isFinite(hy)) {
+    items.push({
+      good:hy < 0,
+      text:`HY credit spreads ${hy>0?"widened":"tightened"} ${Math.abs(hy*100).toFixed(0)} bps`
+    });
   }
-  const vix = datedChange(history,"vix");
-  if (vix) {
-    add(`VIX ${vix.delta>0?"steg":"falt"} fra ${formatNumber(vix.previous,1)} til ${formatNumber(vix.last,1)} siste uke`,
-      vix.delta>0, Math.abs(vix.delta)*2);
-  }
-  for (const [key,label] of [["hyOas","HY-kredittspread"],["igOas","IG-kredittspread"]]) {
-    const d = datedChange(history,key);
-    if (d) {
-      const bps = d.delta*100; // Source series is in percent units.
-      if (Math.abs(bps)>=1) add(`${label} ${bps>0?"økte":"falt"} ${formatNumber(Math.abs(bps),0)} bp siste uke (${formatNumber(d.last,2)} %)`,
-        bps>0, Math.abs(bps)/5);
-    }
-  }
-  const yield10 = datedChange(history,"us10y");
-  if (yield10 && Math.abs(yield10.delta)>=0.05) {
-    add(`US 10Y ${yield10.delta>0?"steg":"falt"} ${formatNumber(Math.abs(yield10.delta*100),0)} bp siste uke`,
-      yield10.delta>0, Math.abs(yield10.delta*100)/6);
-  }
-  // Daily model history is a score (0–100), not a market percentage.
-  for (const [key,label] of [
-    ["semiconductorMarket","Semiconductor Market"],
-    ["financingConditions","Financing Conditions"],
-    ["tokenEconomics","Token Economics"],
-    ["computeSupply","Compute Supply"],
-    ["macroRisk","Macro & Risk"],
-    ["aiDemand","AI Demand"],
-    ["commitmentOverhang","Commitment Overhang"],
-    ["capexInvestment","CAPEX Investment"]
-  ]) {
-    const d=datedChange(scores,key,2);
-    if (d && Math.abs(d.delta)>=2) {
-      add(`${label}: risiko ${d.delta>0?"økte":"falt"} ${formatNumber(Math.abs(d.delta),1)} poeng siste uke (score ${formatNumber(d.last,1)})`,
-        d.delta>0, Math.abs(d.delta)/2);
-    }
-  }
-  // Only fresh, explicitly dated news may supplement the weekly data summary.
-  const watch = (data.canaryWatch || []).filter(n => {
-    const d=String(n.date || "").slice(0,10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(d) &&
-      Date.parse(d+"T12:00:00Z") >= Date.now()-7*86400000 &&
-      n.show !== false && String(n.show).toLowerCase() !== "false";
+
+  const dynCommit = dynamicScore(data,"commitmentOverhang",latest.commitmentScore);
+  const dynFin = dynamicScore(data,"financingConditions",latest.financingScore);
+  items.push({
+    good:Number(dynCommit.score) <= 25,
+    text:`Commitment Overhang ${fmtScore(dynCommit.score)} · ${dynCommit.status}`
   });
-  const cds = watch.find(n => /coreweave|cds/i.test([n.topic,n.headline,n.summary,n.tags].join(" ")));
-  if (cds) add(`Kredittmarkedet: ${cds.summary || cds.headline}`,true,7);
 
-  items.sort((a,b)=>b.weight-a.weight);
-  const selected=items.slice(0,5);
-  const content=selected.length ? selected.map(x => `
+  items.push({
+    good:Number(dynFin.score) <= 25,
+    text:`Financing Conditions ${fmtScore(dynFin.score)} · ${dynFin.status}`
+  });
+
+  document.getElementById("takeaways").innerHTML = items.slice(0,5).map(x => `
     <div class="takeaway">
-      <div class="takeaway-dot ${x.risk?"dot-warn":"dot-good"}">${x.risk?"!":"↓"}</div>
+      <div class="takeaway-dot ${x.good?"dot-good":"dot-warn"}">${x.good?"↑":"!"}</div>
       <div>${escapeHtml(x.text)}</div>
-    </div>`).join("") : '<div class="takeaway">Ingen sammenlignbare ukesendringer tilgjengelig.</div>';
-  for (const id of ["takeaways", "mobileTakeaways"]) {
-    const el=document.getElementById(id);
-    if(el) el.innerHTML=content;
-  }
+    </div>`).join("");
 }
+
 
 function renderMoneyCircle(data) {
   const x = data.canary?.latest || {};
@@ -1396,30 +1331,15 @@ function renderMobileDashboard(data) {
   const history=data.marketHistory||[];
   const hy=weeklyDelta(history,"hyOas");
   const signals=[
-    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",mobileMarketChange(data,"sox","pct")],
-    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",mobileMarketChange(data,"vix","pct")],
-    ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",mobileMarketChange(data,"us10y","bps")],
-    ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",mobileMarketChange(data,"hyOas","bps")],
-    ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"]))) } · 7D`:"—"],
-    ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"]))) } · 7D`:"—"]
-  ];
-  // Same risk-direction rules as the desktop signal cards; the arrow below remains the raw market move.
-  // Missing data is explicitly neutral, never inferred from the sign of a stale value.
-  const riskMoves=[
-    {change:marketSevenDayChange(data,"sox")?.delta,mode:"inverse"},
-    {change:marketSevenDayChange(data,"vix")?.delta,mode:"direct"},
-    {change:marketSevenDayChange(data,"us10y")?.delta,mode:"direct"},
-    {change:marketSevenDayChange(data,"hyOas")?.delta,mode:"direct"},
-    {change:tg.H100_SD ? finiteMarketValue(tg.H100_SD["7dChange"]) : null,mode:"inverse"},
-    {change:tg.TOKEN_SD ? finiteMarketValue(tg.TOKEN_SD["7dChange"]) : null,mode:"inverse"}
+    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",Number.isFinite(toNum(x.soxChange))?`${toNum(x.soxChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.soxChange)))}`:"—"],
+    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",Number.isFinite(toNum(x.vixChange))?`${toNum(x.vixChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.vixChange)))}`:"—"],
+    ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",marketMonthChange("us10y","bps").text],
+    ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",Number.isFinite(hy)?`${hy>0?"↑":"↓"} ${Math.abs(hy*100).toFixed(0)} bps · 1W`:"—"],
+    ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"])))}`:"—"],
+    ["TOKEN",tg.TOKEN_SD?formatNumber(tg.TOKEN_SD.value,2):"—",tg.TOKEN_SD&&Number.isFinite(toNum(tg.TOKEN_SD["7dChange"]))?`${toNum(tg.TOKEN_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.TOKEN_SD["7dChange"])))}`:"—"]
   ];
   const sg=document.getElementById("mobileSignalGrid");
-  if(sg) sg.innerHTML=signals.map(([label,value,change],i)=>{
-    const {change:delta,mode}=riskMoves[i];
-    const direction=delta===null||delta===undefined||!Number.isFinite(delta)||delta===0?"flat":((delta>0)===(mode==="direct")?"up":"down");
-    const riskText=direction==="up"?"↑ Risiko":direction==="down"?"↓ Risiko":"→ Risiko";
-    return `<div class="mobile-signal"><div class="mobile-signal-heading"><span>${escapeHtml(label)}</span><span class="mobile-signal-risk risk-${direction}">${riskText}</span></div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`;
-  }).join("");
+  if(sg) sg.innerHTML=signals.map(([label,value,change])=>`<div class="mobile-signal"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(change)}</small></div>`).join("");
   const items=componentItems(data).map(i=>[i.icon,i.name,i.score,i.detail]);
   const list=document.getElementById("mobileIndicatorList");
   if(list) list.innerHTML=items.map(([icon,name,val,key])=>{const n=toNum(val),st=scoreStatus(n),tone=statusTone(st),tr=indicator7dTrend(data,key);return `<button class="mobile-indicator ${tone}" data-detail="${key}"><span class="mobile-indicator-icon">${icon}</span><span class="mobile-indicator-name">${escapeHtml(name)}</span><strong>${Number.isFinite(n)?Math.round(n):"—"}</strong><span class="mobile-indicator-trend ${tr.tone}" title="${escapeHtml(tr.text)}">${escapeHtml(tr.arrow)}</span><small>${st}</small><b>›</b></button>`}).join("");
@@ -1617,9 +1537,12 @@ function renderIndicatorDashboard(data) {
   const premium=compRows.find(r=>String(r.metric||"").includes("Guaranteed Premium"))||{};
   const computeBody=`<div class="cid-metrics three">${miniMetric("BROAD H100",Number.isFinite(toNum(broad.currentValue))?`$${formatNumber(toNum(broad.currentValue),2)}`:"—",Number.isFinite(toNum(broad.change))?`${formatSignedPercent(toNum(broad.change))} vs comparison`:"Rental / GPU-h",broad.riskScore)}${miniMetric("GUARANTEED H100",Number.isFinite(toNum(guaranteed.currentValue))?`$${formatNumber(toNum(guaranteed.currentValue),2)}`:"—",Number.isFinite(toNum(guaranteed.change))?`${formatSignedPercent(toNum(guaranteed.change))} vs ~30D`:"CCIR / GPU-h",guaranteed.riskScore)}${miniMetric("SCARCITY PREMIUM",Number.isFinite(toNum(premium.currentValue))?formatPercent(toNum(premium.currentValue)):"—","Guaranteed vs broad",premium.riskScore)}</div>`;
 
-  // 4 Semiconductor Market — v1 is intentionally SOX-only
-  const semi=semiRow("30D Avg SOX"), sox=data.latestMarket?.sox||{};
-  const semisBody=`<div class="cid-metrics three">${miniMetric("SOX",Number.isFinite(toNum(sox.value))?formatNumber(toNum(sox.value),0):"—",sox.date||"Latest market observation")}${miniMetric("30D MOMENTUM",Number.isFinite(toNum(semi.change))?formatSignedPercent(toNum(semi.change)):"—",Number.isFinite(toNum(semi.previousValue))?`${formatNumber(toNum(semi.currentValue),0)} vs ${formatNumber(toNum(semi.previousValue),0)}`:"Current vs previous 30D",semi.score)}${miniMetric("MODEL SCOPE","SOX v1","Fundamentals planned · not scored yet")}</div>`;
+  // 4 Semiconductor Market — dynamic SOX v2: 40% 30D + 30% 90D + 30% drawdown
+  const sox=data.latestMarket?.sox||{};
+  const semi30=semiRow("SOX 30D Momentum"), semi90=semiRow("SOX 90D Trend"), semiDD=semiRow("SOX Short-Term Drawdown");
+  const semiNo=UI_LANG!=="en";
+  const semiMetric=(label,row,weight)=>miniMetric(label,Number.isFinite(toNum(row.change))?formatSignedPercent(toNum(row.change)):"—",`${semiNo?"Risiko":"Risk"} ${Number.isFinite(toNum(row.score))?formatNumber(toNum(row.score),0):"—"} · ${weight}% ${semiNo?"vekt":"weight"}`,row.score);
+  const semisBody=`<div class="cid-metrics three">${semiMetric("30D MOMENTUM",semi30,40)}${semiMetric("90D TREND",semi90,30)}${semiMetric("SHORT-TERM DRAWDOWN",semiDD,30)}</div><div class="cid-formula">40% × 30D + 30% × 90D + 30% × Drawdown · SOX ${Number.isFinite(toNum(sox.value))?formatNumber(toNum(sox.value),0):"—"} (${escapeHtml(sox.date||"—")})</div>`;
 
   // 5 CAPEX
   const capRows=(data.capexMomentum?.rows||[]).filter(r=>r.company&&Number.isFinite(toNum(r.compositeRisk)));
@@ -1654,7 +1577,7 @@ function renderIndicatorDashboard(data) {
     indicatorShell({key:"token",icon:"🪙",title:"TOKEN ECONOMICS",subtitle:"Usage, pricing & unit economics",score:token.score,status:token.status,trend:tokenTrend,read:tokenRead,body:tokenBody}),
     indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:"AI workloads & cloud demand",score:demand.score,status:demand.status,trend:indicatorTrendLabel(dm.rows||[]),read:"Quarterly YoY revenue growth and its acceleration/deceleration across five AI/cloud companies. This measures growth risk, not profitability.",body:demandBody,model:"DYNAMIC · 60% LEVEL / 40% MOMENTUM",note:"Equal company weights (20% each). Revenue-based demand; RPO is evidence only."}),
     indicatorShell({key:"compute",icon:"🖥️",title:"COMPUTE SUPPLY",subtitle:"GPU pricing & scarcity",score:compute.score,status:compute.status,trend:indicatorTrendLabel(compRows),read:"Current compute pricing does not show a clear oversupply warning; guaranteed capacity still carries a premium.",body:computeBody}),
-    indicatorShell({key:"semis",icon:"💾",title:"SEMICONDUCTOR MARKET",subtitle:"Chip-market confirmation",score:semis.score,status:semis.status,trend:indicatorTrendLabel([semi]),read:"The current v1 model uses SOX momentum as a fast market checkpoint; fundamental semiconductor inputs are not yet scored.",body:semisBody}),
+    indicatorShell({key:"semis",icon:"💾",title:"SEMICONDUCTOR MARKET",subtitle:semiNo?"Halvledermarkedets risikosignaler":"Semiconductor market signals",score:semis.score,status:semis.status,trend:indicatorTrendLabel([semi30,semi90,semiDD]),read:semiNo?"Dynamisk SOX-modell: 30D Momentum (40 %), 90D Trend (30 %) og Short-term Drawdown (30 %). Fundamentale halvlederdata inngår foreløpig ikke i scoren.":"Dynamic SOX model: 30D Momentum (40%), 90D Trend (30%) and Short-term Drawdown (30%). Semiconductor fundamentals are not yet scored.",body:semisBody,model:"SOX · 40/30/30"}),
     indicatorShell({key:"capex",icon:"🏗️",title:"CAPEX INVESTMENT",subtitle:"Investment intensity & growth",score:capex.score,status:capex.status,trend:indicatorTrendLabel(capRows),read:"CAPEX risk is broad, with the highest company-level pressure concentrated in the most aggressive infrastructure builders.",body:capBody}),
     indicatorShell({key:"commitment",icon:"📜",title:"COMMITMENT OVERHANG",subtitle:"Future obligations",score:commit.score,status:commit.status,trend:indicatorTrendLabel(comRows),read:"Commitment pressure is broad across the tracked AI ecosystem, not just large in absolute dollar terms.",body:comBody}),
     indicatorShell({key:"financing",icon:"🏦",title:"FINANCING CONDITIONS",subtitle:"Funding & credit pressure",score:fin.score,status:fin.status,trend:indicatorTrendLabel(fr),read:finRead,body:financingBody}),
@@ -1778,12 +1701,7 @@ function renderCreditStress(rows) {
 function renderMarketCharts(history) {
   if (!history.length || typeof Chart === "undefined") return;
 
-  const dated = history.filter(r => /^\d{4}-\d{2}-\d{2}$/.test(String(r.weekEnding || r.date || ""))).sort((a,b) => String(a.weekEnding || a.date).localeCompare(String(b.weekEnding || b.date)));
-  const end = dated.length ? new Date(String(dated[dated.length-1].weekEnding || dated[dated.length-1].date) + "T12:00:00Z") : new Date();
-  const start = new Date(end);
-  if (currentRange < 9999) start.setUTCDate(start.getUTCDate() - currentRange * 7);
-  const cutoff = start.toISOString().slice(0,10);
-  const rows = currentRange >= 9999 ? dated : dated.filter(r => String(r.weekEnding || r.date) >= cutoff);
+  const rows = currentRange >= 9999 ? history : history.slice(-currentRange);
   const labels = rows.map(r => r.weekEnding);
 
   lineChart("sox","soxChart",labels,[dataset("SOX",rows.map(r=>r.sox))]);
@@ -2764,11 +2682,7 @@ function semiRow(metricName) {
 }
 
 function semisTrendSvg() {
-  const history=(DATA?.marketHistory||[]).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(String(r.weekEnding||r.date||""))).sort((a,b)=>String(a.weekEnding||a.date).localeCompare(String(b.weekEnding||b.date)));
-  const endDate=history.length?new Date(String(history[history.length-1].weekEnding||history[history.length-1].date)+"T12:00:00Z"):new Date();
-  const cutoffDate=new Date(endDate); cutoffDate.setUTCFullYear(cutoffDate.getUTCFullYear()-1);
-  const cutoff=cutoffDate.toISOString().slice(0,10);
-  const rows=history.filter(r=>String(r.weekEnding||r.date)>=cutoff && Number.isFinite(toNum(r.sox)));
+  const rows=(DATA?.marketHistory||[]).filter(r=>Number.isFinite(toNum(r.sox))).slice(-52);
   if (rows.length < 2) return `<div class="detail-empty">SOX history is not available.</div>`;
   const values=rows.map(r=>toNum(r.sox));
   const min=Math.min(...values), max=Math.max(...values), span=(max-min)||1;
@@ -2807,10 +2721,10 @@ function semisDetailHtml() {
   const ddLadder=`<div class="semi-ladder semi-drawdown-ladder"><div class="semi-ladder-row semi-ladder-head"><span>10D drawdown</span><span>Risk Score</span></div>${ddBands.map(([band,risk])=>`<div class="semi-ladder-row${r10===risk?' active':''}"><span>${band}</span><span class="${r10===risk?'current':''}">${risk}${r10===risk?' ← current':''}</span></div>`).join('')}</div>`;
   const cards=[{label:'SOX',value:Number.isFinite(toNum(sox.value))?formatNumber(sox.value,0):'—',note:sox.date||'Latest market observation'},...drivers.map(d=>({label:d.label.replace('SOX ',''),value:Number.isFinite(val(d.row,'change'))?formatSignedPercent(val(d.row,'change')):'—',note:`Risk ${Number.isFinite(val(d.row,'score'))?formatNumber(val(d.row,'score'),0):'—'} · ${Math.round(d.weight*100)}% weight`,riskScore:val(d.row,'score')}))];
   return sectionHtml('WHY IT MATTERS','Semiconductors are a fast market checkpoint on AI infrastructure expectations. Sharp SOX declines can signal stress before company fundamentals fully reflect it.',metricCards(cards))
+    + sectionHtml('SOX TREND','The 52-week view provides context only. It is not a fourth scored input.',semisTrendSvg())
     + sectionHtml('HOW THE SCORE IS BUILT','The model combines smoothed 30D momentum (40%), a 90D point-to-point trend (30%) and a fast 10-trading-day drawdown signal (30%). The new drawdown component captures abrupt market stress without replacing the longer-term context.',scoreBuild)
     + sectionHtml('SCORING LADDER','Fixed scoring bands for the 30D Momentum and 90D Trend signals.',ladder)
     + sectionHtml('SHORT-TERM DRAWDOWN SCORING','Drawdown = Latest SOX / highest SOX closing value among the latest 10 trading observations − 1. A rising market produces 0% drawdown (Risk 10). The signal responds quickly to sharp falls; it does not award extra credit for gains.',ddLadder)
-    + sectionHtml('SOX TREND','The 52-week view provides context only. It is not a fourth scored input.',semisTrendSvg())
     + sectionHtml('MODEL LOGIC','The three horizons provide complementary information: a smoothed 30D average-to-average measure, a longer 90D trend, and a fast short-term drawdown.',`<div class="methodology-grid semis-methodology">${drivers.map(d=>`<div><strong>${d.label}</strong><span>${Math.round(d.weight*100)}% weight · ${Number.isFinite(val(d.row,'change'))?formatSignedPercent(val(d.row,'change')):'—'} · Risk ${Number.isFinite(val(d.row,'score'))?formatNumber(val(d.row,'score'),0):'—'}</span></div>`).join('')}</div>`)
     + sectionHtml('WHAT THIS MODEL DOES NOT YET CAPTURE','SOX is a market-price signal, not a complete semiconductor-cycle model. Fundamental indicators will be added only when stable, comparable sources are available.',`<div class="semis-planned-grid"><div><strong>DRAM / NAND pricing</strong><small>PLANNED</small></div><div><strong>Foundry / wafer utilization</strong><small>PLANNED</small></div><div><strong>Gross margins</strong><small>PLANNED</small></div><div><strong>Inventory / lead times</strong><small>PLANNED</small></div></div>`)
     + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Short-term SOX stress is now explicitly included in Semiconductor Market.</div><p>The latest 10-trading-day drawdown is ${Number.isFinite(val(row10,'change'))?formatSignedPercent(val(row10,'change')):'—'} (Risk ${Number.isFinite(r10)?formatNumber(r10,0):'—'}). With 40/30/30 weighting, Semiconductor Market is ${Number.isFinite(finalScore)?formatNumber(finalScore,1):'—'} · ${escapeHtml(status)}. This model revision creates a methodology break in score history.</p></section>`
