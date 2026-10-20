@@ -1528,7 +1528,30 @@ function renderIndicatorDashboard(data) {
   // 2 AI Demand — dynamic quarterly revenue growth model
   const demand=dynamicScore(data,"aiDemand",x.demandScore);
   const dm=data.aiDemandMomentum||{};
-  const demandBody=`<div class="cid-metrics two">${miniMetric("GROWTH LEVEL WEIGHT","60%","YoY revenue growth")}${miniMetric("MOMENTUM WEIGHT","40%","Quarterly change in YoY growth (pp)")}</div><div class="cid-company-grid">${(dm.rows||[]).map(r=>`<div class="cid-mini"><div class="cid-mini-label">${escapeHtml(String(r.company||""))}</div><strong>${fmtScore(r.riskScore)} / 100</strong><small>YoY ${formatPercent(toNum(r.growthLevel))} · Momentum ${formatNumber(toNum(r.momentumPp),1)} pp</small></div>`).join("")}</div>`;
+  const demandRows=(dm.rows||[]).filter(r=>r.company && Number.isFinite(toNum(r.riskScore)));
+  const demandNo=UI_LANG!=="en";
+  const demandTrend=indicator7dTrend(data,"demand");
+  // Never compare the new dynamic model against historical locked fallback values.
+  // Show a 7D delta only when both observations are within the dynamic-model period.
+  const demandDates=(data?.scoreHistory||[]).filter(r=>r?.date && Number.isFinite(toNum(r.aiDemand))).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const firstDynamic=demandDates.find(r=>Math.abs(toNum(r.aiDemand)-20)>0.01);
+  const demandComparable=firstDynamic && demandDates.length>=2 && demandTrend.text!=="—" && (()=>{
+    const latestDate=new Date(`${String(demandDates[demandDates.length-1].date).slice(0,10)}T12:00:00Z`).getTime();
+    const earliest=new Date(`${String(firstDynamic.date).slice(0,10)}T12:00:00Z`).getTime();
+    return latestDate-earliest>=7*86400000;
+  })();
+  const demandScoreTrend=demandComparable?demandTrend:{text:demandNo?"→ RISIKO":"→ RISK",tone:"neutral"};
+  const demandCards=demandRows.map(r=>{
+    const risk=toNum(r.riskScore), tone=cardTone(risk);
+    const yoy=Number.isFinite(toNum(r.growthLevel))?formatPercent(toNum(r.growthLevel)):"—";
+    const pp=toNum(r.momentumPp), ppText=Number.isFinite(pp)?`${pp>0?"+":""}${formatNumber(pp,1)} pp`:"—";
+    return `<div class="cid-demand-company ${tone}"><div class="cid-demand-name">${escapeHtml(String(r.company))}</div><div class="cid-demand-score"><strong>${fmtScore(risk)}</strong><b>${escapeHtml(scoreStatus(risk))}</b></div><small>YoY ${yoy} · Momentum ${ppText}</small></div>`;
+  }).join("");
+  const demandBody=`<div class="cid-company-grid cid-demand-company-grid">${demandCards}</div>`;
+  const demandStrong=demandRows.length>=5 && demandRows.every(r=>toNum(r.growthLevel)>=0.25);
+  const demandRead=demandNo
+    ?(demandStrong?"AI- og skyetterspørselen vokser fortsatt kraftig hos alle fem selskaper. Vekstmomentum er samlet sett positivt, men dette måler ikke lønnsomhet.":"AI Demand følger omsetningsvekst og vekstmomentum hos fem AI- og skyselskaper. Svakere vekst eller oppbremsing øker risikoscoren.")
+    :(demandStrong?"AI and cloud demand continues to grow strongly across all five companies. Growth momentum is broadly positive, but this does not measure profitability.":"AI Demand tracks revenue growth and growth momentum across five AI and cloud companies. Weaker growth or deceleration increases risk.");
 
   // 3 Compute Supply
   const compRows=data.computeMomentum?.rows||[];
@@ -1568,14 +1591,18 @@ function renderIndicatorDashboard(data) {
     const r=mr.find(q=>String(q.metric||q.indicator||"").toUpperCase().includes(label));
     const v=lm[key]?.value, risk=toNum(r?.compositeRisk), tone=Number.isFinite(risk)?cardTone(risk):"neutral";
     const value=Number.isFinite(toNum(v))?`${formatNumber(toNum(v),2)}${unit}`:latestHistoryValue(key,2);
-    const change=Number.isFinite(toNum(r?.change))?`${formatSignedPercent(toNum(r.change))} · ~1M`:"28D comparison";
+    // Macro_Momentum stores US 10Y yield change as basis points (e.g. 17.60),
+    // whereas VIX and USDJPY changes are fractional percentages.
+    const change=Number.isFinite(toNum(r?.change))
+      ?(key==="us10y"?`${toNum(r.change)>0?"+":""}${formatNumber(toNum(r.change),1)} bps · ~1M`:`${formatSignedPercent(toNum(r.change))} · ~1M`)
+      :(UI_LANG==="en"?"28D comparison":"28 dagers sammenligning");
     return `<div class="cid-mini cid-macro-mini ${tone}"><div class="cid-mini-label">${escapeHtml(label)}</div><div class="cid-macro-value"><strong>${escapeHtml(value)}</strong>${Number.isFinite(risk)?`<b>${escapeHtml(scoreStatus(risk))}</b>`:""}</div><div class="cid-macro-bottom"><small>${escapeHtml(change)}</small>${Number.isFinite(risk)?`<span>SCORE ${fmtScore(risk)}</span>`:""}</div></div>`;
   };
   const macroBody=`<div class="cid-metrics three">${macroMetric("VIX","vix")}${macroMetric("US 10Y","us10y","%")}${macroMetric("USDJPY","usdJpy")}</div><div class="cid-formula">45% VIX + 30% USDJPY + 25% US 10Y</div>`;
 
   host.innerHTML=[
     indicatorShell({key:"token",icon:"🪙",title:"TOKEN ECONOMICS",subtitle:"Usage, pricing & unit economics",score:token.score,status:token.status,trend:tokenTrend,read:tokenRead,body:tokenBody}),
-    indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:"AI workloads & cloud demand",score:demand.score,status:demand.status,trend:indicatorTrendLabel(dm.rows||[]),read:"Quarterly YoY revenue growth and its acceleration/deceleration across five AI/cloud companies. This measures growth risk, not profitability.",body:demandBody,model:"DYNAMIC · 60% LEVEL / 40% MOMENTUM",note:"Equal company weights (20% each). Revenue-based demand; RPO is evidence only."}),
+    indicatorShell({key:"demand",icon:"☁️",title:"AI DEMAND",subtitle:demandNo?"Etterspørsel etter AI og skytjenester":"AI workloads & cloud demand",score:demand.score,status:demand.status,trend:demandScoreTrend,read:demandRead,body:demandBody,model:demandNo?"LIVE · DYNAMISK MODELL":"LIVE · DYNAMIC MODEL"}),
     indicatorShell({key:"compute",icon:"🖥️",title:"COMPUTE SUPPLY",subtitle:"GPU pricing & scarcity",score:compute.score,status:compute.status,trend:indicatorTrendLabel(compRows),read:"Current compute pricing does not show a clear oversupply warning; guaranteed capacity still carries a premium.",body:computeBody}),
     indicatorShell({key:"semis",icon:"💾",title:"SEMICONDUCTOR MARKET",subtitle:semiNo?"Halvledermarkedets risikosignaler":"Semiconductor market signals",score:semis.score,status:semis.status,trend:indicatorTrendLabel([semi30,semi90,semiDD]),read:semiNo?"Dynamisk SOX-modell: 30D Momentum (40 %), 90D Trend (30 %) og Short-term Drawdown (30 %). Fundamentale halvlederdata inngår foreløpig ikke i scoren.":"Dynamic SOX model: 30D Momentum (40%), 90D Trend (30%) and Short-term Drawdown (30%). Semiconductor fundamentals are not yet scored.",body:semisBody,model:"SOX · 40/30/30"}),
     indicatorShell({key:"capex",icon:"🏗️",title:"CAPEX INVESTMENT",subtitle:"Investment intensity & growth",score:capex.score,status:capex.status,trend:indicatorTrendLabel(capRows),read:"CAPEX risk is broad, with the highest company-level pressure concentrated in the most aggressive infrastructure builders.",body:capBody}),
