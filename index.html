@@ -7,9 +7,9 @@
 <meta content="#06121f" name="theme-color"/>
 <title>AI Canary Dashboard</title>
 <!-- frontend v4.32.1: same-origin GitHub data.json snapshot -->
-<link href="style.css?v=4.40" rel="stylesheet"/>
+<link href="style.css?v=4.41" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer="" src="script.js?v=4.40"></script>
+<script defer="" src="script.js?v=4.41"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -60,6 +60,7 @@
   </article>
   <article class="panel mobile-indicators-card" id="mobileIndicators">
     <div class="mobile-section-head"><div><div class="eyebrow">CANARY INDICATORS</div><h2>Risk components</h2></div><button class="info-btn" data-info="indicators" aria-label="About Canary Indicators">i</button></div>
+    <div class="canary-trend-period">TREND · LAST 7 DAYS (7D)</div>
     <div class="mobile-indicator-list" id="mobileIndicatorList"></div>
   </article>
   <article class="panel mobile-takeaways-card" id="mobileTakeawaysCard">
@@ -73,6 +74,7 @@
     </div>
     <div class="canary-watch-context"><span class="lang-no-only">Nyheter og analyser som gir kontekst til AI-syklusen · påvirker ikke Canary Score.</span><span class="lang-en-only">News &amp; research context · does not affect Canary Score.</span></div>
     <div class="canary-watch-grid mobile-watch-grid" id="mobileCanaryWatchGrid"></div>
+    <div class="canary-watch-scroll-hint" id="mobileWatchScrollHint">Scroll for more news ↓</div>
   </article>
   <article class="panel mobile-cycle-card" id="mobileMoneyCircle">
     <div class="eyebrow">EXPLORE THE AI CYCLE</div>
@@ -149,6 +151,7 @@
 </div>
 </article><article class="panel indicators-panel">
 <div class="eyebrow">CANARY INDICATORS <button aria-label="About Canary Indicators" class="info-btn" data-info="indicators">i</button></div>
+<div class="canary-trend-period">TREND · LAST 7 DAYS (7D)</div>
 <div class="indicator-table" id="indicatorTable"></div>
 </article></div></section>
 <section class="secondary-overview-grid"><article class="panel takeaways-panel">
@@ -213,6 +216,7 @@
     </div>
     <div class="canary-watch-context"><span class="lang-no-only">Nyheter og analyser som gir kontekst til AI-syklusen · påvirker ikke Canary Score.</span><span class="lang-en-only">News &amp; research context · does not affect Canary Score.</span></div>
     <div class="canary-watch-grid" id="canaryWatchGrid"></div>
+    <div class="canary-watch-scroll-hint" id="desktopWatchScrollHint">Scroll for more news ↓</div>
   </article>
 </section>
 <section class="indicator-dashboard-section" id="indicatorDashboard">

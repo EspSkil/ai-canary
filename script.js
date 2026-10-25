@@ -1350,7 +1350,7 @@ function renderCanaryWatch(data) {
   const rows=(data?.canaryWatch||[])
     .filter(r=>r && r.show!==false && String(r.show).toLowerCase()!=="false")
     .sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")))
-    .slice(0,3);
+    ;
 
   window.CANARY_WATCH_ROWS=rows;
   const formatDate=(value)=>{
@@ -1374,6 +1374,11 @@ function renderCanaryWatch(data) {
   }).join("");
   const empty=`<div class="canary-watch-empty">${UI_LANG==="no"?"Ingen aktive Canary Watch-saker akkurat nå.":"No active Canary Watch items right now."}</div>`;
   ["canaryWatchGrid","mobileCanaryWatchGrid"].forEach(id=>{const el=document.getElementById(id);if(el) el.innerHTML=cards||empty;});
+  [["canaryWatchGrid","desktopWatchScrollHint"],["mobileCanaryWatchGrid","mobileWatchScrollHint"]].forEach(([gridId,hintId])=>{
+    const grid=document.getElementById(gridId),hint=document.getElementById(hintId);
+    if(!grid||!hint)return;
+    hint.hidden=rows.length<=3;
+  });
 }
 
 function setupCanaryWatchDetails(){

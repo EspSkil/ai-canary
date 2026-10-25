@@ -1625,3 +1625,15 @@ body.watch-detail-open{overflow:hidden}
 .cid-demand-company.danger .cid-demand-score :is(strong,b){color:#f6535b}
 .cid-demand-company small{display:block;font-size:11px;color:#90aabd;line-height:1.35}
 @media(max-width:560px){.cid-demand-name{font-size:11px}.cid-demand-score strong{font-size:20px}.cid-demand-company small{font-size:10px}}
+
+/* v4.41: Explicit seven-day score-history trend and scrollable Canary Watch. */
+.canary-trend-period{font-size:10px;letter-spacing:.10em;color:#85afc5;font-weight:700;margin:9px 0 6px;}
+.canary-watch-grid{max-height:275px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#356782 #0b2434;align-content:start;padding-right:5px;}
+.canary-watch-grid::-webkit-scrollbar{width:6px;}
+.canary-watch-grid::-webkit-scrollbar-thumb{background:#356782;border-radius:8px;}
+.canary-watch-scroll-hint{margin-top:7px;font-size:10px;color:#83b9ce;text-align:right;}
+.canary-watch-scroll-hint[hidden]{display:none!important;}
+@media(max-width:720px){
+  .mobile-watch-grid{max-height:395px;grid-template-columns:1fr;}
+  .mobile-indicators-card .canary-trend-period{margin-top:4px;margin-bottom:8px;}
+}
