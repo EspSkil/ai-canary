@@ -18,14 +18,14 @@ const NO_TEXT = new Map(Object.entries({
 
 
   "Token Economics asks whether AI usage is expanding fast enough to offset falling effective expenditure per token. A decline in unit economics is less worrying when it triggers much stronger usage; it becomes more concerning when monetization weakens without enough volume response.":"Token Economics undersøker om AI-bruken vokser raskt nok til å veie opp for fallende effective expenditure per token. Lavere kostnad per token er mindre bekymringsfullt dersom det utløser klart høyere bruk. Risikoen øker dersom monetization svekkes uten at volume responderer nok.",
-  "The score is calculated in Google Sheets. Volume receives 60% base weight. Expenditure drawdown receives 40%, but strong volume growth can reduce up to half of that drawdown risk before the 40% weight is applied.":"Scoren beregnes i Google Sheets. Volume får 60% grunnvekt. Expenditure drawdown får 40%, men sterk volume growth kan redusere opptil halvparten av denne drawdown-risikoen før 40%-vekten brukes.",
-  "The two scored drivers and the latest expenditure observation are shown separately so usage growth is not confused with price/expenditure economics.":"De to driverne som scores og siste expenditure-observasjon vises separat. Dermed blander vi ikke vekst i AI-bruk sammen med utviklingen i price/expenditure economics.",
+  "The Google Sheets composite weights 30D token volume risk at 60%, expenditure drawdown from the May peak at 20%, and verified 30D price momentum at 20%. Missing price history receives a neutral fallback score of 50.":"Scoren beregnes i Google Sheets. Volume får 60% grunnvekt. Expenditure drawdown får 40%, men sterk volume growth kan redusere opptil halvparten av denne drawdown-risikoen før 40%-vekten brukes.",
+  "The three scored drivers are shown separately. A neutral price-momentum fallback is explicitly marked when verified 30D history is unavailable.":"De to driverne som scores og siste expenditure-observasjon vises separat. Dermed blander vi ikke vekst i AI-bruk sammen med utviklingen i price/expenditure economics.",
   "WHY FALLING TOKEN COST IS NOT AUTOMATICALLY BEARISH":"HVORFOR LAVERE TOKEN COST IKKE AUTOMATISK ER NEGATIVT",
-  "AI inference gets cheaper as hardware, models and routing improve. That can expand usage dramatically. Canary therefore treats falling expenditure as a risk only in combination with the volume response: strong usage growth offsets part of the pressure, while weak or falling usage would make the same expenditure drawdown much more concerning.":"AI inference blir billigere når hardware, modeller og routing forbedres. Det kan samtidig gi kraftig vekst i bruken. Derfor vurderer Canary fallende expenditure sammen med volume-responsen: sterk usage growth demper deler av risikoen, mens svak eller fallende bruk ville gjort den samme expenditure drawdown langt mer bekymringsfull.",
+  "AI inference gets cheaper as hardware, models and routing improve, which can expand usage. The model now captures that through three separate weighted signals rather than reducing the price risk with an additional volume discount.":"AI inference blir billigere når hardware, modeller og routing forbedres. Det kan samtidig gi kraftig vekst i bruken. Derfor vurderer Canary fallende expenditure sammen med volume-responsen: sterk usage growth demper deler av risikoen, mens svak eller fallende bruk ville gjort den samme expenditure drawdown langt mer bekymringsfull.",
   "The exact transformation used by Token_Momentum is summarized below.":"Under viser vi nøyaktig hvordan Token_Momentum omsetter rådata til Canary risk.",
   "30D average token volume is compared with the previous non-overlapping 30D average. Strong growth lowers risk; falling volume raises it.":"30D average token volume sammenlignes med foregående, ikke-overlappende 30D-periode. Sterk vekst reduserer risikoen; fallende volume øker den.",
   "Current LLM Token Expenditure Index is compared with the May peak used by the model. A large drawdown raises risk because monetization/expenditure per unit of usage has weakened.":"Dagens LLM Token Expenditure Index sammenlignes med May peak som brukes i modellen. Stor drawdown øker risikoen fordi monetization/expenditure per bruksenhet har svekket seg.",
-  "Token Economics is healthy because strong usage growth currently offsets much of the expenditure drawdown. The warning would become materially stronger if token volume growth slowed while expenditure remained depressed.":"Token Economics er nå Healthy fordi sterk usage growth veier opp for mye av expenditure drawdown. Varselsignalet ville blitt klart sterkere dersom token volume growth bremset samtidig som expenditure forble lav.",
+  "Token Economics combines volume growth, expenditure drawdown and 30D price momentum. Missing verified price history is assigned a neutral fallback score of 50 until an eligible comparison is available.":"Token Economics er nå Healthy fordi sterk usage growth veier opp for mye av expenditure drawdown. Varselsignalet ville blitt klart sterkere dersom token volume growth bremset samtidig som expenditure forble lav.",
   "Current 30D average vs previous non-overlapping 30D average":"Dagens 30D average mot foregående, ikke-overlappende 30D average",
   "Strong volume growth reduces this risk before weighting":"Sterk volume growth reduserer denne risikoen før vekting",
   "Current spend vs peak":"Dagens nivå mot peak",
@@ -2591,40 +2591,22 @@ function tokenTrillions(v) {
   return Number.isFinite(n)?`${formatNumber(n/1e12,2)}T`:"—";
 }
 
-function tokenScoreBuildHtml(volumeScore,drawdownScore,volumeChange,finalScore) {
-  const moderation=Number.isFinite(volumeChange)?(1-Math.min(.50,Math.max(0,volumeChange-.10))):NaN;
-  const adjustedExp=Number.isFinite(drawdownScore)&&Number.isFinite(moderation)?drawdownScore*moderation:NaN;
-  const volumeContribution=Number.isFinite(volumeScore)?volumeScore*.60:NaN;
-  const expenditureContribution=Number.isFinite(adjustedExp)?adjustedExp*.40:NaN;
-  const moderationPct=Number.isFinite(moderation)?(1-moderation):NaN;
-
-  return `<div class="score-build token-score-build">
-    <div class="score-build-row">
-      <div><span>Volume Momentum</span><small>Current 30D average vs previous non-overlapping 30D average</small></div>
-      <strong>${Number.isFinite(volumeScore)?formatNumber(volumeScore,2):"—"}</strong>
-      <em>× 60%</em>
-      <b>${Number.isFinite(volumeContribution)?formatNumber(volumeContribution,2):"—"}</b>
-    </div>
-    <div class="score-build-row token-adjust-row">
-      <div><span>Expenditure drawdown</span><small>${Number.isFinite(moderationPct)?`Strong volume growth reduces this risk by ${formatPercent(moderationPct)} before weighting`:"Volume-growth moderation is applied before weighting"}</small></div>
-      <strong>${Number.isFinite(drawdownScore)?formatNumber(drawdownScore,2):"—"}</strong>
-      <em>${Number.isFinite(moderation)?`× ${formatPercent(moderation)} × 40%`:"adjust × 40%"}</em>
-      <b>${Number.isFinite(expenditureContribution)?formatNumber(expenditureContribution,2):"—"}</b>
-    </div>
-    <div class="score-build-total">
-      <span>Token Economics</span>
-      <strong>${Number.isFinite(finalScore)?formatNumber(finalScore,1):"—"}</strong>
-      <small>${Number.isFinite(volumeContribution)&&Number.isFinite(expenditureContribution)?`${formatNumber(volumeContribution,2)} + ${formatNumber(expenditureContribution,2)}`:"Dynamic model"}</small>
-    </div>
-  </div>`;
+function tokenScoreBuildHtml(volumeScore,drawdownScore,momentumScore,finalScore,dataGap) {
+  const entries=[
+    ["30D Token Volume",volumeScore,.60,"30D average versus preceding 30D"],
+    ["Drawdown from May Peak",drawdownScore,.20,"Current effective expenditure versus May peak"],
+    ["30D Price Momentum",momentumScore,.20,dataGap?"DATA GAP · neutral fallback score 50, not an observed market signal":"Verified approximately 30D expenditure change"]
+  ];
+  const total=entries.reduce((sum,[,score,weight])=>sum+(Number.isFinite(score)?score*weight:0),0);
+  return `<div class="score-build token-score-build">${entries.map(([name,score,weight,note])=>`<div class="score-build-row"><div><span>${name}</span><small>${note}</small></div><strong>${Number.isFinite(score)?formatNumber(score,2):"—"}</strong><em>× ${Math.round(weight*100)}%</em><b>${Number.isFinite(score)?formatNumber(score*weight,2):"—"}</b></div>`).join("")}<div class="score-build-total"><span>Token Economics</span><strong>${Number.isFinite(finalScore)?formatNumber(finalScore,2):"—"}</strong><small>${Number.isFinite(finalScore)?`60/20/20 · contributions sum to ${formatNumber(total,2)}`:"Dynamic model"}</small></div></div>`;
 }
 
 function tokenMethodologyHtml() {
   return `<div class="methodology-grid token-methodology">
-    <div><strong>Volume Momentum · 60%</strong><span>30D average token volume is compared with the previous non-overlapping 30D average. Strong growth lowers risk; falling volume raises it.</span></div>
-    <div><strong>Expenditure Drawdown · 40%</strong><span>Current LLM Token Expenditure Index is compared with the May peak used by the model. A large drawdown raises risk because monetization/expenditure per unit of usage has weakened.</span></div>
-    <div><strong>Volume moderation</strong><span>When volume growth exceeds 10%, part of the expenditure-drawdown risk is discounted. The discount is capped at 50%, so strong usage can reduce — but never erase — expenditure pressure.</span></div>
-    <div><strong>Interpretation</strong><span>Falling token cost is not automatically bearish. Lower cost can be healthy if it unlocks enough additional usage. Risk rises when lower expenditure is not matched by sufficiently strong volume/adoption growth.</span></div>
+    <div><strong>Token Volume Growth · 60%</strong><span>Compares average token volume over the latest 30 days with the previous non-overlapping 30 days. Stronger growth reduces risk.</span></div>
+    <div><strong>Expenditure Drawdown · 20%</strong><span>Compares the latest LLM Token Expenditure Index with the May 2026 peak. A larger drawdown increases risk.</span></div>
+    <div><strong>30D Price Momentum · 20%</strong><span>Compares verified index observations approximately 30 days apart. Falling expenditure increases risk; rising expenditure reduces risk.</span></div>
+    <div><strong>Missing price history</strong><span>If there is no eligible verified comparison, the price-momentum risk score defaults to neutral 50 and is marked DATA GAP. This is a fallback, not a measured 30D change.</span></div>
   </div>`;
 }
 
@@ -2640,6 +2622,7 @@ function tokenDetailHtml() {
   const volCurrent=toNum(vol.currentValue), volPrevious=toNum(vol.previousValue), volChange=toNum(vol.change), volScore=toNum(vol.score);
   const expCurrent=toNum(exp.currentValue), expPrevious=toNum(exp.previousValue), expChange=toNum(exp.change);
   const drawCurrent=toNum(draw.currentValue), drawPrevious=toNum(draw.previousValue), drawChange=toNum(draw.change), drawScore=toNum(draw.score);
+  const priceMomentumScore=toNum(exp.score), priceDataGap=String(exp.status||"").toUpperCase()==="DATA GAP";
   const finalScore=toNum(dyn.score);
 
   const verifiedStatus=String(t.verificationStatus||"").trim() || "MANUAL / ASSISTED";
@@ -2648,12 +2631,12 @@ function tokenDetailHtml() {
 
   return sectionHtml("WHY IT MATTERS","Token Economics asks whether AI usage is expanding fast enough to offset falling effective expenditure per token. A decline in unit economics is less worrying when it triggers much stronger usage; it becomes more concerning when monetization weakens without enough volume response.",metricCards([
       {label:"30D Token Volume",value:tokenTrillions(volCurrent),note:Number.isFinite(volChange)?`${formatSignedPercent(volChange)} vs previous 30D`:"Current 30D average",riskScore:volScore},
-      {label:"Token Expenditure",value:Number.isFinite(expCurrent)?`$${formatNumber(expCurrent,2)} / 1M`:"—",note:Number.isFinite(expChange)?`${formatSignedPercent(expChange)} vs previous observation`:"Silicon Data"},
+      {label:"Token Expenditure",value:Number.isFinite(expCurrent)?`$${formatNumber(expCurrent,2)} / 1M`:"—",note:priceDataGap?"30D comparison unavailable · DATA GAP":Number.isFinite(expChange)?`${formatSignedPercent(expChange)} vs ~30D ago`:"Silicon Data"},
       {label:"Drawdown from May Peak",value:Number.isFinite(drawChange)?formatSignedPercent(drawChange):"—",note:Number.isFinite(drawPrevious)?`$${formatNumber(drawCurrent,2)} vs $${formatNumber(drawPrevious,2)}`:"Peak comparison",riskScore:drawScore}
     ]))
     + sectionHtml("TOKEN DEMAND TREND","Daily OpenRouter Token Volume is shown together with a 30D rolling average. The daily series shows real usage volatility; the rolling average makes the underlying demand trend easier to read.",tokenDemandDetailChartHtml())
-    + sectionHtml("HOW THE 15.2 IS BUILT","The score is calculated in Google Sheets. Volume receives 60% base weight. Expenditure drawdown receives 40%, but strong volume growth can reduce up to half of that drawdown risk before the 40% weight is applied.",tokenScoreBuildHtml(volScore,drawScore,volChange,finalScore))
-    + sectionHtml("UNDERLYING DATA","The two scored drivers and the latest expenditure observation are shown separately so usage growth is not confused with price/expenditure economics.",`
+    + sectionHtml("HOW THE SCORE IS BUILT","Google Sheets calculates a direct weighted average: 60% token volume growth risk + 20% expenditure drawdown risk + 20% 30D price momentum risk. No extra volume moderation is applied.",tokenScoreBuildHtml(volScore,drawScore,priceMomentumScore,finalScore,priceDataGap))
+    + sectionHtml("UNDERLYING DATA","The three scored drivers are shown separately. A neutral price-momentum fallback is explicitly marked when verified 30D history is unavailable.",`
       <div class="token-data-grid">
         <div class="token-data-card">
           <span>VOLUME MOMENTUM</span>
@@ -2664,8 +2647,8 @@ function tokenDetailHtml() {
         <div class="token-data-card">
           <span>LLM TOKEN EXPENDITURE</span>
           <strong>${Number.isFinite(expCurrent)?`$${formatNumber(expCurrent,2)}`:"—"}</strong>
-          <b>${Number.isFinite(expChange)?formatSignedPercent(expChange):"—"}</b>
-          <small>${tokenDate?escapeHtml(tokenDate)+" · ":""}${escapeHtml(verifiedStatus)}<br>Previous ${Number.isFinite(expPrevious)?`$${formatNumber(expPrevious,2)}`:"—"} / 1M tokens</small>
+          <b>${priceDataGap?"DATA GAP · risk 50":Number.isFinite(expChange)?formatSignedPercent(expChange):"—"}</b>
+          <small>${tokenDate?escapeHtml(tokenDate)+" · ":""}${escapeHtml(verifiedStatus)}<br>${priceDataGap?"No eligible verified ~30D comparison; neutral fallback 50":`~30D comparison ${Number.isFinite(expPrevious)?`$${formatNumber(expPrevious,2)}`:"—"} / 1M tokens`}</small>
         </div>
         <div class="token-data-card">
           <span>MAY-PEAK DRAWDOWN</span>
@@ -2674,14 +2657,14 @@ function tokenDetailHtml() {
           <small>Current ${Number.isFinite(drawCurrent)?`$${formatNumber(drawCurrent,2)}`:"—"} vs peak ${Number.isFinite(drawPrevious)?`$${formatNumber(drawPrevious,2)}`:"—"}</small>
         </div>
       </div>`)
-    + sectionHtml("WHY FALLING TOKEN COST IS NOT AUTOMATICALLY BEARISH","AI inference gets cheaper as hardware, models and routing improve. That can expand usage dramatically. Canary therefore treats falling expenditure as a risk only in combination with the volume response: strong usage growth offsets part of the pressure, while weak or falling usage would make the same expenditure drawdown much more concerning.")
+    + sectionHtml("WHY FALLING TOKEN COST IS NOT AUTOMATICALLY BEARISH","AI inference gets cheaper as hardware, models and routing improve, which can expand usage. The model now captures that through three separate weighted signals rather than reducing the price risk with an additional volume discount.")
     + sectionHtml("MODEL LOGIC","The exact transformation used by Token_Momentum is summarized below.",tokenMethodologyHtml())
-    + sectionHtml("DATA STATUS","OpenRouter token volume is AUTO and currently has complete 30 + 30 day comparison windows. Silicon Data TOKEN_SD is MANUAL / ASSISTED after the public page proved unreliable for fresh automated parsing; the latest verified observation is retained without allowing stale automatic data to overwrite it.",`
+    + sectionHtml("DATA STATUS","OpenRouter token volume updates automatically. Silicon Data TOKEN_SD now uses validated automatic fetching. A 30D price momentum comparison requires two eligible verified observations approximately 30 days apart; until then the model uses a neutral fallback score of 50 (DATA GAP).",`
       <div class="token-source-status">
         <div><span>OpenRouter Token Volume</span><strong>AUTO</strong><small>30D vs previous 30D · daily observations</small></div>
         <div><span>Silicon Data TOKEN_SD</span><strong>${escapeHtml(verifiedStatus)}</strong><small>${tokenDate?`Latest ${escapeHtml(tokenDate)} · `:""}$${Number.isFinite(expCurrent)?formatNumber(expCurrent,2):"—"} / 1M tokens</small></div>
       </div>`)
-    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Usage growth is currently overpowering the expenditure drawdown.</div><p>Token volume is up ${Number.isFinite(volChange)?formatPercent(volChange):"strongly"} on a 30D-versus-prior-30D basis, which keeps Token Economics in ${escapeHtml(dyn.status||scoreStatus(finalScore))} territory despite the large decline from the May expenditure peak.</p></section>`;
+    + `<section class="drawer-section canary-read"><div class="drawer-section-label">🐤 CANARY READ</div><div class="read-title">Usage growth is currently overpowering the expenditure drawdown.</div><p>Token volume is up ${Number.isFinite(volChange)?formatPercent(volChange):"strongly"} on a 30D-versus-prior-30D basis, and the composite is ${Number.isFinite(finalScore)?formatNumber(finalScore,2):"—"} (${escapeHtml(dyn.status||scoreStatus(finalScore))}). ${priceDataGap?"Price momentum currently contributes a neutral fallback of 50, not a measured 30D change.":"The price momentum component uses verified historical observations."}</p></section>`;
 }
 
 function demandDetailHtml() {
