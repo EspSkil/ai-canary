@@ -637,7 +637,7 @@ function renderOverview(data) {
   const score = Number(headline?.score ?? latest.canaryScore);
   updateCanaryGaugeBirds(score);
   if (Number.isFinite(score)) {
-    setText("canaryScore", Math.round(score));
+    setText("canaryScore", formatNumber(score,1));
     const gauge = document.getElementById("scoreGauge");
     const marker = gauge?.querySelector(".score-marker");
     if (marker) {
@@ -1322,7 +1322,7 @@ function renderMobileDashboard(data) {
   const headline=data.dynamicHeadline?.available?data.dynamicHeadline:null;
   const score=toNum(headline?.score ?? x.canaryScore);
   updateCanaryGaugeBirds(score);
-  setText("mobileCanaryScore",Number.isFinite(score)?Math.round(score):"—");
+  setText("mobileCanaryScore",Number.isFinite(score)?formatNumber(score,1):"—");
   setText("mobileCanaryStatus",headline?.status||x.status||scoreStatus(score));
   setText("mobileHedgeRead",`Hedge Read: ${headline?.hedgeRead||x.hedgeRead||"—"}`);
   setText("mobileSnapshotDate",latestMarketSnapshotDate(data)||"Latest");
@@ -2914,7 +2914,7 @@ function explainDetailHtml(){
   }</div>`;
 
   return sectionHtml("PURPOSE","AI Canary is an early-warning framework for the AI investment cycle. It looks for stress building across monetization, demand, compute, investment commitments, financing and broad markets before those signals necessarily appear together in headline indices.")
-  + sectionHtml("COMPOSITE WEIGHTING · 30 / 50 / 20","Model calibration effective 30 October 2026. The overall score is the weighted sum of eight 0–100 risk indicators. The weights are read from Config in Google Sheets and published with the dynamic headline. Historical scores are not recalculated.",`<div class="cid-formula"><strong>MONETIZATION & DEMAND · 30%</strong><p>Token Economics 10% · AI Demand 10% · Compute Supply 10%</p><strong>INVESTMENT & FINANCING · 50%</strong><p>CAPEX Investment 15% · Commitment Overhang 20% · Financing Conditions 15%</p><strong>MARKET CONDITIONS · 20%</strong><p>Semiconductor Market 10% · Macro & Risk 10%</p><small>0–25 Healthy · &gt;25–50 Watch · &gt;50–75 Warning · &gt;75 Danger. Higher means greater risk. The weighting change is a methodology break, not a market move.</small></div>`)
+  + sectionHtml("COMPOSITE WEIGHTING · 30 / 50 / 20","Model calibration effective 30 October 2026. The overall score is the weighted sum of eight 0–100 risk indicators. The weights are read from Config in Google Sheets and published with the dynamic headline. Historical scores are not recalculated.",`<div class="cid-formula cid-demand-light"><strong>MONETIZATION & DEMAND · 30%</strong><p>Token Economics 10% · AI Demand 10% · Compute Supply 10%</p><strong>INVESTMENT & FINANCING · 50%</strong><p>CAPEX Investment 15% · Commitment Overhang 20% · Financing Conditions 15%</p><strong>MARKET CONDITIONS · 20%</strong><p>Semiconductor Market 10% · Macro & Risk 10%</p><small>0–25 Healthy · &gt;25–50 Watch · &gt;50–75 Warning · &gt;75 Danger. Higher means greater risk. The weighting change is a methodology break, not a market move.</small></div>`)
   + sectionHtml("HOW THE LOOP WORKS","The cycle is easiest to read from funding through monetization. Capital enables builders, builders buy hardware, hardware becomes compute, and compute must ultimately create end-user value. Weakness can then feed back into financing and the next investment round.",metricCards([
     {label:"1 · Capital & Financing",value:"Can the cycle fund itself?",note:"Rates · credit · commitments"},
     {label:"2 · Hyperscalers & Neocloud",value:"Who is building?",note:"CAPEX · capacity · obligations"},
