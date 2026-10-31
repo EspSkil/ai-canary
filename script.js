@@ -993,51 +993,23 @@ function renderTokenDemandDetailChart() {
 }
 
 function renderTakeaways(data) {
-  const latest = data.canary?.latest || {};
-  const tg = data.latestTokenGpu || {};
-  const history = data.marketHistory || [];
-  const items = [];
-
-  if (Number.isFinite(Number(latest.soxChange))) {
-    items.push({
-      good:Number(latest.soxChange) > 0,
-      text:`SOX ${Number(latest.soxChange)>0?"strengthened":"weakened"} ${formatPercent(Math.abs(Number(latest.soxChange)))}`
-    });
-  }
-
-  const token = tg.TOKEN_SD;
-  if (token && Number.isFinite(Number(token["7dChange"]))) {
-    items.push({
-      good:Number(token["7dChange"]) > 0,
-      text:`Token economics ${Number(token["7dChange"])>0?"improved":"weakened"} ${formatPercent(Math.abs(Number(token["7dChange"])))} over 7D`
-    });
-  }
-
-  const hy = weeklyDelta(history,"hyOas");
-  if (Number.isFinite(hy)) {
-    items.push({
-      good:hy < 0,
-      text:`HY credit spreads ${hy>0?"widened":"tightened"} ${Math.abs(hy*100).toFixed(0)} bps`
-    });
-  }
-
-  const dynCommit = dynamicScore(data,"commitmentOverhang",latest.commitmentScore);
-  const dynFin = dynamicScore(data,"financingConditions",latest.financingScore);
-  items.push({
-    good:Number(dynCommit.score) <= 25,
-    text:`Commitment Overhang ${fmtScore(dynCommit.score)} · ${dynCommit.status}`
-  });
-
-  items.push({
-    good:Number(dynFin.score) <= 25,
-    text:`Financing Conditions ${fmtScore(dynFin.score)} · ${dynFin.status}`
-  });
-
-  document.getElementById("takeaways").innerHTML = items.slice(0,5).map(x => `
+  // Weekly editorial summary (31 Oct 2026). The underlying indicator scores remain dynamic.
+  const items = [
+    {good:false,text:"AI CAPEX is accelerating: Amazon's trailing free cash flow fell to −$42.4B even as AWS grew 39% YoY."},
+    {good:false,text:"Semiconductor risk repriced sharply: SOX lost 7.2% on Friday as investors questioned AI infrastructure returns."},
+    {good:false,text:"Market stress intensified: VIX approached 24 intraday on Friday, but closed just below 20."},
+    {good:false,text:"Funding and commitment risks remain elevated as hyperscalers increasingly rely on external capital to support AI buildout."},
+    {good:true,text:"AI demand remains strong, but investors are shifting focus from revenue growth to free cash flow and return on invested capital."}
+  ];
+  const html=items.map(x => `
     <div class="takeaway">
       <div class="takeaway-dot ${x.good?"dot-good":"dot-warn"}">${x.good?"↑":"!"}</div>
       <div>${escapeHtml(x.text)}</div>
     </div>`).join("");
+  const desktop=document.getElementById("takeaways");
+  const mobile=document.getElementById("mobileTakeaways");
+  if(desktop) desktop.innerHTML=html;
+  if(mobile) mobile.innerHTML=html;
 }
 
 
