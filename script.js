@@ -993,13 +993,13 @@ function renderTokenDemandDetailChart() {
 }
 
 function renderTakeaways(data) {
-  // Weekly editorial summary (31 Oct 2026). The underlying indicator scores remain dynamic.
+  // Weekly editorial summary (14 Nov 2026). Scores and market signals remain dynamic.
   const items = [
-    {good:false,text:"AI CAPEX is accelerating: Amazon's trailing free cash flow fell to −$42.4B even as AWS grew 39% YoY."},
-    {good:false,text:"Semiconductor risk repriced sharply: SOX lost 7.2% on Friday as investors questioned AI infrastructure returns."},
-    {good:false,text:"Market stress intensified: VIX approached 24 intraday on Friday, but closed just below 20."},
-    {good:false,text:"Funding and commitment risks remain elevated as hyperscalers increasingly rely on external capital to support AI buildout."},
-    {good:true,text:"AI demand remains strong, but investors are shifting focus from revenue growth to free cash flow and return on invested capital."}
+    {good:false,text:"CoreWeave's Q3 revenue grew 168% YoY to $3.66B, but net interest expense climbed to $846M and its net loss reached $709M."},
+    {good:false,text:"CoreWeave now guides to $37–39B of 2026 CAPEX, keeping financing and execution risk in focus despite a $132.5B revenue backlog."},
+    {good:false,text:"Nvidia's leadership transition and sharp share-price reaction added uncertainty to an already volatile semiconductor market."},
+    {good:false,text:"AI credit remains stressed: CoreWeave's reported CDS level is elevated, while Oracle's latest reported 5-year spread remains near 280bp."},
+    {good:true,text:"Investor demand for AI financing remains substantial, including interest in Anthropic's planned IPO; the key test is whether future cash flows justify the spending."}
   ];
   const html=items.map(x => `
     <div class="takeaway">
@@ -1011,7 +1011,6 @@ function renderTakeaways(data) {
   if(desktop) desktop.innerHTML=html;
   if(mobile) mobile.innerHTML=html;
 }
-
 
 function renderMoneyCircle(data) {
   const x = data.canary?.latest || {};
@@ -1322,7 +1321,7 @@ function renderCanaryWatch(data) {
   const rows=(data?.canaryWatch||[])
     .filter(r=>r && r.show!==false && String(r.show).toLowerCase()!=="false")
     .sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")))
-    ;
+    .slice(0,6);
 
   window.CANARY_WATCH_ROWS=rows;
   const formatDate=(value)=>{
