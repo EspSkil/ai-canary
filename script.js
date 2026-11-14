@@ -993,23 +993,28 @@ function renderTokenDemandDetailChart() {
 }
 
 function renderTakeaways(data) {
-  // Weekly editorial summary (14 Nov 2026). Scores and market signals remain dynamic.
-  const items = [
-    {good:false,text:"CoreWeave's Q3 revenue grew 168% YoY to $3.66B, but net interest expense climbed to $846M and its net loss reached $709M."},
-    {good:false,text:"CoreWeave now guides to $37–39B of 2026 CAPEX, keeping financing and execution risk in focus despite a $132.5B revenue backlog."},
-    {good:false,text:"Nvidia's leadership transition and sharp share-price reaction added uncertainty to an already volatile semiconductor market."},
-    {good:false,text:"AI credit remains stressed: CoreWeave's reported CDS level is elevated, while Oracle's latest reported 5-year spread remains near 280bp."},
-    {good:true,text:"Investor demand for AI financing remains substantial, including interest in Anthropic's planned IPO; the key test is whether future cash flows justify the spending."}
-  ];
-  const html=items.map(x => `
-    <div class="takeaway">
-      <div class="takeaway-dot ${x.good?"dot-good":"dot-warn"}">${x.good?"↑":"!"}</div>
-      <div>${escapeHtml(x.text)}</div>
-    </div>`).join("");
-  const desktop=document.getElementById("takeaways");
-  const mobile=document.getElementById("mobileTakeaways");
-  if(desktop) desktop.innerHTML=html;
-  if(mobile) mobile.innerHTML=html;
+  // Live market and indicator summary. Editorial news belongs in Canary Watch.
+  const x=data?.canary?.latest||{};
+  const m=data?.latestMarket||{};
+  const history=data?.marketHistory||[];
+  const items=[];
+  const numeric=v=>{const n=toNum(v);return Number.isFinite(n)?n:null;};
+  const signed=(n,unit)=>`${n>0?"+":""}${formatNumber(n,unit==="bp"?0:1)}${unit==="bp"?" bp":"%"}`;
+  const sox=numeric(x.soxChange);
+  if(m.sox && sox!==null) items.push({good:sox>=0,text:`SOX ${formatNumber(m.sox.value,0)} (${signed(sox,"%")}, ${x.soxPeriod||"1W"}). ${sox<0?"Semiconductor weakness increases AI-cycle risk.":"Semiconductor momentum supports the AI cycle."}`});
+  const vix=numeric(x.vixChange);
+  if(m.vix && vix!==null) items.push({good:vix<=0,text:`VIX ${formatNumber(m.vix.value,2)} (${signed(vix,"%")}, ${x.vixPeriod||"1D"}). ${vix>0?"Higher volatility signals rising market stress.":"Lower volatility eases near-term market stress."}`});
+  const yieldMove=numeric(x.us10yChangeBps);
+  if(m.us10y && yieldMove!==null) items.push({good:yieldMove<=0,text:`US 10Y yield ${formatNumber(m.us10y.value,2)}% (${signed(yieldMove,"bp")}, ${x.us10yPeriod||"1W"}). ${yieldMove>0?"Higher yields tighten financing conditions.":"Lower yields ease financing pressure."}`});
+  const hy=weeklyDelta(history,"hyOas");
+  if(m.hyOas && Number.isFinite(hy)) items.push({good:hy<=0,text:`US high-yield credit spread ${formatNumber(m.hyOas.value,2)}% (${signed(hy*100,"bp")} over 1W). ${hy>0?"Wider spreads indicate tighter credit.":"Narrower spreads indicate improving credit conditions."}`});
+  const tg=data?.latestTokenGpu||{};
+  const token=tg.TOKEN_SD;
+  const tokenChange=numeric(token?.["7dChange"]);
+  if(token && tokenChange!==null) items.push({good:tokenChange<=0,text:`Token price ${formatNumber(token.value,2)} (${signed(tokenChange,"%")}, 7D). ${tokenChange<0?"Lower prices can pressure compute economics.":"Higher prices may support compute monetization."}`});
+  if(!items.length) items.push({good:false,text:"Market indicator data is not yet available in the latest data.json snapshot."});
+  const html=items.slice(0,5).map(item=>`<div class="takeaway"><div class="takeaway-dot ${item.good?"dot-good":"dot-warn"}">${item.good?"↑":"!"}</div><div>${escapeHtml(item.text)}</div></div>`).join("");
+  for(const id of ["takeaways","mobileTakeaways"]){const el=document.getElementById(id);if(el)el.innerHTML=html;}
 }
 
 function renderMoneyCircle(data) {
