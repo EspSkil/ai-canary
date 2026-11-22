@@ -658,13 +658,13 @@ function renderOverview(data) {
   setText("snapshotDate", marketSnapshotDate ? `Snapshot ${marketSnapshotDate}` : "Latest market data");
 
   marketSignal("SOX", market.sox, "soxValue","soxMove","soxRisk",
-    Number(latest.soxChange), latest.soxPeriod || "1W", "pct", "inverse");
+    marketChangeValue(data,"sox","1W"), "1W", "pct", "inverse");
 
   marketSignal("VIX", market.vix, "vixValue","vixMove","vixRisk",
-    Number(latest.vixChange), latest.vixPeriod || "1D", "pct", "direct");
+    marketChangeValue(data,"vix","1D"), "1D", "pct", "direct");
 
   marketSignal("US10Y", market.us10y, "us10yValue","us10yMove","us10yRisk",
-    Number(latest.us10yChangeBps), latest.us10yPeriod || "1W", "bps", "direct", "%");
+    marketChangeValue(data,"us10y","1W"), "1W", "bps", "direct", "%");
 
   renderTokenDemandOverview(data);
 
@@ -725,12 +725,37 @@ function setRiskChip(id,text,dir) {
   el.className = `risk-chip risk-${dir}`;
 }
 
-function weeklyDelta(history,key) {
-  const valid = history.filter(r => Number.isFinite(Number(r[key])));
-  if (valid.length < 2) return NaN;
-  return Number(valid[valid.length-1][key]) - Number(valid[valid.length-2][key]);
+// QA: changes are calculated only from dated MarketHistory observations.
+// Never fall back to September's locked WeeklyData percentage fields.
+function verifiedMarketChange(data, key, period) {
+  const lag = period === '1D' ? 1 : 5;
+  const rows = (data?.marketHistory || [])
+    .map(r => ({date: String(r.weekEnding || r.date || ''), value: finiteMarketValue(r[key])}))
+    .filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.value !== null)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (rows.length <= lag) return null;
+  const last=rows[rows.length-1], prior=rows[rows.length-1-lag];
+  const gap=(Date.parse(last.date+'T00:00:00Z')-Date.parse(prior.date+'T00:00:00Z'))/86400000;
+  if (gap<=0 || gap>(lag===1?5:12) || prior.value===0) return null;
+  const value=key==='us10y' ? (last.value-prior.value)*100 : last.value/prior.value-1;
+  if (!Number.isFinite(value)) return null;
+  return {value,period,latestDate:last.date,previousDate:prior.date};
+}
+function marketChangeValue(data,key,period) {
+  const computed=verifiedMarketChange(data,key,period);
+  return computed ? computed.value : NaN;
 }
 
+function weeklyDelta(history,key) {
+  // Five previous observations for a one-week credit spread change.
+  const rows=(history||[]).map(r=>({date:String(r.weekEnding||r.date||''),value:finiteMarketValue(r[key])}))
+    .filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.value!==null)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(rows.length<6)return NaN;
+  const a=rows[rows.length-1],b=rows[rows.length-6];
+  const days=(Date.parse(a.date+'T00:00:00Z')-Date.parse(b.date+'T00:00:00Z'))/86400000;
+  return days>0&&days<=12?a.value-b.value:NaN;
+}
 
 function finiteMarketValue(v){
   if(v === null || v === undefined || v === "") return null;
@@ -999,13 +1024,13 @@ function renderTakeaways(data) {
   const history=data?.marketHistory||[];
   const items=[];
   const numeric=v=>{const n=toNum(v);return Number.isFinite(n)?n:null;};
-  const signed=(n,unit)=>`${n>0?"+":""}${formatNumber(n,unit==="bp"?0:1)}${unit==="bp"?" bp":"%"}`;
-  const sox=numeric(x.soxChange);
-  if(m.sox && sox!==null) items.push({good:sox>=0,text:`SOX ${formatNumber(m.sox.value,0)} (${signed(sox,"%")}, ${x.soxPeriod||"1W"}). ${sox<0?"Semiconductor weakness increases AI-cycle risk.":"Semiconductor momentum supports the AI cycle."}`});
-  const vix=numeric(x.vixChange);
-  if(m.vix && vix!==null) items.push({good:vix<=0,text:`VIX ${formatNumber(m.vix.value,2)} (${signed(vix,"%")}, ${x.vixPeriod||"1D"}). ${vix>0?"Higher volatility signals rising market stress.":"Lower volatility eases near-term market stress."}`});
-  const yieldMove=numeric(x.us10yChangeBps);
-  if(m.us10y && yieldMove!==null) items.push({good:yieldMove<=0,text:`US 10Y yield ${formatNumber(m.us10y.value,2)}% (${signed(yieldMove,"bp")}, ${x.us10yPeriod||"1W"}). ${yieldMove>0?"Higher yields tighten financing conditions.":"Lower yields ease financing pressure."}`});
+  const signed=(n,unit)=>unit==="bp"?`${n>0?"+":""}${formatNumber(n,0)} bp`:`${n>0?"+":""}${formatPercent(n)}`;
+  const sox=marketChangeValue(data,"sox","1W");
+  if(m.sox && Number.isFinite(sox)) items.push({good:sox>=0,text:`SOX ${formatNumber(m.sox.value,0)} (${signed(sox,"%")}, 1W). ${sox<0?"Semiconductor weakness increases AI-cycle risk.":"Semiconductor momentum supports the AI cycle."}`});
+  const vix=marketChangeValue(data,"vix","1D");
+  if(m.vix && Number.isFinite(vix)) items.push({good:vix<=0,text:`VIX ${formatNumber(m.vix.value,2)} (${signed(vix,"%")}, 1D). ${vix>0?"Higher volatility signals rising market stress.":"Lower volatility eases near-term market stress."}`});
+  const yieldMove=marketChangeValue(data,"us10y","1W");
+  if(m.us10y && Number.isFinite(yieldMove)) items.push({good:yieldMove<=0,text:`US 10Y yield ${formatNumber(m.us10y.value,2)}% (${signed(yieldMove,"bp")}, 1W). ${yieldMove>0?"Higher yields tighten financing conditions.":"Lower yields ease financing pressure."}`});
   const hy=weeklyDelta(history,"hyOas");
   if(m.hyOas && Number.isFinite(hy)) items.push({good:hy<=0,text:`US high-yield credit spread ${formatNumber(m.hyOas.value,2)}% (${signed(hy*100,"bp")} over 1W). ${hy>0?"Wider spreads indicate tighter credit.":"Narrower spreads indicate improving credit conditions."}`});
   const tg=data?.latestTokenGpu||{};
@@ -1307,8 +1332,8 @@ function renderMobileDashboard(data) {
   const history=data.marketHistory||[];
   const hy=weeklyDelta(history,"hyOas");
   const signals=[
-    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",Number.isFinite(toNum(x.soxChange))?`${toNum(x.soxChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.soxChange)))}`:"—"],
-    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",Number.isFinite(toNum(x.vixChange))?`${toNum(x.vixChange)>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(x.vixChange)))}`:"—"],
+    ["SOX",m.sox?formatNumber(m.sox.value,0):"—",Number.isFinite(marketChangeValue(data,"sox","1W"))?`${marketChangeValue(data,"sox","1W")>0?"↑":"↓"} ${formatPercent(Math.abs(marketChangeValue(data,"sox","1W")))} · 1W`:"—"],
+    ["VIX",m.vix?formatNumber(m.vix.value,2):"—",Number.isFinite(marketChangeValue(data,"vix","1D"))?`${marketChangeValue(data,"vix","1D")>0?"↑":"↓"} ${formatPercent(Math.abs(marketChangeValue(data,"vix","1D")))} · 1D`:"—"],
     ["US 10Y",m.us10y?`${formatNumber(m.us10y.value,2)}%`:"—",marketMonthChange("us10y","bps").text],
     ["HY OAS",m.hyOas?`${formatNumber(m.hyOas.value,2)}%`:"—",Number.isFinite(hy)?`${hy>0?"↑":"↓"} ${Math.abs(hy*100).toFixed(0)} bps · 1W`:"—"],
     ["H100",tg.H100_SD?`$${formatNumber(tg.H100_SD.value,2)}`:"—",tg.H100_SD&&Number.isFinite(toNum(tg.H100_SD["7dChange"]))?`${toNum(tg.H100_SD["7dChange"])>0?"↑":"↓"} ${formatPercent(Math.abs(toNum(tg.H100_SD["7dChange"])))}`:"—"],
